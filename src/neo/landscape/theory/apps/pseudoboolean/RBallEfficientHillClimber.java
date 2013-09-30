@@ -1,5 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import java.io.IOException;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +17,6 @@ import neo.landscape.theory.apps.util.RootedTreeGenerator.RootedTreeCallback;
 
 public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisPBF> {
 
-	public static class MapOfScores extends HashMap<SetOfVars,Entry<RBallPBMove>>{}
 	public static class SetOfSetOfVars extends HashSet<SetOfVars>{}
 	public static class SetOfVars extends BitSet implements Iterable<Integer>{
 		public SetOfVars(int n)
@@ -69,8 +69,8 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 	private DoubleLinkedList<RBallPBMove> [] improving;
 	private DoubleLinkedList<RBallPBMove> [] nonImproving;
 	private int minImpRadius;
-	private MapOfScores mos;
-	private SetOfVars [][] subfns;
+	private Entry<RBallPBMove> [] mos;
+	private int [][] subfns;
 	
 	private int radius;
 	
@@ -150,8 +150,11 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		{
 			// For each subfunction do ...			
 			// For each move score evaluate the subfunction and update the corresponding value
-			for (SetOfVars sov: subfns[sf])
+			for (int e_ind: subfns[sf])
 			{
+				Entry<RBallPBMove> e = mos[e_ind];
+				SetOfVars sov = e.v.flipVariables;
+				
 				// Build the subsolutions
 				int k= problem.getK();
 				PBSolution sub_sov = new PBSolution(k);
@@ -180,7 +183,6 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 				
 				double update = (v_sub_sov_i - v_sub_i) - (v_sub_sov-v_sub); 
 				
-				Entry<RBallPBMove> e = mos.get(sov);
 				double old = e.v.improvement;
 				e.v.improvement += update;
 				if ( (old > 0 && old+update > 0) || (old <= 0 && old+update <= 0) )
@@ -221,21 +223,39 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 	
 	private void initializeProblemDependentStructures()
 	{
-		subfns = new SetOfVars [problem.getM()][];
+		// This map is to implement a one-to-one function between SetOfVars and integers (Minimal Perfect Hashing Function)
+		Map<SetOfVars,Integer> aux_map = new HashMap<SetOfVars,Integer>();
+		subfns = new int [problem.getM()][];
+		
+		int index=0;
 		for (int sf=0; sf < subfns.length; sf++)
 		{
-			subfns[sf] = generateTuples(problem.getMasks()[sf]);
-			for (SetOfVars sov: subfns[sf])
-			{
-				if (!mos.containsKey(sov))
-				{
-					RBallPBMove rmove = new RBallPBMove(0, sov);
-					Entry<RBallPBMove> e = new Entry<RBallPBMove>(rmove);
-					mos.put(sov, e);
-					nonImproving[sov.cardinality()].add(e);
-				}
-			}
+			SetOfSetOfVars ssv = generateTuples(problem.getMasks()[sf]); 
 			
+			subfns[sf] = new int [ssv.size()];
+			int j=0;
+			for (SetOfVars sov: ssv)
+			{
+				Integer val = aux_map.get(sov);
+				if (val == null)
+				{
+					val = index;
+					aux_map.put(sov, val);
+					index++;
+				}
+				subfns[sf][j++]=val;
+			}
+		}
+		
+		mos = new Entry [aux_map.size()];
+		
+		for (Map.Entry<SetOfVars, Integer> entry : aux_map.entrySet())
+		{
+			SetOfVars sov = entry.getKey();
+			RBallPBMove rmove = new RBallPBMove(0, sov);
+			Entry<RBallPBMove> e = new Entry<RBallPBMove>(rmove);
+			mos[entry.getValue()] = e;
+			nonImproving[sov.cardinality()].add(e);
 		}
 	}
 	
@@ -245,16 +265,14 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		double v_sol = problem.evaluate(sol);
 		minImpRadius = radius+1;
 		
-		for (Map.Entry<SetOfVars,Entry<RBallPBMove>> entry : mos.entrySet())
+		for (Entry<RBallPBMove> e : mos)
 		{
-			SetOfVars sov = entry.getKey();
-			Entry<RBallPBMove> e = entry.getValue();
+			SetOfVars sov = e.v.flipVariables;
 			
-			int n= problem.getN();
-			PBSolution sol_sov = new PBSolution (n);
-			for (int j=0; j < n; j++)
+			PBSolution sol_sov = new PBSolution (sol);
+			for (int bit: sov)
 			{
-				sol_sov.setBit(j,sol.getBit(j) ^ (sov.get(j)?0x01:0x00));
+				sol_sov.flipBit(bit);
 			}
 			
 			double v_sol_sov = problem.evaluate(sol_sov);
@@ -285,11 +303,9 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		}
 		
 		minImpRadius = radius+1;
-		
-		mos = new MapOfScores(); 
 	}
 	
-	private SetOfVars [] generateTuples(int [] init_vars)
+	private SetOfSetOfVars generateTuples(int [] init_vars)
 	{
 		if (init_vars ==null)
 		{
@@ -380,120 +396,18 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 							{
 								run (depth+1);
 							}
-
 						}
-
 					}}.run(1);
-				
-				
-				/*
-				indices[0]=0;
-				variables[0] = -1;
-				int depth=1;
-				State st = State.ENTRY;
-
-				while(depth > 0)
-				{
-					switch (st)
-					{
-					case ENTRY:
-						// Initialize the "for loop"
-						if (siblings[depth]!=0)
-						{
-							// To avoid permutations over sets
-							indices[depth] = indices[siblings[depth]]+1;
-						}
-						else
-						{
-							indices[depth] = 0;
-						}
-						st = State.CONDITION;
-						break;
-
-					case CONDITION:
-						// Check the condition of the "for loop"
-						par_var = variables[par[depth]];
-						src = (par_var < 0)?init_vars_f:interactions[par_var];
-
-						if (indices[depth] < src.length)
-						{
-							//OK
-							st = State.BODY;
-						}
-						else
-						{
-							// the condition does not hold
-							st = State.EXIT;
-						}
-
-						break;
-					case BODY:
-						par_var = variables[par[depth]];
-						src = (par_var < 0)?init_vars_f:interactions[par_var];
-						// Assign the corresponding variable
-						variables[depth] = src[indices[depth]];
-						// Check if the variable appeared before
-						int ptr=1;
-						while (ptr < depth && variables[ptr]!=variables[depth])
-						{
-							ptr++;
-						}
-
-						if (ptr < depth)
-						{
-							// The variable appeared, we have to continue with the next variable
-							st = State.INCREMENT;
-							break;
-						}
-						// else the variable didn't appear so we follow in the body 
-						// Check if we assigned all the variables
-						if (depth == p)
-						{
-							// If this is the case, we have to mark the set of variables as "to be updated"
-							// For each combination, mark the sets of variables as "touched"
-							SetOfVars sov = new SetOfVars(p);
-							for (int v=1; v <= p; v++)
-							{
-								sov.set(variables[v]);
-							}
-							ssv.add(sov);
-							// Let us continue with the next variable
-							st = State.INCREMENT;
-						}
-						else
-						{
-							// If not, we have to go down and run another recursive call
-							st = State.ENTRY;
-							depth++;
-						}
-
-						break;
-					case INCREMENT:
-						// Increase the indice and goes to check the condition
-						indices[depth]++;
-						st = State.CONDITION;
-						break;
-					case EXIT:
-						// The "for loop" has finished, so we have to return from the recursive call
-						depth--;
-						st = State.INCREMENT;
-						break;
-					}
-				}
-*/
-				
 			}}); 
-		return ssv.toArray(new SetOfVars[0]);
+		return ssv;
 	}
 	
 	public void checkConsistency()
 	{
-		for (SetOfVars sov: mos.keySet())
+		for (Entry<RBallPBMove> e: mos)
 		{
-			Entry<RBallPBMove> e = mos.get(sov);
+			SetOfVars sov = e.v.flipVariables;
 			PBSolution sol_sov = new PBSolution (sol);
-			
-			assert e.v.flipVariables == sov;
 			
 			for (int var: sov)
 			{
