@@ -19,6 +19,19 @@ public class PBSolution implements Solution<KBoundedEpistasisPBF> {
 		this.data = other.data.clone();
 	}
 	
+	public void copyFrom(PBSolution other)
+	{
+		if (other.n != n)
+		{
+			n = other.n;
+			data = new int [n/32+1];;
+		}
+		
+		for (int i = 0; i < other.data.length; i++) {
+			data[i] = other.data[i];
+		}
+	}
+	
 	public int getBit(int i)
 	{
 		return (data[i>>>5] >>> (i&0x1f))&0x1;

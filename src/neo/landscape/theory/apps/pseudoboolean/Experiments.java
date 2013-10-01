@@ -53,7 +53,16 @@ public class Experiments {
 		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
 		PBSolution pbs = pbf.getRandomSolution();
 		
+		/*
+		long all_sols = System.currentTimeMillis();
+		for (int t=0; t < 100; t++)
+		{
+			rball.initialize(pbf, pbf.getRandomSolution());
+		}*/
+		
 		rball.initialize(pbf, pbs);
+		
+		//long total_all_sols = System.currentTimeMillis()-all_sols;
 		
 		int n_int = pbf.getN();
 		int bit = 0;
@@ -89,6 +98,11 @@ public class Experiments {
 		System.out.println("Solution init time: "+rball.getSolutionInitTime());
 		System.out.println("Move time: "+(final_time-init_time));
 		System.out.println("Stored scores:"+rball.getStoredScores());
+		//System.out.println("Total solution init time: "+total_all_sols);
+		//System.out.println("Total moves: "+rball.getTotalMoves());
+		//System.out.println("Subfns evals in moves: "+rball.getSubfnsEvalsInMoves());
+		//System.out.println("Total solution inits: "+rball.getTotalSolutionInits());
+		//System.out.println("Subfns evals in sol inits: "+rball.getSubfnsEvalsInSolInits());
 		System.out.println("Var appearance (max):"+max_app);
 		System.out.println("Var interaction (max):"+max_interactions);
 

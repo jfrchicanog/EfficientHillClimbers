@@ -14,7 +14,7 @@ public class Driver {
 		
 		KBoundedEpistasisPBF pbf = new NKLandscapes();
 		Properties prop = new Properties();
-		prop.setProperty(NKLandscapes.N_STRING, "1000");
+		prop.setProperty(NKLandscapes.N_STRING, "100");
 		prop.setProperty(NKLandscapes.K_STRING, "3");
 		//prop.setProperty(NKLandscapes.Q_STRING, "100");
 		prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
@@ -34,10 +34,10 @@ public class Driver {
 		
 		long after_time = System.currentTimeMillis();
 		
-		//rball.checkConsistency();
+		rball.checkConsistency();
 		double init_fitness = pbf.evaluate(pbs);
 		double imp = rball.move();
-		//rball.checkConsistency();
+		rball.checkConsistency();
 		double sum = imp;
 		
 		double old_fit, new_fit = init_fitness;
@@ -53,7 +53,7 @@ public class Driver {
 			}
 			//System.out.println("Imp:"+imp);
 			imp = rball.move();
-			//rball.checkConsistency();
+			rball.checkConsistency();
 			sum += imp;
 			j++;
 		}
