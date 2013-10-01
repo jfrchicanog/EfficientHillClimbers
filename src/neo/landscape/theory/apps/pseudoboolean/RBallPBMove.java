@@ -21,7 +21,7 @@ public class RBallPBMove implements Move<KBoundedEpistasisPBF, PBSolution> {
 	public RBallPBMove(double i, int n)
 	{
 		improvement = i;
-		flipVariables = new SetOfVars(n);
+		flipVariables = new SetOfVars();
 	}
 	
 	public RBallPBMove() {

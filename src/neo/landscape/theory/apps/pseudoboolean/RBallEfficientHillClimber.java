@@ -1,6 +1,7 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,45 +19,146 @@ import neo.landscape.theory.apps.util.RootedTreeGenerator.RootedTreeCallback;
 public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisPBF> {
 
 	public static class SetOfSetOfVars extends HashSet<SetOfVars>{}
-	public static class SetOfVars extends BitSet implements Iterable<Integer>{
-		public SetOfVars(int n)
+	public static class SetOfVars extends BitSet implements Iterable<Integer> {
+		
+		public int [] vars=null;
+		
+		public void inmute()
 		{
-			super(n);
+			int [] aux = new int [cardinality()];
+			int j=0;
+			for (int v: this)
+			{
+				aux[j++] = v;
+			}
+			vars=aux;
+		}
+		
+		public void add(int i)
+		{
+			if (vars == null)
+			{
+				set(i);
+			}
+			else
+			{
+				throw new RuntimeException("Cannot add more variables if the SetOfVars is inmmutable");
+			}
+			
+		}
+		
+		public boolean contains(int i)
+		{
+			if (vars != null)
+			{
+				for (int j=0; j < vars.length; j++)
+				{
+					if (vars[j]==i)
+					{
+						return true;
+					}
+				}
+				return false;
+				
+			}
+			else
+			{
+				return get(i);
+			}
+		}
+		
+		public int size()
+		{
+			if (vars != null)
+			{
+				return vars.length;
+			}
+			else
+			{
+				return cardinality();
+			}
+		}
+		
+		
+		
+		@Override
+		public int hashCode() {
+			if (vars != null)
+			{
+				return Arrays.hashCode(vars);
+			}
+			else
+			{
+				return super.hashCode();
+			}
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (vars != null && obj instanceof SetOfVars && ((SetOfVars)obj).vars != null)
+				return Arrays.equals(vars, ((SetOfVars)obj).vars);
+			return super.equals(obj);
+			
 		}
 
 		@Override
 		public Iterator<Integer> iterator() {
-			return new Iterator<Integer>(){
-				int var=nextSetBit(0);
-
-				@Override
-				public boolean hasNext() {
-					return var!=-1;
-				}
-
-				@Override
-				public Integer next() {
-					int res=var;
-					if (res < 0)
-					{
-						throw new NoSuchElementException();
+			if (vars!=null)
+			{
+				return new Iterator<Integer>(){
+					int ind=0;
+					@Override
+					public boolean hasNext() {
+						return ind < vars.length;
 					}
-					else
-					{
-						var=nextSetBit(var+1);
+
+					@Override
+					public Integer next() {
+						return vars[ind++];
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
 					}
 					
-					return res;
-				}
+				};
+			}
+			else
+			{
+				return new Iterator<Integer>(){
+					int var=nextSetBit(0);
 
-				@Override
-				public void remove() {
-					throw new UnsupportedOperationException();
-				}
-				
-			};
+					@Override
+					public boolean hasNext() {
+						return var!=-1;
+					}
+
+					@Override
+					public Integer next() {
+						int res=var;
+						if (res < 0)
+						{
+							throw new NoSuchElementException();
+						}
+						else
+						{
+							var=nextSetBit(var+1);
+						}
+
+						return res;
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+
+				};
+			}
 		}
-		
 	}
 	
 	private interface RecursiveCalls {
@@ -74,6 +176,15 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 	
 	private int radius;
 	
+	// Auxiliary data structures
+	private int [] flip_bits;
+	
+	// Statistics of the operator
+	private int [] moves_per_distance;
+	private long problem_init_time;
+	private long solution_init_time;
+
+
 	public RBallEfficientHillClimber(int r)
 	{
 		this.radius=r;
@@ -125,13 +236,9 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		RBallPBMove move = improving[minImpRadius].getFirst().v;
 		double imp = move.improvement;
 		
+		moves_per_distance[minImpRadius]++;
 		
-		// Roll out over 1 bit update (updating also the solution)
-		
-		for (int var: move.flipVariables)
-		{
-			moveOneBit(var);
-		}
+		moveSeveralBitsEff(move.flipVariables);
 		
 		return imp;
 	}
@@ -141,45 +248,79 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		return sol;
 	}
 	
-	private void moveOneBit(int i)
+	private void moveSeveralBitsIneff(SetOfVars bits)
+	{
+		for (int var: bits)
+		{
+			moveOneBit(var);
+		}
+	}
+	
+	private void moveSeveralBitsEff(SetOfVars bits)
 	{
 		int [][] masks = problem.getMasks();
+		int k= problem.getK();
 		
-		// Identify which in which functions does i appears (appearsIn array)
-		for (int sf: problem.getAppearsIn()[i])
+		// Identify which which subfunctions will be afffected
+		SetOfVars affected_subfns = new SetOfVars();
+		for (int bit: bits)
+		{
+			for (int sf: problem.getAppearsIn()[bit])
+			{
+				affected_subfns.add(sf);
+			}
+		}
+		
+		for (int sf: affected_subfns)
 		{
 			// For each subfunction do ...			
 			// For each move score evaluate the subfunction and update the corresponding value
+			PBSolution sub = new PBSolution(k);
+			for (int j=0; j < k; j++)
+			{
+				int bit = masks[sf][j];
+				sub.setBit(j,sol.getBit(bit));
+			}
+			double v_sub = problem.evaluateSubfunction(sf, sub); 
+			
 			for (int e_ind: subfns[sf])
 			{
 				Entry<RBallPBMove> e = mos[e_ind];
 				SetOfVars sov = e.v.flipVariables;
 				
 				// Build the subsolutions
-				int k= problem.getK();
-				PBSolution sub_sov = new PBSolution(k);
-				PBSolution sub = new PBSolution(k);
+				PBSolution sub_sov = new PBSolution(sub);
 				
-				int ind_i =0;
+				int ind_i = 0;
 				for (int j=0; j < k; j++)
 				{
 					int bit = masks[sf][j];
-					sub.setBit(j,sol.getBit(bit));
-					sub_sov.setBit(j,sol.getBit(bit) ^ (sov.get(bit)?0x01:0x00));
-					
-					if (bit==i)
+					if (sov.contains(bit))
 					{
-						ind_i=j;  // Earlier to save time
+						sub_sov.flipBit(j);
+					}
+					
+					if (bits.contains(bit))
+					{
+						flip_bits[ind_i++]=j; 
 					}
 				}
 				
-				double v_sub_sov = problem.evaluateSubfunction(sf, sub_sov); // Probably can be computed earlier to save time
-				double v_sub = problem.evaluateSubfunction(sf, sub);
+				double v_sub_sov = problem.evaluateSubfunction(sf, sub_sov); 
 				
-				sub.flipBit(ind_i);
-				sub_sov.flipBit(ind_i);
+				for (int j=0; j < ind_i; j++)
+				{
+					sub.flipBit(flip_bits[j]);
+					sub_sov.flipBit(flip_bits[j]);
+				}
+				
 				double v_sub_sov_i = problem.evaluateSubfunction(sf, sub_sov);
 				double v_sub_i = problem.evaluateSubfunction(sf, sub);
+				
+				for (int j=0; j < ind_i; j++)
+				{
+					sub.flipBit(flip_bits[j]);
+				}
 				
 				double update = (v_sub_sov_i - v_sub_i) - (v_sub_sov-v_sub); 
 				
@@ -191,13 +332,107 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 				}
 				else if (old > 0)
 				{
-					int p = sov.cardinality();
+					int p = sov.size();
 					improving[p].remove(e);
 					nonImproving[p].add(e);
 				}
 				else
 				{
-					int p = sov.cardinality();
+					int p = sov.size();
+					nonImproving[p].remove(e);
+					improving[p].add(e);
+					
+					if (p < minImpRadius)
+					{
+						minImpRadius = p;
+					}
+					
+				}
+				
+			}
+		}
+		
+		// Update the minImpRadius variable
+		while (minImpRadius <= radius && improving[minImpRadius].isEmpty())
+		{
+			minImpRadius++;
+		}
+		
+		// Finally, flip the bit in the solution and we are done
+		for (int bit: bits)
+		{
+			sol.flipBit(bit);
+		}
+	}
+	
+	public void moveOneBit(int i)
+	{
+		int [][] masks = problem.getMasks();
+		int k= problem.getK();
+		
+		// Identify which in which functions does i appears (appearsIn array)
+		for (int sf: problem.getAppearsIn()[i])
+		{
+			// For each subfunction do ...			
+			// For each move score evaluate the subfunction and update the corresponding value
+			
+			PBSolution sub = new PBSolution(k);
+			for (int j=0; j < k; j++)
+			{
+				int bit = masks[sf][j];
+				sub.setBit(j,sol.getBit(bit));
+			}
+			double v_sub = problem.evaluateSubfunction(sf, sub); 
+			
+			for (int e_ind: subfns[sf])
+			{
+				Entry<RBallPBMove> e = mos[e_ind];
+				SetOfVars sov = e.v.flipVariables;
+				
+				// Build the subsolutions
+				
+				PBSolution sub_sov = new PBSolution(sub);
+				int ind_i =0;
+				for (int j=0; j < k; j++)
+				{
+					int bit = masks[sf][j];
+					if (sov.contains(bit))
+					{
+						sub_sov.flipBit(j);
+					}
+					
+					if (bit==i)
+					{
+						ind_i=j;  // Earlier to save time
+					}
+				}
+				
+				double v_sub_sov = problem.evaluateSubfunction(sf, sub_sov);
+				
+				sub.flipBit(ind_i);
+				sub_sov.flipBit(ind_i);
+				double v_sub_sov_i = problem.evaluateSubfunction(sf, sub_sov);
+				double v_sub_i = problem.evaluateSubfunction(sf, sub);
+				
+				sub.flipBit(ind_i);
+				
+				double update = (v_sub_sov_i - v_sub_i) - (v_sub_sov-v_sub); 
+				
+				double old = e.v.improvement;
+				e.v.improvement += update;
+				if ( (old > 0 && old+update > 0) || (old <= 0 && old+update <= 0) )
+				{
+					// nothing to do
+				}
+				else if (old > 0)
+				{
+					int p = sov.size();
+					improving[p].remove(e);
+					nonImproving[p].add(e);
+				}
+				else
+				{
+					int p = sov.size();
 					nonImproving[p].remove(e);
 					improving[p].add(e);
 					
@@ -223,6 +458,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 	
 	private void initializeProblemDependentStructures()
 	{
+		long init=System.currentTimeMillis();
 		// This map is to implement a one-to-one function between SetOfVars and integers (Minimal Perfect Hashing Function)
 		Map<SetOfVars,Integer> aux_map = new HashMap<SetOfVars,Integer>();
 		subfns = new int [problem.getM()][];
@@ -255,12 +491,15 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 			RBallPBMove rmove = new RBallPBMove(0, sov);
 			Entry<RBallPBMove> e = new Entry<RBallPBMove>(rmove);
 			mos[entry.getValue()] = e;
-			nonImproving[sov.cardinality()].add(e);
+			nonImproving[sov.size()].add(e);
 		}
+		
+		problem_init_time = System.currentTimeMillis()-init;
 	}
 	
 	private void initializeSolutionDependentStructures()
 	{
+		long init = System.currentTimeMillis();
 		// Compute the scores for all the values of the map
 		double v_sol = problem.evaluate(sol);
 		minImpRadius = radius+1;
@@ -280,7 +519,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 			
 			if (e.v.improvement > 0)
 			{
-				int p = sov.cardinality();
+				int p = sov.size();
 				nonImproving[p].remove(e);
 				improving[p].add(e);
 				
@@ -290,6 +529,8 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 				}
 			}
 		}
+		
+		solution_init_time = System.currentTimeMillis()-init;
 	}
 	
 	private void initializeOperatorDependentStructures() {
@@ -303,6 +544,8 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		}
 		
 		minImpRadius = radius+1;
+		moves_per_distance = new int [radius+1];
+		flip_bits = new int [radius];
 	}
 	
 	private SetOfSetOfVars generateTuples(int [] init_vars)
@@ -385,11 +628,12 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 							{
 								// If this is the case, we have to mark the set of variables as "to be updated"
 								// For each combination, mark the sets of variables as "touched"
-								SetOfVars sov = new SetOfVars(p);
+								SetOfVars sov = new SetOfVars();
 								for (int v=1; v <= p; v++)
 								{
-									sov.set(variables[v]);
+									sov.add(variables[v]);
 								}
+								sov.inmute();
 								ssv.add(sov);
 							}
 							else
@@ -424,16 +668,35 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		{
 			for (RBallPBMove move: improving[p])
 			{
-				assert move.flipVariables.cardinality() == p;
+				assert move.flipVariables.size() == p;
 				assert move.improvement > 0;
 			}
 			
 			for (RBallPBMove move: nonImproving[p])
 			{
-				assert move.flipVariables.cardinality() == p;
+				assert move.flipVariables.size() == p;
 				assert move.improvement <= 0;
 			}
 		}
+	}
+	
+	public int [] getMovesPerDinstance()
+	{
+		return moves_per_distance;
+	}
+	
+	public int getStoredScores()
+	{
+		return mos.length;
+	}
+	
+	public long getProblemInitTime() {
+		return problem_init_time;
+	}
+
+
+	public long getSolutionInitTime() {
+		return solution_init_time;
 	}
 	
 

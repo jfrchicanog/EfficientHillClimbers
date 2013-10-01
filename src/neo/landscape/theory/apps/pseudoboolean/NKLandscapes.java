@@ -16,9 +16,11 @@ public class NKLandscapes extends KBoundedEpistasisPBF {
 	public static final String N_STRING = "n";
 	public static final String K_STRING = "k";
 	public static final String Q_STRING = "q";
+	public static final String CIRCULAR_STRING = "circular";
 	
 	private double [][] subfunctions;
 	private int q;
+	private boolean circular;
 	
 	@Override
 	public void setConfiguration(Properties prop) {
@@ -36,11 +38,61 @@ public class NKLandscapes extends KBoundedEpistasisPBF {
 			q = Integer.parseInt(prop.getProperty(Q_STRING));
 		}
 		
+		circular = false;
+		if (prop.getProperty(CIRCULAR_STRING)!= null)
+		{
+			if (prop.getProperty(CIRCULAR_STRING).equals("yes"))
+			{
+				circular = true;
+			}
+		}
+		
 		subfunctions = new double [m][twoToK];
 		masks = new int [m][k];
 		
 		// Initialize masks and subfunctions
 		
+		if (circular)
+		{
+			initializeMasksCircular();
+		}
+		else
+		{
+			initializaMasksNonCircular();
+		}
+		
+		// Initialize subfunctions
+		initializeSubfunctions();
+	}
+	
+	private void initializeSubfunctions()
+	{
+		int twoToK = 1 << k;
+		for (int sf=0; sf < m; sf++)
+		{
+			for (int i=0; i < twoToK; i++)
+			{
+				subfunctions[sf][i] = rnd.nextInt(q);
+			}
+		}
+	}
+	
+	private void initializeMasksCircular()
+	{
+		for (int sf=0; sf < m; sf++)
+		{
+			// Initialize masks
+			masks[sf][0]=sf;
+			for (int i=1; i < k; i++)
+			{
+				masks[sf][i] = (sf+i) % n;
+			}
+			
+		}
+	}
+	
+	private void initializaMasksNonCircular()
+	{
 		int [] aux = new int [n-1];
 		for (int i=0; i < n-1; i++)
 		{
@@ -75,12 +127,6 @@ public class NKLandscapes extends KBoundedEpistasisPBF {
 				}
 			}
 			
-			
-			// Initialize subfunctions
-			for (int i=0; i < twoToK; i++)
-			{
-				subfunctions[sf][i] = rnd.nextInt(q);
-			}
 		}
 	}
 	

@@ -7,6 +7,7 @@ import java.lang.management.ManagementFactory;
 import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.HillClimber;
+import neo.landscape.theory.apps.util.Seeds;
 
 public class Driver {
 
@@ -79,14 +80,6 @@ public class Driver {
 		}
 	}
 	
-	
-	public static long getPID() {
-		String nameOfRunningVM = ManagementFactory.getRuntimeMXBean().getName();
-		int p = nameOfRunningVM.indexOf('@');
-		String pid = nameOfRunningVM.substring(0, p);
-		return Long.parseLong(pid);
-	}
-
 
 	public void runHillClimbing (String [] args)
 	{
@@ -100,7 +93,7 @@ public class Driver {
 		String instance = args[1];
 		String colors = args[2];
 		int moves = Integer.parseInt(args[3]);
-		long seed = System.currentTimeMillis() + getPID();
+		long seed = Seeds.getSeed();
 		
 		if (args.length >= 5)
 		{

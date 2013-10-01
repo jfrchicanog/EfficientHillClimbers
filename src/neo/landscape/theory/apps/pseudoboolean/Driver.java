@@ -1,5 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import java.util.Arrays;
 import java.util.Properties;
 
 public class Driver {
@@ -16,6 +17,7 @@ public class Driver {
 		prop.setProperty(NKLandscapes.N_STRING, "1000");
 		prop.setProperty(NKLandscapes.K_STRING, "3");
 		//prop.setProperty(NKLandscapes.Q_STRING, "100");
+		prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
 		pbf.setSeed(1);
 		
 		pbf.setConfiguration(prop);
@@ -67,6 +69,9 @@ public class Driver {
 		System.out.println("Move time: "+(final_time - after_time));
 		System.out.println("Total time: "+(final_time-init_time));
 		System.out.println("Total moves: "+j);
+		System.out.println("Stored scores:"+rball.getStoredScores());
+		System.out.println("Moves perdistance:"+Arrays.toString(rball.getMovesPerDinstance()));
+		
 		if (sum != final_fitness-init_fitness)
 		{
 			System.out.println("Something wrong");
