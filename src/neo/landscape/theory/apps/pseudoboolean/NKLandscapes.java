@@ -240,4 +240,8 @@ public class NKLandscapes extends KBoundedEpistasisPBF {
 		
 	}
 
+	public boolean isCircular() {
+		return circular;
+	}
+
 }

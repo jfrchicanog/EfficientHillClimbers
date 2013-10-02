@@ -1,17 +1,147 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import neo.landscape.theory.apps.util.Seeds;
 
 public class Experiments {
 	
+	public void qualityExperiments(String [] args)
+	{
+		if (args.length < 6)
+		{
+			System.out.println("Arguments: quality <n> <k> <q> <circular> <r> <time(s)> [<seed>]");
+			return;
+		}
+		
+		String n = args[0];
+		String k = args[1];
+		String q = args[2];
+		String circular = args[3];
+		int r = Integer.parseInt(args[4]);
+		long time =  Integer.parseInt(args[5]);
+		long seed = 0;
+		if (args.length >= 7)
+		{
+			seed = Long.parseLong(args[6]);
+		}
+		else
+		{
+			seed = Seeds.getSeed();
+		}
+		
+		
+		KBoundedEpistasisPBF pbf = new NKLandscapes();
+		Properties prop = new Properties();
+		prop.setProperty(NKLandscapes.N_STRING, n);
+		prop.setProperty(NKLandscapes.K_STRING, k);
+		
+		if (!q.equals("-"))
+		{
+			prop.setProperty(NKLandscapes.Q_STRING, q);
+		}
+		
+		if (circular.equals("y"))
+		{
+			prop.setProperty(NKLandscapes.CIRCULAR_STRING,"yes");
+		}
+		
+		pbf.setSeed(seed);
+		pbf.setConfiguration(prop);
+		
+		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
+		
+		long init_time = System.currentTimeMillis();
+		long elapsed_time = init_time;
+		double sol_q = -Double.MAX_VALUE;
+		
+		while (elapsed_time-init_time < time*1000)
+		{
+			PBSolution pbs = pbf.getRandomSolution();
+			rball.initialize(pbf, pbs);
+			double init_quality = rball.getSolutionQuality();
+			double imp;
+			long moves = 0;
+			
+			rball.resetMovesPerDistance();
+			
+			do
+			{
+				imp = rball.move();
+				moves++;
+			} while (imp > 0);
+			moves--;
+			
+			double final_quality = rball.getSolutionQuality();
+			
+			if (final_quality > sol_q)
+			{
+				sol_q = final_quality;
+			}
+			
+			elapsed_time = System.currentTimeMillis();
+			
+			System.out.println("Moves: "+moves);
+			System.out.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
+			System.out.println("Improvement: "+(final_quality-init_quality));
+			System.out.println("Best solution quality: "+sol_q);
+			System.out.println("Elapsed Time: "+(elapsed_time-init_time));
+			
+		}
+		
+		Map<Integer,Integer> appearance = new HashMap<Integer,Integer>();
+		Map<Integer, Integer> interactions = new HashMap<Integer,Integer>();
+		
+		
+		for (int i=0; i < pbf.getN(); i++)
+		{
+			int appears = pbf.getAppearsIn()[i].length;
+			if (appearance.get(appears)==null)
+			{
+				appearance.put(appears, 1);
+			}
+			else
+			{
+				appearance.put (appears,appearance.get(appears)+1);
+			}
+				
+			
+			int interacts = pbf.getInteractions()[i].length;
+			if (interactions.get(interacts)==null)
+			{
+				interactions.put(interacts, 1);
+			}
+			else
+			{
+				interactions.put(interacts, interactions.get(interacts)+1);
+			}
+			
+		}
+		
+		System.out.println("N: "+n);
+		System.out.println("M: "+n);
+		System.out.println("K: "+k);
+		if (pbf instanceof NKLandscapes)
+		{
+			System.out.println("Q: "+((NKLandscapes)pbf).getQ());
+			System.out.println("Circular: "+((NKLandscapes)pbf).isCircular());
+		}
+		System.out.println("R: " + r);
+		System.out.println("Seed: "+seed);
+		System.out.println("Stored scores:"+rball.getStoredScores());
+		System.out.println("Var appearance (histogram):"+appearance);
+		System.out.println("Var interaction (histogram):"+interactions);
+		
+	}
+	
 	public void timeExperiments(String [] args)
 	{
 		if (args.length < 6)
 		{
-			System.out.println("Arguments: <n> <k> <q> <circular> <r> <moves> [<seed>]");
+			System.out.println("Arguments: time <n> <k> <q> <circular> <r> <moves> [<seed>]");
 			return;
 		}
 		
@@ -112,8 +242,25 @@ public class Experiments {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		
+		if (args.length < 1)
+		{
+			System.out.println("First argument: time | quality");
+			return;
+		}
+		
 		Experiments e = new Experiments();
-		e.timeExperiments(args);
+		switch (args[0])
+		{
+			case "time":
+				e.timeExperiments(Arrays.copyOfRange(args, 1, args.length));
+				break;
+			case "quality":
+				e.qualityExperiments(Arrays.copyOfRange(args, 1, args.length));
+				break;
+			
+		}
+		
 	}
 
 }

@@ -14,7 +14,7 @@ public class Driver {
 		
 		KBoundedEpistasisPBF pbf = new NKLandscapes();
 		Properties prop = new Properties();
-		prop.setProperty(NKLandscapes.N_STRING, "100");
+		prop.setProperty(NKLandscapes.N_STRING, "12000");
 		prop.setProperty(NKLandscapes.K_STRING, "3");
 		//prop.setProperty(NKLandscapes.Q_STRING, "100");
 		prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
@@ -34,10 +34,11 @@ public class Driver {
 		
 		long after_time = System.currentTimeMillis();
 		
-		rball.checkConsistency();
+		//rball.checkConsistency();
 		double init_fitness = pbf.evaluate(pbs);
+		assert (init_fitness == rball.getSolutionQuality());
 		double imp = rball.move();
-		rball.checkConsistency();
+		//rball.checkConsistency();
 		double sum = imp;
 		
 		double old_fit, new_fit = init_fitness;
@@ -53,12 +54,14 @@ public class Driver {
 			}
 			//System.out.println("Imp:"+imp);
 			imp = rball.move();
-			rball.checkConsistency();
+			//rball.checkConsistency();
 			sum += imp;
 			j++;
 		}
 		
 		double final_fitness = pbf.evaluate(rball.getSolution());
+		
+		assert (final_fitness == rball.getSolutionQuality());
 		
 		long final_time = System.currentTimeMillis();
 		
@@ -66,6 +69,7 @@ public class Driver {
 		System.out.println("Final fitness:"+final_fitness);
 		System.out.println("Improvement:"+sum);
 		System.out.println("Initialization time: "+(after_time-init_time));
+		System.out.println("Problem initialization time: "+rball.getProblemInitTime());
 		System.out.println("Move time: "+(final_time - after_time));
 		System.out.println("Total time: "+(final_time-init_time));
 		System.out.println("Total moves: "+j);

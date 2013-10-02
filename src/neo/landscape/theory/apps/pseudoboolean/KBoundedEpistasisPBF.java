@@ -59,11 +59,11 @@ public abstract class KBoundedEpistasisPBF implements Problem {
 		PBSolution pbs = (PBSolution)sol;
 		
 		double res = 0;
+		// Build the subsolution
+		PBSolution sub = new PBSolution(k);
 		
 		for (int i=0; i < m; i++)
-		{
-			// Build the subsolution
-			PBSolution sub = new PBSolution(k);
+		{	
 			for (int j=0; j < k; j++)
 			{
 				sub.setBit(j,pbs.getBit(masks[i][j]));
@@ -142,6 +142,10 @@ public abstract class KBoundedEpistasisPBF implements Problem {
 		
 		return appearsIn;
 	}
+	/**
+	 * The interactions array (don't modify this structure please!)
+	 * @return
+	 */
 	
 	public int [][] getInteractions()
 	{

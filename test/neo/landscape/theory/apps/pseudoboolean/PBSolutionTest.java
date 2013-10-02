@@ -84,5 +84,31 @@ public class PBSolutionTest {
 		
 	}
 	
+	@Test
+	public void testParse()
+	{
+		Random rnd = new Random (0);
+		
+		for (int n : new int [] {1,5,31,32,63,64,2000})
+		{
+			PBSolution pbs = new PBSolution(n);
+			
+			for (int i=0; i < n; i++)
+			{
+				int v = rnd.nextInt(2);
+				pbs.setBit(i,v);
+			}
+			
+			PBSolution pos = new PBSolution (n);
+			pos.parse(pbs.toString());
+			
+			for (int i=0; i < n; i++)
+			{
+				assertEquals("Error in parse or toString", pos.getBit(i), pbs.getBit(i));
+			}
+			
+		}
+	}
+	
 
 }

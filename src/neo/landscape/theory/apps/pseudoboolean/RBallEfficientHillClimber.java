@@ -1,6 +1,5 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -8,6 +7,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import neo.landscape.theory.apps.efficienthc.HillClimber;
 import neo.landscape.theory.apps.efficienthc.Solution;
@@ -179,8 +179,11 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 	private int [] flip_bits;
 	private PBSolution sub;
 	private PBSolution sub_sov;
-	private PBSolution sol_sov;
 	private SetOfVars affected_subfns;
+	private Double [] subfns_evals;
+	private double sol_quality;
+	private int [] variables;
+	private int [] indices;
 	
 	// Statistics of the operator
 	private int [] moves_per_distance;
@@ -204,7 +207,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		if (prob != problem)
 		{
 			problem = prob;
-			initializeProblemDependentStructures();
+			initializeProblemDependentStructuresDarrell();
 		}
 		
 		if (sol instanceof PBSolution)
@@ -266,6 +269,8 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		
 		RBallPBMove move = improving[minImpRadius].getFirst().v;
 		double imp = move.improvement;
+		
+		sol_quality+=imp;
 		
 		moves_per_distance[minImpRadius]++;
 		
@@ -457,14 +462,172 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		
 		sub = new PBSolution (problem.getK());
 		sub_sov = new PBSolution (problem.getK());
-		sol_sov = new PBSolution (problem.getN());
 		affected_subfns = new SetOfVars();
 		sol = null;
+		subfns_evals = new Double [problem.getM()];
 		
 		
 		problem_init_time = System.currentTimeMillis()-init;
 	}
 	
+	private void initializeProblemDependentStructuresDarrell()
+	{
+		long init=System.currentTimeMillis();
+		// This map is to implement a one-to-one function between SetOfVars and integers (Minimal Perfect Hashing Function)
+		Map<SetOfVars,Integer> aux_map = new HashMap<SetOfVars,Integer>();
+		int n = problem.getN();
+		int m = problem.getM();
+		int k = problem.getK();
+		int [][] masks = problem.getMasks();
+		subfns = new int [m][];
+		
+		Set<Integer> [] aux_var_combs = new HashSet [n];
+		int index=0;
+		
+		for (int v=0; v < aux_var_combs.length; v++)
+		{
+			aux_var_combs[v] = new HashSet<Integer>();
+		}
+		
+		for (int v = 0; v < n; v++)
+		{
+			SetOfSetOfVars ssv = generateTuplesDarrell(v);
+			for (SetOfVars sov: ssv)
+			{
+				Integer val = aux_map.get(sov);
+				if (val == null)
+				{
+					val = index;
+					aux_map.put(sov, val);
+					index++;
+				}
+				
+				for (int vv: sov)
+				{
+					aux_var_combs[vv].add(val);
+				}
+			}
+		}
+		
+		mos = new Entry [aux_map.size()];
+		
+		for (Map.Entry<SetOfVars, Integer> entry : aux_map.entrySet())
+		{
+			SetOfVars sov = entry.getKey();
+			RBallPBMove rmove = new RBallPBMove(0, sov);
+			Entry<RBallPBMove> e = new Entry<RBallPBMove>(rmove);
+			mos[entry.getValue()] = e;
+			nonImproving[sov.size()].add(e);
+		}
+		
+		Set<Integer> set = new HashSet<Integer>();
+		
+		for (int sf=0; sf < subfns.length; sf++)
+		{
+			set.clear();
+			
+			for (int v: masks[sf])
+			{
+				set.addAll(aux_var_combs[v]);
+			}
+			
+			subfns[sf] = new int [set.size()];
+			
+			int j=0;
+			for (int e : set) {
+				subfns[sf][j++] = e;
+			}
+		}
+		
+		sub = new PBSolution (k);
+		sub_sov = new PBSolution (k);
+		affected_subfns = new SetOfVars();
+		sol = null;
+		subfns_evals = new Double [m];
+		
+		problem_init_time = System.currentTimeMillis()-init;
+	}
+	
+	private SetOfSetOfVars generateTuplesDarrell(final int v) {		
+		final SetOfSetOfVars ssv = new SetOfSetOfVars();
+		RootedTreeGenerator rtg = new RootedTreeGenerator();
+		
+		// Generate all the trees up to r and for each tree do
+		rtg.generate(radius, new RootedTreeCallback() {
+			int [][] interactions = problem.getInteractions();
+			@Override
+			public void rootedTree(final int[] par, final int p) {
+				// Navigate over the variables of the subfunction and plug-in the variables in the tree
+				// Now, plug the variables in the tree (array "variables")
+				
+				if (p==1)
+				{
+					SetOfVars sov = new SetOfVars();
+					sov.add(v);
+					sov.inmute();
+					ssv.add(sov);
+					return;
+				}
+				// else
+				
+				variables[1] = v;
+				
+				new RecursiveCalls(){
+					@Override
+					public void run(int depth) {
+						int par_var;
+						int [] src;
+						
+						indices[depth] = 0;
+
+						par_var = variables[par[depth]];
+						src = interactions[par_var];
+
+						for (;indices[depth]<src.length; indices[depth]++)
+						{
+							variables[depth] = src[indices[depth]];
+							// Check if it less than the first one
+							if (variables[depth] <= v)
+							{
+								continue;
+							}
+							// Check if the variable appeared before
+							int ptr=1;
+							while (ptr < depth && variables[ptr]!=variables[depth])
+							{
+								ptr++;
+							}
+
+							if (ptr < depth)
+							{
+								// The variable appeared, we have to continue with the next variable
+								continue;
+							}
+							// else the variable didn't appear so we follow in the body 
+							// Check if we assigned all the variables
+							if (depth == p)
+							{
+								// If this is the case, we have to mark the set of variables as "to be updated"
+								// For each combination, mark the sets of variables as "touched"
+								SetOfVars sov = new SetOfVars();
+								for (int var=1; var <= p; var++)
+								{
+									sov.add(variables[var]);
+								}
+								sov.inmute();
+								ssv.add(sov);
+							}
+							else
+							{
+								run (depth+1);
+							}
+						}
+					}}.run(2);
+			}}); 
+		return ssv;
+	}
+
+
 	private void initializeSolutionDependentStructuresFromScratch()
 	{
 		long init = System.currentTimeMillis();
@@ -473,7 +636,13 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		int [][] masks = problem.getMasks();
 		minImpRadius = radius+1;
 		
-		double update ;
+		double update;
+		
+		sol_quality=0;
+		for (int sf=0; sf < problem.getM(); sf++)
+		{
+			subfns_evals[sf] = null;
+		}
 		
 		for (Entry<RBallPBMove> e : mos)
 		{
@@ -483,24 +652,28 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 			
 			for (int sf: subFunctionsAffected(sov))
 			{
-				// For each subfunction do ...			
-				for (int j=0; j < k; j++)
+				// For each subfunction do ...	
+				double v_sub;
+				if (subfns_evals[sf] != null)
 				{
-					int bit = masks[sf][j];
-					sub.setBit(j,sol.getBit(bit));
+					v_sub = subfns_evals[sf];
 				}
-				double v_sub = problem.evaluateSubfunction(sf, sub); 
+				else
+				{
+					for (int j=0; j < k; j++)
+					{
+						int bit = masks[sf][j];
+						sub.setBit(j,sol.getBit(bit));
+					}
+					subfns_evals[sf] = v_sub = problem.evaluateSubfunction(sf, sub);
+					sol_quality+=v_sub;
+				}
 
 				// Build the subsolutions
-				sub_sov.copyFrom(sub);
-
 				for (int j=0; j < k; j++)
 				{
 					int bit = masks[sf][j];
-					if (sov.contains(bit))
-					{
-						sub_sov.flipBit(j);
-					}
+					sub_sov.setBit(j,sol.getBit(bit) ^ (sov.contains(bit)?0x01:0x00));
 				}
 
 				double v_sub_sov = problem.evaluateSubfunction(sf, sub_sov); 
@@ -560,6 +733,9 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		solution_move_evals=0;
 		total_moves = 0;
 		total_sol_inits = 0;
+		
+		variables = new int[radius+1];
+		indices = new int [radius+1];
 	}
 	
 	private SetOfSetOfVars generateTuples(int [] init_vars)
@@ -579,23 +755,11 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		
 		// Generate all the trees up to r and for each tree do
 		rtg.generate(radius, new RootedTreeCallback() {
-			int [] aux_siblings= new int [radius+1];
-			int [] variables = new int[radius+1];
-			int [] indices = new int [radius+1];
-			int [] siblings= new int [radius+1];
 			int [][] interactions = problem.getInteractions();
 			@Override
 			public void rootedTree(final int[] par, final int p) {
 				// Navigate over the variables of the subfunction and plug-in the variables in the tree
 
-				// First, analyze the tree, computing the siblings
-				aux_siblings[0]=0;
-				for (int i=1; i <= p; i++)
-				{
-					siblings[i] = aux_siblings[par[i]];
-					aux_siblings[par[i]] = i;
-					aux_siblings[i]=0;
-				}
 				// Now, plug the variables in the tree (array "variables")
 				
 				variables[0] = -1;
@@ -605,16 +769,6 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 					public void run(int depth) {
 						int par_var;
 						int [] src;
-
-						if (siblings[depth]!=0)
-						{
-							// To avoid permutations over sets
-							indices[depth] = indices[siblings[depth]]+1;
-						}
-						else
-						{
-							indices[depth] = 0;
-						}
 						
 						indices[depth] = 0;
 
@@ -699,6 +853,13 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		return moves_per_distance;
 	}
 	
+	public void resetMovesPerDistance()
+	{
+		for (int i = 0; i < moves_per_distance.length; i++) {
+			moves_per_distance[i]=0;
+		}
+	}
+	
 	public int getStoredScores()
 	{
 		return mos.length;
@@ -731,6 +892,11 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 	public long getSubfnsEvalsInSolInits()
 	{
 		return solution_init_evals;
+	}
+	
+	public double getSolutionQuality()
+	{
+		return sol_quality;
 	}
 	
 

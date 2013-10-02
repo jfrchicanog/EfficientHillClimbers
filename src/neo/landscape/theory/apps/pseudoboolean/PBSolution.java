@@ -64,4 +64,24 @@ public class PBSolution implements Solution<KBoundedEpistasisPBF> {
 		}
 		return str;
 	}
+
+	public void parse(String string) {
+		if (string.length() != n)
+		{
+			throw new IllegalArgumentException("This is not a string of length "+n);
+		}
+		
+		for (int i=0; i < string.length(); i++)
+		{
+			char c = string.charAt(i);
+			if (c < '0' || c > '1')
+			{
+				throw new IllegalArgumentException("This is not a binary string. Found '"+c+ "' at position "+i);
+			}
+			// else
+			setBit(n-1-i,c-'0');
+		}
+		
+		
+	}
 }
