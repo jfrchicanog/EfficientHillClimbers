@@ -1,9 +1,13 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.zip.GZIPOutputStream;
 
 import neo.landscape.theory.apps.util.Seeds;
 
@@ -49,6 +53,14 @@ public class Experiments {
 			prop.setProperty(NKLandscapes.CIRCULAR_STRING,"yes");
 		}
 		
+		ByteArrayOutputStream ba = new ByteArrayOutputStream();
+		PrintStream ps;
+		try {
+			ps = new PrintStream (new GZIPOutputStream (ba));
+		} catch (IOException e) {
+			throw new RuntimeException (e);
+		}
+		
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 		
@@ -84,11 +96,13 @@ public class Experiments {
 			
 			elapsed_time = System.currentTimeMillis();
 			
-			System.out.println("Moves: "+moves);
-			System.out.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
-			System.out.println("Improvement: "+(final_quality-init_quality));
-			System.out.println("Best solution quality: "+sol_q);
-			System.out.println("Elapsed Time: "+(elapsed_time-init_time));
+			
+			
+			ps.println("Moves: "+moves);
+			ps.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
+			ps.println("Improvement: "+(final_quality-init_quality));
+			ps.println("Best solution quality: "+sol_q);
+			ps.println("Elapsed Time: "+(elapsed_time-init_time));
 			
 		}
 		
@@ -121,19 +135,27 @@ public class Experiments {
 			
 		}
 		
-		System.out.println("N: "+n);
-		System.out.println("M: "+n);
-		System.out.println("K: "+k);
+		ps.println("N: "+n);
+		ps.println("M: "+n);
+		ps.println("K: "+k);
 		if (pbf instanceof NKLandscapes)
 		{
-			System.out.println("Q: "+((NKLandscapes)pbf).getQ());
-			System.out.println("Circular: "+((NKLandscapes)pbf).isCircular());
+			ps.println("Q: "+((NKLandscapes)pbf).getQ());
+			ps.println("Circular: "+((NKLandscapes)pbf).isCircular());
 		}
-		System.out.println("R: " + r);
-		System.out.println("Seed: "+seed);
-		System.out.println("Stored scores:"+rball.getStoredScores());
-		System.out.println("Var appearance (histogram):"+appearance);
-		System.out.println("Var interaction (histogram):"+interactions);
+		ps.println("R: " + r);
+		ps.println("Seed: "+seed);
+		ps.println("Stored scores:"+rball.getStoredScores());
+		ps.println("Var appearance (histogram):"+appearance);
+		ps.println("Var interaction (histogram):"+interactions);
+		
+		ps.close();
+		
+		try {
+			System.out.write(ba.toByteArray());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		
 	}
 	
