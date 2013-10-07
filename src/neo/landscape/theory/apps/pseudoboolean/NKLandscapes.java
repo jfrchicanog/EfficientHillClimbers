@@ -243,5 +243,10 @@ public class NKLandscapes extends KBoundedEpistasisPBF {
 	public boolean isCircular() {
 		return circular;
 	}
+	
+	public double [][] getSubFunctions()
+	{
+		return subfunctions;
+	}
 
 }

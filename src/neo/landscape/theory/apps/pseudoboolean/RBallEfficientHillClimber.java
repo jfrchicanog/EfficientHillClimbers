@@ -203,7 +203,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 
 
 	@Override
-	public void initialize(KBoundedEpistasisPBF prob, Solution<KBoundedEpistasisPBF> sol) {
+	public void initialize(KBoundedEpistasisPBF prob, Solution<? super KBoundedEpistasisPBF> sol) {
 		if (prob != problem)
 		{
 			problem = prob;

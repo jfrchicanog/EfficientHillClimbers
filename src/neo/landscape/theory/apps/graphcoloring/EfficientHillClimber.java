@@ -16,7 +16,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 	
 	
 	@Override
-	public void initialize(WeightedGraphColoring prob, Solution<WeightedGraphColoring> sol) {
+	public void initialize(WeightedGraphColoring prob, Solution<? super WeightedGraphColoring> sol) {
 		this.prob = prob;
 		if (sol instanceof WGCSolution)
 		{

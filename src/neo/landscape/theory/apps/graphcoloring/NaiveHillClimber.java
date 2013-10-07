@@ -12,7 +12,7 @@ public class NaiveHillClimber implements HillClimber<WeightedGraphColoring> {
 	
 	
 	@Override
-	public void initialize(WeightedGraphColoring prob, Solution<WeightedGraphColoring> sol) {
+	public void initialize(WeightedGraphColoring prob, Solution<? super WeightedGraphColoring> sol) {
 		this.prob = prob;
 		movement=null;
 		if (sol instanceof WGCSolution)

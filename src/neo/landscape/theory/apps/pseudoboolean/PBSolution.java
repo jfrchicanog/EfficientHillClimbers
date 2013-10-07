@@ -2,7 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
 
-public class PBSolution implements Solution<KBoundedEpistasisPBF> {
+public class PBSolution implements Solution<PseudoBooleanFunction> {
 
 	private int data [];
 	private int n;
@@ -82,6 +82,10 @@ public class PBSolution implements Solution<KBoundedEpistasisPBF> {
 			setBit(n-1-i,c-'0');
 		}
 		
-		
+	}
+	
+	public int [] getData()
+	{
+		return data;
 	}
 }
