@@ -23,11 +23,19 @@ public abstract class AdditivelyDecomposablePBF extends PseudoBooleanFunction {
 	protected int [][] masks;
 	private int [][] appearsIn;
 	private int [][] interactions;
+	private PBSolution sub;
 
 	public AdditivelyDecomposablePBF() {
 		super();
 	}
 
+	/**
+	 * this function should be prepared to receive a solution with more bits than require and take only the required. This is an efficiency measure.
+	 * @param sf
+	 * @param pbs
+	 * @return
+	 */
+	
 	public abstract double evaluateSubfunction(int sf, PBSolution pbs);
 
 	@Override
@@ -39,7 +47,6 @@ public abstract class AdditivelyDecomposablePBF extends PseudoBooleanFunction {
 		
 		for (int i=0; i < m; i++)
 		{	
-			PBSolution sub = new PBSolution(masks[i].length);
 			for (int j=0; j < masks[i].length; j++)
 			{
 				sub.setBit(j,pbs.getBit(masks[i][j]));
@@ -53,9 +60,15 @@ public abstract class AdditivelyDecomposablePBF extends PseudoBooleanFunction {
 
 	private void prepareStructures() {
 		List<Integer> [] aux = new List[n];
+		int max_length=0;
 		
 		for (int sf=0; sf < m; sf++)
 		{
+			if (masks[sf].length > max_length)
+			{
+				max_length = masks[sf].length;
+			}
+			
 			for (int i=0; i < masks[sf].length; i++)
 			{
 				int var = masks[sf][i];
@@ -100,8 +113,9 @@ public abstract class AdditivelyDecomposablePBF extends PseudoBooleanFunction {
 				interactions[i][j]=var;
 				j++;
 			}
-			
 		}
+		
+		sub = new PBSolution (max_length);
 	}
 
 	/**

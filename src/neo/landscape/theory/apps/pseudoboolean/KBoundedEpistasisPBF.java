@@ -25,27 +25,5 @@ public abstract class KBoundedEpistasisPBF extends AdditivelyDecomposablePBF imp
 	{
 		return k;
 	}
-	
-	@Override
-	public double evaluate(Solution sol) {
-		PBSolution pbs = (PBSolution)sol;
-		
-		double res = 0;
-		// Build the subsolution
-		
-		PBSolution sub = new PBSolution(k);
-		for (int i=0; i < m; i++)
-		{	
-			
-			for (int j=0; j <k; j++)
-			{
-				sub.setBit(j,pbs.getBit(masks[i][j]));
-			}
-			// Evaluate
-			res += evaluateSubfunction (i, sub);
-		}
-		
-		return res;
-	}
 
 }

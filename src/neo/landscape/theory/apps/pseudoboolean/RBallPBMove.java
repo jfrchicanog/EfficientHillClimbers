@@ -7,7 +7,7 @@ import java.util.Set;
 import neo.landscape.theory.apps.efficienthc.Move;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber.SetOfVars;
 
-public class RBallPBMove implements Move<KBoundedEpistasisPBF, PBSolution> {
+public class RBallPBMove implements Move<PseudoBooleanFunction, PBSolution> {
 
 	public SetOfVars flipVariables;
 	public double improvement;

@@ -17,7 +17,7 @@ import neo.landscape.theory.apps.util.IteratorFromArray;
 import neo.landscape.theory.apps.util.RootedTreeGenerator;
 import neo.landscape.theory.apps.util.RootedTreeGenerator.RootedTreeCallback;
 
-public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisPBF> {
+public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecomposablePBF> {
 
 	public static class SetOfSetOfVars extends HashSet<SetOfVars>{}
 	public static class SetOfVars extends BitSet implements Iterable<Integer> {
@@ -164,7 +164,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		public void run(int depth);
 	}
 
-	private KBoundedEpistasisPBF problem;
+	private AdditivelyDecomposablePBF problem;
 	private PBSolution sol;
 	
 	private DoubleLinkedList<RBallPBMove> [] improving;
@@ -203,7 +203,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 
 
 	@Override
-	public void initialize(KBoundedEpistasisPBF prob, Solution<? super KBoundedEpistasisPBF> sol) {
+	public void initialize(AdditivelyDecomposablePBF prob, Solution<? super AdditivelyDecomposablePBF> sol) {
 		if (prob != problem)
 		{
 			problem = prob;
@@ -312,12 +312,12 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 	private void moveSeveralBitsEff(SetOfVars bits)
 	{
 		int [][] masks = problem.getMasks();
-		int k= problem.getK();
 		
 		// Identify which which subfunctions will be afffected
 		
 		for (int sf: subFunctionsAffected(bits))
 		{
+			int k= masks[sf].length;
 			// For each subfunction do ...			
 			// For each move score evaluate the subfunction and update the corresponding value
 			for (int j=0; j < k; j++)
@@ -428,11 +428,18 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		// This map is to implement a one-to-one function between SetOfVars and integers (Minimal Perfect Hashing Function)
 		Map<SetOfVars,Integer> aux_map = new HashMap<SetOfVars,Integer>();
 		subfns = new int [problem.getM()][];
+		int [][] masks = problem.getMasks();
 		
+		int max_k = 0;
 		int index=0;
 		for (int sf=0; sf < subfns.length; sf++)
 		{
-			SetOfSetOfVars ssv = generateTuples(problem.getMasks()[sf]); 
+			if (masks[sf].length > max_k)
+			{
+				max_k = masks[sf].length;
+			}
+			
+			SetOfSetOfVars ssv = generateTuples(masks[sf]); 
 			
 			subfns[sf] = new int [ssv.size()];
 			int j=0;
@@ -460,8 +467,8 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 			nonImproving[sov.size()].add(e);
 		}
 		
-		sub = new PBSolution (problem.getK());
-		sub_sov = new PBSolution (problem.getK());
+		sub = new PBSolution (max_k);
+		sub_sov = new PBSolution (max_k);
 		affected_subfns = new SetOfVars();
 		sol = null;
 		subfns_evals = new Double [problem.getM()];
@@ -477,7 +484,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		Map<SetOfVars,Integer> aux_map = new HashMap<SetOfVars,Integer>();
 		int n = problem.getN();
 		int m = problem.getM();
-		int k = problem.getK();
+		int max_k = 0;
 		int [][] masks = problem.getMasks();
 		subfns = new int [m][];
 		
@@ -525,6 +532,10 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 		for (int sf=0; sf < subfns.length; sf++)
 		{
 			set.clear();
+			if (masks[sf].length > max_k)
+			{
+				max_k = masks[sf].length;
+			}
 			
 			for (int v: masks[sf])
 			{
@@ -539,8 +550,8 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 			}
 		}
 		
-		sub = new PBSolution (k);
-		sub_sov = new PBSolution (k);
+		sub = new PBSolution (max_k);
+		sub_sov = new PBSolution (max_k);
 		affected_subfns = new SetOfVars();
 		sol = null;
 		subfns_evals = new Double [m];
@@ -632,7 +643,6 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 	{
 		long init = System.currentTimeMillis();
 		// Compute the scores for all the values of the map
-		int k = problem.getK();
 		int [][] masks = problem.getMasks();
 		minImpRadius = radius+1;
 		
@@ -652,6 +662,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 			
 			for (int sf: subFunctionsAffected(sov))
 			{
+				int k=masks[sf].length;
 				// For each subfunction do ...	
 				double v_sub;
 				if (subfns_evals[sf] != null)
@@ -660,6 +671,7 @@ public class RBallEfficientHillClimber implements HillClimber<KBoundedEpistasisP
 				}
 				else
 				{
+					
 					for (int j=0; j < k; j++)
 					{
 						int bit = masks[sf][j];

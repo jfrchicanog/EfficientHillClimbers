@@ -9,11 +9,11 @@ import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
 
-public class MAXkSAT extends KBoundedEpistasisPBF {
+public class MAXSAT extends AdditivelyDecomposablePBF {
 
 	public static final String N_STRING = "n";
 	public static final String M_STRING = "m";
-	public static final String K_STRING = "k";
+	public static final String MAX_K_STRING = "max_k"; 
 	public static final String INSTANCE_STRING = "instance";
 	
 	private int [][] clauses;
@@ -26,19 +26,22 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 		}
 		else
 		{
-			int n = Integer.parseInt(N_STRING);
-			int m = Integer.parseInt(M_STRING);
-			int k = Integer.parseInt(K_STRING);
-			generateRandomInstance(n,m,k);
+			int n = Integer.parseInt(prop.getProperty(N_STRING));
+			int m = Integer.parseInt(prop.getProperty(M_STRING));
+			int max_k= 10;
+			if (prop.getProperty(MAX_K_STRING) != null)
+			{
+				max_k = Integer.parseInt(prop.getProperty(MAX_K_STRING));
+			}
+			generateRandomInstance(n,m, max_k);
 		}
 	}
 
-	private void generateRandomInstance(int n, int m, int k) {
+	private void generateRandomInstance(int n, int m, int max_k) {
 		this.n=n;
 		this.m=m;
-		this.k=k;
-		masks = new int [m][k];
-		clauses = new int [m][k];
+		masks = new int [m][];
+		clauses = new int [m][];
 		
 		// Auxiliary array to randomly select the variables in each clause
 		int [] aux = new int [n];
@@ -49,6 +52,9 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 		
 		for (int c=0; c < m ; c++)
 		{
+			int k = rnd.nextInt(max_k)+1;
+			masks[c] = new int [k];
+			clauses[c] = new int [k];
 			// Shuffle the aux array to get k random values from the n values.
 			for (int i=0; i < k; i++)
 			{
@@ -80,8 +86,8 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 			
 			String line;
 			String [] parts;
-			k=-1;
 			int c=0;
+			int k;
 			
 			while ((line=brd.readLine())!=null)
 			{
@@ -93,7 +99,7 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 				// else
 				switch (line.charAt(0))
 				{
-					case 'c': // A comment, skip ti
+					case 'c': // A comment, skip it
 						break;
 					case 'p':  // Instance information
 						parts = line.split(" +");
@@ -104,14 +110,7 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 						break;
 					default: // A clause
 						parts = line.split(" +");
-						if (k < 0)
-						{
-							k=parts.length-1;
-						}
-						else if (k!=parts.length-1)
-						{
-							throw new RuntimeException ("Ths instance is not of MAX-k-SAT. Different values for k in clause "+c);
-						}
+						k=parts.length-1;
 						
 						clauses[c] = new int[k];
 						masks[c] = new int [k];
@@ -179,13 +178,13 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 	{
 		if (args.length < 1)
 		{
-			System.out.println("Arguments: dimacs <file> [<solution>] | random <n> <m> <k> [<seed>]");
+			System.out.println("Arguments: dimacs <file> [<solution>] | random <n> <m> <max_k> [<seed>]");
 			return;
 		}
 		
 		Properties prop = new Properties();
 		
-		MAXkSAT mks = new MAXkSAT();
+		MAXSAT mks = new MAXSAT();
 		PBSolution pbs=null;
 		
 		switch (args[0])
@@ -202,7 +201,7 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 			case "random":
 				prop.setProperty(N_STRING, args[1]);
 				prop.setProperty(M_STRING, args[2]);
-				prop.setProperty(K_STRING, args[3]);
+				prop.setProperty(MAX_K_STRING, args[3]);
 				if (args.length > 4)
 				{
 					long seed = Long.parseLong(args[4]);
