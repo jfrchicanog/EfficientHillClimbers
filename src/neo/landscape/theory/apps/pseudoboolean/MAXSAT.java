@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
@@ -15,8 +16,11 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 	public static final String M_STRING = "m";
 	public static final String MAX_K_STRING = "max_k"; 
 	public static final String INSTANCE_STRING = "instance";
+	public static final String MIN_STRING="min";
 	
 	private int [][] clauses;
+	private int topClauses;
+	private boolean min;
 	
 	@Override
 	public void setConfiguration(Properties prop) {
@@ -34,6 +38,12 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 				max_k = Integer.parseInt(prop.getProperty(MAX_K_STRING));
 			}
 			generateRandomInstance(n,m, max_k);
+		}
+		
+		min=false;
+		if (prop.getProperty(MIN_STRING)!=null)
+		{
+			min = prop.getProperty(MIN_STRING).equals("yes");
 		}
 	}
 
@@ -84,6 +94,8 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 			FileInputStream fis = new FileInputStream (file);
 			BufferedReader brd = new BufferedReader(new InputStreamReader(fis));
 			
+			topClauses=0;
+			
 			String line;
 			String [] parts;
 			int c=0;
@@ -120,19 +132,50 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 							clauses[c][v] = Integer.parseInt(parts[v]);
 							masks[c][v] = Math.abs(clauses[c][v])-1;
 						}
-						c++;
 						
+						if (!clauseIsTop(clauses[c]))
+						{
+							c++;
+						}
+						else
+						{
+							topClauses++;
+						}
 						break;
 				}
 			}
+			
+			// Resize the array (in case some top clauses were inserted)
+			masks=Arrays.copyOf(masks, c);
+			clauses = Arrays.copyOf(clauses, c);
+			m=c;
 			
 			brd.close();
 		}
 		catch (IOException e)
 		{
-			
+			throw new RuntimeException(e); 
 		}
 		
+	}
+	
+	private boolean clauseIsTop(int[] is) {
+		for (int i=0; i < is.length; i++)
+		{
+			for (int j=i+1; j < is.length; j++)
+			{
+				if (is[i] == -is[j])
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	public int getTopClauses()
+	{
+		return topClauses;
 	}
 
 	@Override
@@ -154,7 +197,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 			}
 		}
 		
-		return res;
+		return min?-res:res;
 	}
 
 	@Override
@@ -166,7 +209,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 			
 			if (bit>0 && v > 0 || bit ==0 && v < 0)
 			{
-				return 1;
+				return min?-1:1;
 			}
 			i++;
 				

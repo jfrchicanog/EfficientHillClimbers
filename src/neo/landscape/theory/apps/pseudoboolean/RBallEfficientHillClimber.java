@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.Set;
 
 import neo.landscape.theory.apps.efficienthc.HillClimber;
@@ -167,13 +168,18 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 	private AdditivelyDecomposablePBF problem;
 	private PBSolution sol;
 	
-	private DoubleLinkedList<RBallPBMove> [] improving;
-	private DoubleLinkedList<RBallPBMove> [] nonImproving;
+	private double [] quality_limits;
+	private DoubleLinkedList<RBallPBMove> [][] scores;
+	private int [] maxNomEmptyScore;
 	private int minImpRadius;
 	private Entry<RBallPBMove> [] mos;
 	private int [][] subfns;
 	
 	private int radius;
+	private int [] oneFlipScores;
+	
+	// Used for soft restarts
+	private Random rnd;
 	
 	// Auxiliary data structures
 	private int [] flip_bits;
@@ -197,8 +203,20 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 
 	public RBallEfficientHillClimber(int r)
 	{
-		this.radius=r;
+		this(r, null);
+	}
+	
+	public RBallEfficientHillClimber(int r, double [] quality_l)
+	{
+		quality_limits = quality_l;
+		this.radius = r;
+		rnd = new Random();
 		initializeOperatorDependentStructures();
+	}
+	
+	public void setSeed(long seed)
+	{
+		rnd = new Random(seed);
 	}
 
 
@@ -229,6 +247,24 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 
 	}
 	
+	private int getQualityIndex(double val)
+	{
+		if (val <= 0)
+		{
+			return 0;
+		}
+		else if (quality_limits == null)
+		{
+			return 1;
+		}
+		else
+		{
+			int i=0;
+			for (i=0; i < quality_limits.length && quality_limits[i] <= val; i++);
+			return i+1;
+		}
+	}
+	
 	private void initializeSolutionDependentStructuresFromSolution(PBSolution to_this)
 	{
 		long init = System.currentTimeMillis();
@@ -254,7 +290,7 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 		}
 		else
 		{
-			return improving[minImpRadius].getFirst().v;
+			return scores[minImpRadius][maxNomEmptyScore[minImpRadius]].getFirst().v;
 		}
 	}
 
@@ -267,7 +303,7 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 		
 		// else
 		
-		RBallPBMove move = improving[minImpRadius].getFirst().v;
+		RBallPBMove move = scores[minImpRadius][maxNomEmptyScore[minImpRadius]].getFirst().v;
 		double imp = move.improvement;
 		
 		sol_quality+=imp;
@@ -376,36 +412,37 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 				
 				double old = e.v.improvement;
 				e.v.improvement += update;
-				if ( (old > 0 && old+update > 0) || (old <= 0 && old+update <= 0) )
-				{
-					// nothing to do
-				}
-				else if (old > 0)
-				{
-					int p = sov.size();
-					improving[p].remove(e);
-					nonImproving[p].add(e);
-				}
-				else
-				{
-					int p = sov.size();
-					nonImproving[p].remove(e);
-					improving[p].add(e);
-					
-					if (p < minImpRadius)
-					{
-						minImpRadius = p;
-					}
-					
-				}
 				
+				int old_q_ind = getQualityIndex(old);
+				int new_q_ind = getQualityIndex(old+update);
+				
+				if (old_q_ind != new_q_ind)
+				{
+					int p = sov.size();
+					scores[p][old_q_ind].remove(e);
+					scores[p][new_q_ind].add(e);
+					
+					if (new_q_ind > maxNomEmptyScore[p])
+					{
+						// It is an improving move (necessarily, because maxNomEmptyScore is 0 at least
+						maxNomEmptyScore[p] = new_q_ind;
+					}
+				}
 			}
 		}
 		
-		// Update the minImpRadius variable
-		while (minImpRadius <= radius && improving[minImpRadius].isEmpty())
+		//Update the maxNomEmptyScore and the minImpRadius (in case they are overestimated)
+		minImpRadius = radius+1;
+		for (int i=radius; i >= 1; i--)
 		{
-			minImpRadius++;
+			while (maxNomEmptyScore[i] > 0 && scores[i][maxNomEmptyScore[i]].isEmpty())
+			{
+				maxNomEmptyScore[i]--;
+			}
+			if (maxNomEmptyScore[i] > 0)
+			{
+				minImpRadius = i;
+			}
 		}
 		
 		// Finally, flip the bit in the solution and we are done
@@ -464,7 +501,7 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 			RBallPBMove rmove = new RBallPBMove(0, sov);
 			Entry<RBallPBMove> e = new Entry<RBallPBMove>(rmove);
 			mos[entry.getValue()] = e;
-			nonImproving[sov.size()].add(e);
+			scores[sov.size()][0].add(e);
 		}
 		
 		sub = new PBSolution (max_k);
@@ -472,7 +509,6 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 		affected_subfns = new SetOfVars();
 		sol = null;
 		subfns_evals = new Double [problem.getM()];
-		
 		
 		problem_init_time = System.currentTimeMillis()-init;
 	}
@@ -487,6 +523,7 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 		int max_k = 0;
 		int [][] masks = problem.getMasks();
 		subfns = new int [m][];
+		oneFlipScores = new int [n];
 		
 		Set<Integer> [] aux_var_combs = new HashSet [n];
 		int index=0;
@@ -506,6 +543,10 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 				{
 					val = index;
 					aux_map.put(sov, val);
+					if (sov.cardinality()==1)
+					{
+						oneFlipScores[v]=val;
+					}
 					index++;
 				}
 				
@@ -524,7 +565,7 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 			RBallPBMove rmove = new RBallPBMove(0, sov);
 			Entry<RBallPBMove> e = new Entry<RBallPBMove>(rmove);
 			mos[entry.getValue()] = e;
-			nonImproving[sov.size()].add(e);
+			scores[sov.size()][0].add(e);
 		}
 		
 		Set<Integer> set = new HashSet<Integer>();
@@ -644,7 +685,10 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 		long init = System.currentTimeMillis();
 		// Compute the scores for all the values of the map
 		int [][] masks = problem.getMasks();
-		minImpRadius = radius+1;
+		for (int i=1; i <= radius; i++)
+		{
+			maxNomEmptyScore[i] = 0;
+		}
 		
 		double update;
 		
@@ -696,27 +740,35 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 			}
 			double old_value = e.v.improvement;
 			e.v.improvement = update;
-			int p = sov.size();
 			
-			if ( (old_value > 0 && update > 0) || (old_value <= 0 && update <= 0) )
+			int old_q_ind = getQualityIndex(old_value);
+			int new_q_ind = getQualityIndex(update);
+			
+			if (old_q_ind != new_q_ind)
 			{
-				// nothing to do
-			}
-			else if (old_value > 0)
-			{
-				improving[p].remove(e);
-				nonImproving[p].add(e);
-			}
-			else
-			{
-				nonImproving[p].remove(e);
-				improving[p].add(e);
+				int p = sov.size();
+				scores[p][old_q_ind].remove(e);
+				scores[p][new_q_ind].add(e);
 				
-				if (p < minImpRadius)
+				if (new_q_ind > maxNomEmptyScore[p])
 				{
-					minImpRadius = p;
+					// It is an improving move (necessarily, because maxNomEmptyScore is 0 at least
+					maxNomEmptyScore[p] = new_q_ind;
 				}
-				
+			}
+		}
+		
+		//Update the maxNomEmptyScore and the minImpRadius (in case they are overestimated)
+		minImpRadius = radius+1;
+		for (int i=radius; i >= 1; i--)
+		{
+			while (maxNomEmptyScore[i] > 0 && scores[i][maxNomEmptyScore[i]].isEmpty())
+			{
+				maxNomEmptyScore[i]--;
+			}
+			if (maxNomEmptyScore[i] > 0)
+			{
+				minImpRadius = i;
 			}
 		}
 		
@@ -728,13 +780,17 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 	}
 	
 	private void initializeOperatorDependentStructures() {
-		improving = new DoubleLinkedList [radius+1];
-		nonImproving = new DoubleLinkedList[radius+1];
+		scores = new DoubleLinkedList[radius+1][2+((quality_limits==null)?0:quality_limits.length)];
+		maxNomEmptyScore = new int [radius+1];
+		
 		
 		for (int i=1; i <= radius; i++)
 		{
-			improving[i] = new DoubleLinkedList<RBallPBMove>();
-			nonImproving[i] = new DoubleLinkedList<RBallPBMove>();
+			for (int j=0; j < scores[i].length; j++)
+			{
+				scores[i][j] = new DoubleLinkedList<RBallPBMove>(); 
+			}
+			maxNomEmptyScore[i] = 0;
 		}
 		
 		minImpRadius = radius+1;
@@ -846,17 +902,44 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 		// Check if they are in the correct list
 		for (int p=1; p <= radius; p++)
 		{
-			for (RBallPBMove move: improving[p])
+			for (int q=0; q < scores[p].length; q++)
 			{
-				assert move.flipVariables.size() == p;
-				assert move.improvement > 0;
+				for (RBallPBMove move: scores[p][q])
+				{
+					assert move.flipVariables.size() == p;
+					
+					if (q ==0)
+					{
+						assert (move.improvement <= 0);
+					}
+					else if (q==1)
+					{
+						assert (move.improvement > 0);
+						if (quality_limits!=null)
+						{
+							assert (move.improvement < quality_limits[0]);
+						}
+					}
+					else
+					{
+						assert (move.improvement >= quality_limits[q-2]);
+						if (q <= quality_limits.length)
+						{
+							assert (move.improvement < quality_limits[q-1]);
+						}
+					}
+				}
 			}
-			
-			for (RBallPBMove move: nonImproving[p])
-			{
-				assert move.flipVariables.size() == p;
-				assert move.improvement <= 0;
-			}
+		}
+	}
+	
+	public void softRestart(int soft_restart) {
+		int n = problem.getN();
+		for (int i=0; i < soft_restart; i++)
+		{
+			int var = rnd.nextInt(n);
+			sol_quality+= mos[oneFlipScores[var]].v.improvement;
+			moveOneBit(var);
 		}
 	}
 	
