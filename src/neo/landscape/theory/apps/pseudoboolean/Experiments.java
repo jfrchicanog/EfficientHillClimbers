@@ -3,8 +3,10 @@ package neo.landscape.theory.apps.pseudoboolean;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
@@ -260,49 +262,166 @@ public class Experiments {
 
 	}
 	
-	public void maxsatExperiments(String[] args) {
-		if (args.length < 4)
+	public Map<String,List<String>> optionsProcessing(String [] args)
+	{
+		Map<String,List<String>> res = new HashMap<String,List<String>>();
+		
+		String key = "";
+		List<String> aux = new ArrayList<String>();
+		res.put(key, aux);
+		
+		for (String s: args)
 		{
-			System.out.println("Arguments: maxsat <instance> <r> {<quality>,<limits>,...} <time(s)> [<soft_restart> [<seed>]]");
+			if (s.charAt(0)=='-')
+			{
+				key = s.substring(1);
+				aux = res.get(key);
+				if (aux==null)
+				{
+					aux = new ArrayList<String>();
+					res.put(key, aux);
+				}
+			}
+			else
+			{
+				aux.add(s);
+			}
+		}
+		
+		return res;
+	}
+	
+	public void showMaxsatHelp()
+	{
+		System.out.println("Arguments: maxsat [-h] [-i <instance>] [-r <r>] [-l <quality>, <limits>,...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)]");
+	}
+	
+	public boolean checkOneValue(Map<String,List<String>> options, String key, String name)
+	{
+		if (!options.containsKey(key) || options.get(key).size()==0)
+		{
+			System.err.println("Error: "+name+" missing");
+			return false;
+		}
+		else if (options.get(key).size() > 1)
+		{
+			System.err.println("Error: Multiple "+name+": "+options.get(key));
+			return false;
+		}
+		return true;
+	}
+	
+	public void maxsatExperiments(String[] args) {
+		if (args.length == 0)
+		{
+			showMaxsatHelp();
 			return;
 		}
 		
-		String instance = args[0];
-		int r = Integer.parseInt(args[1]);
-		double [] quality_limits = parseQL(args[2]);
-		long time =  Integer.parseInt(args[3]);
-		long seed = 0;
-		int soft_restart=-1;
+		// else
 		
-		if (args.length >= 6)
+		Map<String,List<String>> options = optionsProcessing(args);
+		
+		if (options.containsKey("h"))
 		{
-			seed = Long.parseLong(args[5]);
+			showMaxsatHelp();
+			return;
+		}
+		
+		// else
+		
+		// Check mandatory elements
+		// Check instance
+		if (!checkOneValue(options, "i", "instance file")) return;
+		// else
+		String instance = options.get("i").get(0);
+		
+		// Check the radius
+		if (!checkOneValue(options, "r", "radius")) return;
+		//else
+		int r = Integer.parseInt(options.get("r").get(0));
+		
+		
+		// Check the stopping criterion
+		if (! (options.containsKey("t") || options.containsKey("d")))
+		{
+			System.err.println("Error: stopping condition not specified");
+			return;
+		}
+		
+		long stop_descents = Long.MAX_VALUE;
+		long stop_time = Long.MAX_VALUE;
+		
+		if (options.containsKey("t"))
+		{
+			if (!checkOneValue(options, "t", "stop time")) return;
+			// else
+			stop_time = Long.parseLong(options.get("t").get(0))*1000;
 		}
 		else
 		{
-			seed = Seeds.getSeed();
+			if (!checkOneValue(options, "d", "max descents")) return;
+			// else
+			stop_descents = Long.parseLong(options.get("d").get(0));
 		}
+		
+		// Check optional elements
+		
+		// Check quality limits
+		double [] quality_limits = null;
+		if (options.containsKey("l") && options.get("l").size() > 0)
+		{
+			quality_limits = new double [options.get("l").size()];
+			int i=0; 
+			for (String val: options.get("l"))
+			{
+				quality_limits[i++] = Double.parseDouble(val);
+			}
+		}
+		checkQualityLimits(quality_limits);
+		
+		
+		// Check seed
+		long seed;
+		if (options.containsKey("se"))
+		{
+			if (!checkOneValue(options, "se", "seed")) return;
+			seed = Long.parseLong(options.get("se").get(0));
+		}
+		else
+		{
+			seed = Seeds.getSeed();;
+		}
+		
+		// Check debug
+		boolean debug = false;
+		if (options.containsKey("de"))
+		{
+			debug = true;
+		}
+		
+		// Check trace
+		boolean trace = false;
+		if (options.containsKey("tr"))
+		{
+			trace=true;
+		}
+		
+		// Create the prolem
 		
 		MAXSAT pbf = new MAXSAT();
-		
-		
 		Properties prop = new Properties();
 		prop.setProperty(MAXSAT.INSTANCE_STRING, instance);
-		
-		ByteArrayOutputStream ba = new ByteArrayOutputStream();
-		PrintStream ps;
-		try {
-			ps = new PrintStream (new GZIPOutputStream (ba));
-		} catch (IOException e) {
-			throw new RuntimeException (e);
-		}
 		
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 		
-		if (args.length>=5)
+		// Check the soft restart
+		int soft_restart=-1;
+		if (options.containsKey("s"))
 		{
-			double sr = Double.parseDouble(args[4]);
+			if (!checkOneValue(options, "s", "soft restart fraction")) return;
+			double sr = Double.parseDouble(options.get("s").get(0));
 			if (sr > 0)
 			{
 				soft_restart = (int) (pbf.getN() * sr);
@@ -317,17 +436,31 @@ public class Experiments {
 			}
 		}
 		
+		// Prepare the output
+		ByteArrayOutputStream ba = new ByteArrayOutputStream();
+		PrintStream ps;
+		try {
+			ps = new PrintStream (new GZIPOutputStream (ba));
+		} catch (IOException e) {
+			throw new RuntimeException (e);
+		}
+		
+		// Prepare the hill climber
+		
 		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, quality_limits);
 		rball.setSeed(seed);
 		
+		
+		// Initialize data
 		long init_time = System.currentTimeMillis();
 		long elapsed_time = init_time;
 		double sol_q = -Double.MAX_VALUE;
 		boolean first_time=true;
 		PBSolution best_solution = null;
+		long best_sol_time = -1;
+		long descents = 0;
 		
-		
-		while (elapsed_time-init_time < time*1000)
+		while (elapsed_time-init_time < stop_time && descents < stop_descents)
 		{
 			if (soft_restart < 0 || first_time)
 			{
@@ -349,26 +482,32 @@ public class Experiments {
 			do
 			{
 				imp = rball.move();
-				//rball.checkConsistency();
+				if (debug) rball.checkConsistency();
 				moves++;
 			} while (imp > 0);
 			moves--;
 			
 			double final_quality = rball.getSolutionQuality();
 			
+			descents++;
+			elapsed_time = System.currentTimeMillis();
+			
 			if (final_quality > sol_q)
 			{
 				sol_q = final_quality;
-				best_solution = rball.getSolution();
+				best_solution = new PBSolution (rball.getSolution());
+				best_sol_time = elapsed_time;
 			}
 			
-			elapsed_time = System.currentTimeMillis();
+			if (trace)
+			{
+				ps.println("Moves: "+moves);
+				ps.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
+				ps.println("Improvement: "+(final_quality-init_quality));
+				ps.println("Best solution quality: "+sol_q);
+				ps.println("Elapsed Time: "+(elapsed_time-init_time));
+			}
 			
-			ps.println("Moves: "+moves);
-			ps.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
-			ps.println("Improvement: "+(final_quality-init_quality));
-			ps.println("Best solution quality: "+sol_q);
-			ps.println("Elapsed Time: "+(elapsed_time-init_time));
 		}
 		
 		Map<Integer,Integer> appearance = new HashMap<Integer,Integer>();
@@ -401,6 +540,9 @@ public class Experiments {
 		}
 		
 		ps.println("Solution: "+best_solution);
+		ps.println("Quality: "+(sol_q+pbf.getTopClauses()));
+		ps.println("Time: "+(best_sol_time-init_time));
+		ps.println("Descents: "+descents);
 		ps.println("N: "+pbf.getN());
 		ps.println("M: "+pbf.getM());
 		ps.println("R: " + r);
@@ -417,8 +559,21 @@ public class Experiments {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	private void checkQualityLimits(double [] res)
+	{
+		if (res==null) return;
 		
+		Arrays.sort(res);
 		
+		for (int i=1; i < res.length; i++)
+		{
+			if (res[i]==res[i-1])
+			{
+				throw new IllegalArgumentException("Repeated value for the quality limits: "+res[i]);
+			}
+		}
 	}
 	
 	
@@ -446,16 +601,7 @@ public class Experiments {
 			}
 		}
 		
-		Arrays.sort(res);
-		
-		for (int i=1; i < res.length; i++)
-		{
-			if (res[i]==res[i-1])
-			{
-				throw new IllegalArgumentException("Repeated value for the quality limits: "+res[i]);
-			}
-		}
-		
+		checkQualityLimits(res);
 		
 		return res;
 	}

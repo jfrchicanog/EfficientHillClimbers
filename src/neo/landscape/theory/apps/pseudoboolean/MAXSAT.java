@@ -259,7 +259,9 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 			pbs = mks.getRandomSolution();
 		}
 		
-		System.out.println(pbs.toString()+" : "+mks.evaluate(pbs));
+		double res = mks.evaluate(pbs);
+		int top = mks.getTopClauses();
+		System.out.println(pbs.toString()+" : "+res+"(+"+top+")="+(res+top));
 	}
 
 	

@@ -498,6 +498,7 @@ public class ParseResults {
 			BufferedReader brd = new BufferedReader(new InputStreamReader(gis));
 			
 			String line;
+			boolean corrected=false;
 
 			while ((line=brd.readLine())!=null)
 			{
@@ -512,11 +513,39 @@ public class ParseResults {
 				}
 				else if (line.charAt(0)=='E')
 				{
-					strs = line.split(":");
-					long time = Long.parseLong(strs[1].trim());
-					
 					if (write_it)
 					{
+						strs = line.split(":");
+						long time = Long.parseLong(strs[1].trim());
+						last.time = time;
+						try{
+							aux.add((Sample)last.clone());
+						}
+						catch (CloneNotSupportedException e)
+						{
+							brd.close();
+							throw new RuntimeException(e);
+						}
+						write_it = false;
+					}
+				}
+				else if (line.startsWith("Q"))
+				{
+					if (aux.isEmpty())
+					{
+						strs = line.split(":");
+						double quality = Double.parseDouble(strs[1].trim());
+						write_it = true;
+						last.quality = quality;
+						corrected=true;
+					}
+				}
+				else if (line.startsWith("T"))
+				{
+					if (write_it)
+					{
+						strs = line.split(":");
+						long time = Long.parseLong(strs[1].trim());
 						last.time = time;
 						try{
 							aux.add((Sample)last.clone());
@@ -537,7 +566,7 @@ public class ParseResults {
 					{
 						c = m;
 					}
-					else if (c > m)
+					else if (!corrected && c > m)
 					{
 						for (Sample s: aux)
 						{
@@ -547,9 +576,9 @@ public class ParseResults {
 					// End of record (one run analyzed)
 					traces.add(aux);
 					aux = new ArrayList<Sample>();
+					quality_reached.add(last.quality+(corrected?0:(c-m)));
 					
-					quality_reached.add(last.quality+(c-m));
-					
+					corrected = false;
 					last.quality=-Double.MAX_VALUE;
 					last.time=0;
 				}
