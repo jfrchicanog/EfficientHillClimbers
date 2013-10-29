@@ -647,14 +647,9 @@ public class ParseResults {
 				public boolean accept(String str) {
 					Pattern p = Pattern.compile(filter);
 					Matcher m = p.matcher(str);
-					if (m.matches())
-					{
-						return false;
-					}
-					else
-					{
-						return true;
-					}
+					return m.matches();
+					// Old code
+					// return !m.matches();
 				}
 				
 			});
