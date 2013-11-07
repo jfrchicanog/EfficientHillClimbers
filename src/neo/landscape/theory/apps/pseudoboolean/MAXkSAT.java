@@ -14,6 +14,7 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 	public static final String N_STRING = "n";
 	public static final String M_STRING = "m";
 	public static final String K_STRING = "k";
+	public static final String RANDOM_FORMULA = "formula";
 	public static final String INSTANCE_STRING = "instance";
 	
 	private int [][] clauses;
@@ -26,19 +27,38 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 		}
 		else
 		{
-			int n = Integer.parseInt(N_STRING);
-			int m = Integer.parseInt(M_STRING);
-			int k = Integer.parseInt(K_STRING);
-			generateRandomInstance(n,m,k);
+			int n = Integer.parseInt(prop.getProperty(N_STRING));
+			int m = Integer.parseInt(prop.getProperty(M_STRING));
+			int k = Integer.parseInt(prop.getProperty(K_STRING));
+			boolean formula = false;
+			if (prop.getProperty(RANDOM_FORMULA) != null)
+			{
+				formula = prop.getProperty(RANDOM_FORMULA).equals("yes");
+			}
+			generateRandomInstance(n,m,k, formula);
+			
 		}
 	}
 
-	private void generateRandomInstance(int n, int m, int k) {
+	private void generateRandomInstance(int n, int m, int k, boolean formula) {
 		this.n=n;
 		this.m=m;
 		this.k=k;
 		masks = new int [m][k];
 		clauses = new int [m][k];
+		
+		if (formula && ((m % n)!=0))
+		{
+			throw new IllegalArgumentException ("The number of clauses is not a multiple of the number of variables");
+		}
+		
+		int t_m = m;
+		int cv = 1;
+		if (formula)
+		{
+			t_m=n;
+			cv = m/n;
+		}
 		
 		// Auxiliary array to randomly select the variables in each clause
 		int [] aux = new int [n];
@@ -47,7 +67,14 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 			aux[i]=i;
 		}
 		
-		for (int c=0; c < m ; c++)
+		// Auxiliary array for the signs of the literals
+		int [] signs = new int [1 << k];
+		for (int i=0; i < signs.length; i++)
+		{
+			signs[i] = i;
+		}
+		
+		for (int c=0; c < t_m ; c++)
 		{
 			// Shuffle the aux array to get k random values from the n values.
 			for (int i=0; i < k; i++)
@@ -58,14 +85,28 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 				aux[r] = v;
 			}
 			
-			for (int v=0; v < k; v++)
+			for (int cl=0; cl < cv; cl++)
 			{
-				masks[c][v] = aux[v];
-				clauses[c][v] = aux[v]+1;
-				// Select a sign for the literal
-				if (rnd.nextBoolean())
+				for (int v=0; v < k; v++)
 				{
-					clauses[c][v] *= -1;
+					masks[cv*c+cl][v] = aux[v];
+					clauses[cv*c+cl][v] = aux[v]+1;
+				}
+				
+				// Select the signs for the literals
+				int r = cl+rnd.nextInt((1<<k)-cl);
+				int s = signs[cl];
+				signs[cl] = signs[r];
+				signs[r] = s;
+				
+				int ss = signs[cl];
+				for (int v=0; v < k; v++)
+				{
+					if ((ss & 0x01)!=0)
+					{
+						clauses[cv*c+cl][v] *= -1;
+					}
+					ss >>>= 1;
 				}
 			}
 		}
@@ -179,7 +220,7 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 	{
 		if (args.length < 1)
 		{
-			System.out.println("Arguments: dimacs <file> [<solution>] | random <n> <m> <k> [<seed>]");
+			System.out.println("Arguments: dimacs <file> [<solution>] | random <n> <m> <k> <f> [<seed>]");
 			return;
 		}
 		
@@ -203,9 +244,10 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 				prop.setProperty(N_STRING, args[1]);
 				prop.setProperty(M_STRING, args[2]);
 				prop.setProperty(K_STRING, args[3]);
-				if (args.length > 4)
+				prop.setProperty(RANDOM_FORMULA, args[4]);
+				if (args.length > 5)
 				{
-					long seed = Long.parseLong(args[4]);
+					long seed = Long.parseLong(args[5]);
 					mks.setSeed(seed);
 				}
 				mks.setConfiguration(prop);

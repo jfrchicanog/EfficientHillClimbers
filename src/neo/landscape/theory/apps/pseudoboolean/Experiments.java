@@ -296,6 +296,11 @@ public class Experiments {
 		System.out.println("Arguments: maxsat [-h] [-i <instance>] [-r <r>] [-l <quality>, <limits>,...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)]");
 	}
 	
+	public void showNkVsMaxksatHelp()
+	{
+		System.out.println("Arguments: nkVSmaxksat [-h] [-n <vars>] [-k <k>] [-m <clauses>] [-f (nk compliant)] [-r <r>] [-l <quality>, <limits>,...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)]");
+	}
+	
 	public boolean checkOneValue(Map<String,List<String>> options, String key, String name)
 	{
 		if (!options.containsKey(key) || options.get(key).size()==0)
@@ -407,7 +412,7 @@ public class Experiments {
 			trace=true;
 		}
 		
-		// Create the prolem
+		// Create the problem
 		
 		MAXSAT pbf = new MAXSAT();
 		Properties prop = new Properties();
@@ -560,6 +565,275 @@ public class Experiments {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	
+	public void nkVSmaxksatExperiments(String[] args) {
+		if (args.length == 0)
+		{
+			showNkVsMaxksatHelp();
+			return;
+		}
+		
+		// else
+		
+		Map<String,List<String>> options = optionsProcessing(args);
+		
+		if (options.containsKey("h"))
+		{
+			showNkVsMaxksatHelp();
+			return;
+		}
+		
+		// else
+		
+		// Check mandatory elements
+		// Check variables
+		if (!checkOneValue(options, "n", "variables")) return;
+		// else
+		String n = options.get("n").get(0);
+
+		// Check k
+		if (!checkOneValue(options, "k", "k")) return;
+		// else
+		String k = options.get("k").get(0);
+
+		// Check clauses
+		if (!checkOneValue(options, "m", "clauses")) return;
+		// else
+		String m = options.get("m").get(0);
+
+		// Check the radius
+		if (!checkOneValue(options, "r", "radius")) return;
+		//else
+		int r = Integer.parseInt(options.get("r").get(0));
+		
+		
+		// Check the stopping criterion
+		if (! (options.containsKey("t") || options.containsKey("d")))
+		{
+			System.err.println("Error: stopping condition not specified");
+			return;
+		}
+		
+		long stop_descents = Long.MAX_VALUE;
+		long stop_time = Long.MAX_VALUE;
+		
+		if (options.containsKey("t"))
+		{
+			if (!checkOneValue(options, "t", "stop time")) return;
+			// else
+			stop_time = Long.parseLong(options.get("t").get(0))*1000;
+		}
+		else
+		{
+			if (!checkOneValue(options, "d", "max descents")) return;
+			// else
+			stop_descents = Long.parseLong(options.get("d").get(0));
+		}
+		
+		// Check optional elements
+		
+		boolean formula = false;
+		// Check NK compliant
+		if (options.containsKey("f"))
+		{
+			formula = true;
+		}
+		
+		// Check quality limits
+		double [] quality_limits = null;
+		if (options.containsKey("l") && options.get("l").size() > 0)
+		{
+			quality_limits = new double [options.get("l").size()];
+			int i=0; 
+			for (String val: options.get("l"))
+			{
+				quality_limits[i++] = Double.parseDouble(val);
+			}
+		}
+		checkQualityLimits(quality_limits);
+		
+		
+		// Check seed
+		long seed;
+		if (options.containsKey("se"))
+		{
+			if (!checkOneValue(options, "se", "seed")) return;
+			seed = Long.parseLong(options.get("se").get(0));
+		}
+		else
+		{
+			seed = Seeds.getSeed();;
+		}
+		
+		// Check debug
+		boolean debug = false;
+		if (options.containsKey("de"))
+		{
+			debug = true;
+		}
+		
+		// Check trace
+		boolean trace = false;
+		if (options.containsKey("tr"))
+		{
+			trace=true;
+		}
+		
+		// Create the problem
+		
+		MAXkSAT pbf = new MAXkSAT();
+		Properties prop = new Properties();
+		prop.setProperty(MAXkSAT.N_STRING, n);
+		prop.setProperty(MAXkSAT.K_STRING, k);
+		prop.setProperty(MAXkSAT.M_STRING, m);
+		prop.setProperty(MAXkSAT.RANDOM_FORMULA, formula?"yes":"no");
+		
+		
+		pbf.setSeed(seed);
+		pbf.setConfiguration(prop);
+		
+		// Check the soft restart
+		int soft_restart=-1;
+		if (options.containsKey("s"))
+		{
+			if (!checkOneValue(options, "s", "soft restart fraction")) return;
+			double sr = Double.parseDouble(options.get("s").get(0));
+			if (sr > 0)
+			{
+				soft_restart = (int) (pbf.getN() * sr);
+				if (soft_restart <= 0)
+				{
+					soft_restart = -1;
+				}
+				else if (soft_restart > pbf.getN())
+				{
+					soft_restart = pbf.getN();
+				}
+			}
+		}
+		
+		// Prepare the output
+		ByteArrayOutputStream ba = new ByteArrayOutputStream();
+		PrintStream ps;
+		try {
+			ps = new PrintStream (new GZIPOutputStream (ba));
+		} catch (IOException e) {
+			throw new RuntimeException (e);
+		}
+		
+		// Prepare the hill climber
+		
+		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, quality_limits);
+		rball.setSeed(seed);
+		
+		
+		// Initialize data
+		long init_time = System.currentTimeMillis();
+		long elapsed_time = init_time;
+		double sol_q = -Double.MAX_VALUE;
+		boolean first_time=true;
+		PBSolution best_solution = null;
+		long best_sol_time = -1;
+		long descents = 0;
+		
+		while (elapsed_time-init_time < stop_time && descents < stop_descents)
+		{
+			if (soft_restart < 0 || first_time)
+			{
+				PBSolution pbs = pbf.getRandomSolution();
+				rball.initialize(pbf, pbs);
+				first_time=false;
+			}
+			else
+			{
+				rball.softRestart(soft_restart);
+			}
+			
+			double init_quality = rball.getSolutionQuality();
+			double imp;
+			long moves = 0;
+			
+			rball.resetMovesPerDistance();
+			
+			do
+			{
+				imp = rball.move();
+				if (debug) rball.checkConsistency();
+				moves++;
+			} while (imp > 0);
+			moves--;
+			
+			double final_quality = rball.getSolutionQuality();
+			
+			descents++;
+			elapsed_time = System.currentTimeMillis();
+			
+			if (final_quality > sol_q)
+			{
+				sol_q = final_quality;
+				best_solution = new PBSolution (rball.getSolution());
+				best_sol_time = elapsed_time;
+			}
+			
+			if (trace)
+			{
+				ps.println("Moves: "+moves);
+				ps.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
+				ps.println("Improvement: "+(final_quality-init_quality));
+				ps.println("Best solution quality: "+sol_q);
+				ps.println("Elapsed Time: "+(elapsed_time-init_time));
+			}
+			
+		}
+		
+		Map<Integer,Integer> appearance = new HashMap<Integer,Integer>();
+		Map<Integer, Integer> interactions = new HashMap<Integer,Integer>();
+		
+		
+		for (int i=0; i < pbf.getN(); i++)
+		{
+			int appears = pbf.getAppearsIn()[i].length;
+			if (appearance.get(appears)==null)
+			{
+				appearance.put(appears, 1);
+			}
+			else
+			{
+				appearance.put (appears,appearance.get(appears)+1);
+			}
+				
+			
+			int interacts = pbf.getInteractions()[i].length;
+			if (interactions.get(interacts)==null)
+			{
+				interactions.put(interacts, 1);
+			}
+			else
+			{
+				interactions.put(interacts, interactions.get(interacts)+1);
+			}
+			
+		}
+		
+		ps.println("N: "+pbf.getN());
+		ps.println("M: "+pbf.getM());
+		ps.println("K: "+k);
+		ps.println("R: " + r);
+		ps.println("Seed: "+seed);
+		ps.println("Stored scores:"+rball.getStoredScores());
+		ps.println("Var appearance (histogram):"+appearance);
+		ps.println("Var interaction (histogram):"+interactions);
+		
+		ps.close();
+		
+		try {
+			System.out.write(ba.toByteArray());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 	
 	private void checkQualityLimits(double [] res)
 	{
@@ -740,7 +1014,7 @@ public class Experiments {
 		
 		if (args.length < 1)
 		{
-			System.out.println("First argument: time | quality | maxsat | minsat");
+			System.out.println("First argument: time | quality | maxsat | minsat | nkVsmaxksat");
 			return;
 		}
 		
@@ -758,7 +1032,10 @@ public class Experiments {
 				break;
 			case "minsat":
 				e.minsatExperiments(Arrays.copyOfRange(args, 1, args.length));
-				break;	
+				break;
+			case "nkVsmaxksat":
+				e.nkVSmaxksatExperiments(Arrays.copyOfRange(args, 1, args.length));
+				break;
 			
 		}
 		
