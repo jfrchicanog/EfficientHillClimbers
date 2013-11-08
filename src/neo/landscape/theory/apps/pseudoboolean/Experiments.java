@@ -298,7 +298,7 @@ public class Experiments {
 	
 	public void showNkVsMaxksatHelp()
 	{
-		System.out.println("Arguments: nkVSmaxksat [-h] [-n <vars>] [-k <k>] [-m <clauses>] [-f (nk compliant)] [-r <r>] [-l <quality>, <limits>,...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)]");
+		System.out.println("Arguments: nkVSmaxksat [-h] [-n <vars>] [-k <k>] [-m <clauses>] [-f (nk compliant)] [-sh(uffle) clauses] [-r <r>] [-l <quality>, <limits>,...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)]");
 	}
 	
 	public boolean checkOneValue(Map<String,List<String>> options, String key, String name)
@@ -633,12 +633,11 @@ public class Experiments {
 		
 		// Check optional elements
 		
-		boolean formula = false;
 		// Check NK compliant
-		if (options.containsKey("f"))
-		{
-			formula = true;
-		}
+		boolean formula = options.containsKey("f");
+		
+		// Check if we should shuffle the clauses
+		boolean shuffle_clauses = options.containsKey("sh");
 		
 		// Check quality limits
 		double [] quality_limits = null;
@@ -688,6 +687,7 @@ public class Experiments {
 		prop.setProperty(MAXkSAT.K_STRING, k);
 		prop.setProperty(MAXkSAT.M_STRING, m);
 		prop.setProperty(MAXkSAT.RANDOM_FORMULA, formula?"yes":"no");
+		prop.setProperty(MAXkSAT.SHUFFLE_CLAUSES, shuffle_clauses?"yes":"no");
 		
 		
 		pbf.setSeed(seed);
