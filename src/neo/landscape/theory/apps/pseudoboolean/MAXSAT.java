@@ -5,12 +5,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
 
-public class MAXSAT extends AdditivelyDecomposablePBF {
+public class MAXSAT extends EmbeddedLandscape {
 
 	public static final String N_STRING = "n";
 	public static final String M_STRING = "m";
@@ -18,9 +22,9 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 	public static final String INSTANCE_STRING = "instance";
 	public static final String MIN_STRING="min";
 	
-	private int [][] clauses;
-	private int topClauses;
-	private boolean min;
+	protected int [][] clauses;
+	protected int topClauses;
+	protected boolean min;
 	
 	@Override
 	public void setConfiguration(Properties prop) {
@@ -50,7 +54,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 	private void generateRandomInstance(int n, int m, int max_k) {
 		this.n=n;
 		this.m=m;
-		masks = new int [m][];
+		//masks = new int [m][];
 		clauses = new int [m][];
 		
 		// Auxiliary array to randomly select the variables in each clause
@@ -63,7 +67,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 		for (int c=0; c < m ; c++)
 		{
 			int k = rnd.nextInt(max_k)+1;
-			masks[c] = new int [k];
+			//masks[c] = new int [k];
 			clauses[c] = new int [k];
 			// Shuffle the aux array to get k random values from the n values.
 			for (int i=0; i < k; i++)
@@ -76,7 +80,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 			
 			for (int v=0; v < k; v++)
 			{
-				masks[c][v] = aux[v];
+				//masks[c][v] = aux[v];
 				clauses[c][v] = aux[v]+1;
 				// Select a sign for the literal
 				if (rnd.nextBoolean())
@@ -87,7 +91,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 		}
 	}
 
-	private void loadInstance(File file) {
+	protected void loadInstance(File file) {
 		// Read the DIMCAS format
 		try
 		{
@@ -117,7 +121,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 						parts = line.split(" +");
 						n = Integer.parseInt(parts[2]);
 						m = Integer.parseInt(parts[3]);
-						masks = new int [m][];
+						//masks = new int [m][];
 						clauses = new int [m][];
 						break;
 					default: // A clause
@@ -125,12 +129,12 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 						k=parts.length-1;
 						
 						clauses[c] = new int[k];
-						masks[c] = new int [k];
+						//masks[c] = new int [k];
 						
 						for (int v=0; v < k; v++)
 						{
 							clauses[c][v] = Integer.parseInt(parts[v]);
-							masks[c][v] = Math.abs(clauses[c][v])-1;
+							//masks[c][v] = Math.abs(clauses[c][v])-1;
 						}
 						
 						if (!clauseIsTop(clauses[c]))
@@ -146,7 +150,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 			}
 			
 			// Resize the array (in case some top clauses were inserted)
-			masks=Arrays.copyOf(masks, c);
+			//masks=Arrays.copyOf(masks, c);
 			clauses = Arrays.copyOf(clauses, c);
 			m=c;
 			
@@ -159,7 +163,7 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 		
 	}
 	
-	private boolean clauseIsTop(int[] is) {
+	protected boolean clauseIsTop(int[] is) {
 		for (int i=0; i < is.length; i++)
 		{
 			for (int j=i+1; j < is.length; j++)
@@ -198,6 +202,105 @@ public class MAXSAT extends AdditivelyDecomposablePBF {
 		}
 		
 		return min?-res:res;
+	}
+	
+	protected int getVar(int sf, int i)
+	{
+		return Math.abs(clauses[sf][i])-1;
+	}
+	
+	@Override
+	protected void prepareStructures()
+	{
+		List<Integer> [] aux = new List[n];
+		int max_length=0;
+		
+		for (int sf=0; sf < m; sf++)
+		{
+			if (clauses[sf].length > max_length)
+			{
+				max_length = clauses[sf].length;
+			}
+			
+			for (int i=0; i < clauses[sf].length; i++)
+			{
+				int var = getVar(sf,i);
+				if (aux[var]==null)
+				{
+					aux[var] = new ArrayList<Integer>();
+				}
+				aux[var].add(sf);
+			}
+		}
+		
+		appearsIn = new int [n][];
+		for (int var=0; var < n; var++)
+		{
+			int size = (aux[var]==null)?0:aux[var].size();
+			appearsIn[var] = new int[size];
+			for (int i=0; i < size; i++)
+			{
+				appearsIn[var][i] = aux[var].get(i);
+			}
+		}
+		
+		interactions = new int[n][];
+		
+		Set<Integer> aux_inter=new HashSet<Integer>();
+		for (int i=0; i < n; i++)
+		{
+			aux_inter.clear();
+			for (int sf : appearsIn[i])
+			{
+				for (int var: clauses[sf])
+				{
+					aux_inter.add(Math.abs(var)-1);
+				}
+			}
+			aux_inter.remove(i);
+			
+			interactions[i] = new int [aux_inter.size()];
+			int j=0;
+			for (int var: aux_inter)
+			{
+				interactions[i][j]=var;
+				j++;
+			}
+		}
+		
+		sub = new PBSolution (max_length);
+	}
+	
+	private void computeMasks()
+	{
+		masks = new int [clauses.length][];
+		for (int i=0; i < masks.length; i++)
+		{
+			masks[i] = new int [clauses[i].length];
+			for (int j=0; j < masks[i].length; j++)
+			{
+				masks[i][j] = Math.abs(clauses[i][j])-1;
+			}
+		}
+	}
+	
+	public int [][] getMasks() {
+		if (masks==null)
+		{
+			System.err.println("int [][] getMasks has been called, please avoid this method, it is memory costly");
+			computeMasks();
+		}
+		return masks;
+	}
+	
+	public int getMasks(int sf, int i)
+	{
+		return Math.abs(clauses[sf][i])-1;
+	}
+	
+	public int getMasksLength(int sf)
+	{
+		return clauses[sf].length;
 	}
 
 	@Override

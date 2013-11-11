@@ -18,7 +18,7 @@ import neo.landscape.theory.apps.util.IteratorFromArray;
 import neo.landscape.theory.apps.util.RootedTreeGenerator;
 import neo.landscape.theory.apps.util.RootedTreeGenerator.RootedTreeCallback;
 
-public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecomposablePBF> {
+public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape> {
 
 	public static class SetOfSetOfVars extends HashSet<SetOfVars>{}
 	public static class SetOfVars extends BitSet implements Iterable<Integer> {
@@ -165,7 +165,7 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 		public void run(int depth);
 	}
 
-	private AdditivelyDecomposablePBF problem;
+	private EmbeddedLandscape problem;
 	private PBSolution sol;
 	
 	private double [] quality_limits;
@@ -221,7 +221,7 @@ public class RBallEfficientHillClimber implements HillClimber<AdditivelyDecompos
 
 
 	@Override
-	public void initialize(AdditivelyDecomposablePBF prob, Solution<? super AdditivelyDecomposablePBF> sol) {
+	public void initialize(EmbeddedLandscape prob, Solution<? super EmbeddedLandscape> sol) {
 		if (prob != problem)
 		{
 			problem = prob;

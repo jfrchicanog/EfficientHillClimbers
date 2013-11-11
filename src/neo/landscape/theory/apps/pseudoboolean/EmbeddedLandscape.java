@@ -17,15 +17,15 @@ import neo.landscape.theory.apps.efficienthc.Solution;
  *
  */
 
-public abstract class AdditivelyDecomposablePBF extends PseudoBooleanFunction {
+public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 
 	protected int m;
 	protected int [][] masks;
-	private int [][] appearsIn;
-	private int [][] interactions;
-	private PBSolution sub;
+	protected int [][] appearsIn;
+	protected int [][] interactions;
+	protected PBSolution sub;
 
-	public AdditivelyDecomposablePBF() {
+	public EmbeddedLandscape() {
 		super();
 	}
 
@@ -58,7 +58,7 @@ public abstract class AdditivelyDecomposablePBF extends PseudoBooleanFunction {
 		return res;
 	}
 
-	private void prepareStructures() {
+	protected void prepareStructures() {
 		List<Integer> [] aux = new List[n];
 		int max_length=0;
 		
@@ -146,6 +146,16 @@ public abstract class AdditivelyDecomposablePBF extends PseudoBooleanFunction {
 
 	public int [][] getMasks() {
 		return masks;
+	}
+	
+	public int getMasks(int sf, int i)
+	{
+		return masks[sf][i];
+	}
+	
+	public int getMaskLength(int sf)
+	{
+		return masks[sf].length;
 	}
 
 	public int getM() {

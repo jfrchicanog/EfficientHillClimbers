@@ -11,7 +11,7 @@ import org.junit.Test;
 import neo.landscape.theory.apps.efficienthc.Problem;
 import neo.landscape.theory.apps.efficienthc.Solution;
 
-public class NKLandscapes extends KBoundedEpistasisPBF {
+public class NKLandscapes extends EmbeddedLandscape implements KBoundedEpistasisPBF{
 
 	public static final String N_STRING = "n";
 	public static final String K_STRING = "k";
@@ -21,6 +21,7 @@ public class NKLandscapes extends KBoundedEpistasisPBF {
 	private double [][] subfunctions;
 	private int q;
 	private boolean circular;
+	protected int k;
 	
 	@Override
 	public void setConfiguration(Properties prop) {
@@ -247,6 +248,10 @@ public class NKLandscapes extends KBoundedEpistasisPBF {
 	public double [][] getSubFunctions()
 	{
 		return subfunctions;
+	}
+
+	public int getK() {
+		return k;
 	}
 
 }

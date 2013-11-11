@@ -40,7 +40,7 @@ public class Experiments {
 		}
 		
 		
-		KBoundedEpistasisPBF pbf = new NKLandscapes();
+		NKLandscapes pbf = new NKLandscapes();
 		Properties prop = new Properties();
 		prop.setProperty(NKLandscapes.N_STRING, n);
 		prop.setProperty(NKLandscapes.K_STRING, k);
@@ -186,7 +186,7 @@ public class Experiments {
 		}
 		
 		
-		KBoundedEpistasisPBF pbf = new NKLandscapes();
+		NKLandscapes pbf = new NKLandscapes();
 		Properties prop = new Properties();
 		prop.setProperty(NKLandscapes.N_STRING, n);
 		prop.setProperty(NKLandscapes.K_STRING, k);

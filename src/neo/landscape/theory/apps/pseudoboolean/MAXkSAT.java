@@ -9,22 +9,20 @@ import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
 
-public class MAXkSAT extends KBoundedEpistasisPBF {
+public class MAXkSAT extends MAXSAT implements KBoundedEpistasisPBF {
 
-	public static final String N_STRING = "n";
-	public static final String M_STRING = "m";
 	public static final String K_STRING = "k";
 	public static final String RANDOM_FORMULA = "formula";
 	public static final String SHUFFLE_CLAUSES = "shuffle clauses";
-	public static final String INSTANCE_STRING = "instance";
 	
-	private int [][] clauses;
+	protected int k;
 	
 	@Override
 	public void setConfiguration(Properties prop) {
 		if (prop.getProperty(INSTANCE_STRING)!=null)
 		{
 			loadInstance(new File(prop.getProperty(INSTANCE_STRING)));
+			computeK();
 		}
 		else
 		{
@@ -46,11 +44,11 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 		}
 	}
 
-	private void generateRandomInstance(int n, int m, int k, boolean formula, boolean shuffle_cl) {
+	protected void generateRandomInstance(int n, int m, int k, boolean formula, boolean shuffle_cl) {
 		this.n=n;
 		this.m=m;
 		this.k=k;
-		masks = new int [m][k];
+		//masks = new int [m][k];
 		clauses = new int [m][k];
 		
 		if (formula && ((m % n)!=0))
@@ -121,7 +119,7 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 				
 				for (int v=0; v < k; v++)
 				{
-					masks[cl_ind][v] = aux[v];
+					//masks[cl_ind][v] = aux[v];
 					clauses[cl_ind][v] = aux[v]+1;
 				}
 				
@@ -146,111 +144,28 @@ public class MAXkSAT extends KBoundedEpistasisPBF {
 			}
 		}
 	}
-
-	private void loadInstance(File file) {
-		// Read the DIMCAS format
-		try
+	
+	protected void computeK()
+	{
+		if (clauses == null || clauses.length ==0)
 		{
-			FileInputStream fis = new FileInputStream (file);
-			BufferedReader brd = new BufferedReader(new InputStreamReader(fis));
-			
-			String line;
-			String [] parts;
-			k=-1;
-			int c=0;
-			
-			while ((line=brd.readLine())!=null)
-			{
-				line = line.trim();
-				if (line.isEmpty())
-				{
-					continue;
-				}
-				// else
-				switch (line.charAt(0))
-				{
-					case 'c': // A comment, skip ti
-						break;
-					case 'p':  // Instance information
-						parts = line.split(" +");
-						n = Integer.parseInt(parts[2]);
-						m = Integer.parseInt(parts[3]);
-						masks = new int [m][];
-						clauses = new int [m][];
-						break;
-					default: // A clause
-						parts = line.split(" +");
-						if (k < 0)
-						{
-							k=parts.length-1;
-						}
-						else if (k!=parts.length-1)
-						{
-							throw new RuntimeException ("Ths instance is not of MAX-k-SAT. Different values for k in clause "+c);
-						}
-						
-						clauses[c] = new int[k];
-						masks[c] = new int [k];
-						
-						for (int v=0; v < k; v++)
-						{
-							clauses[c][v] = Integer.parseInt(parts[v]);
-							masks[c][v] = Math.abs(clauses[c][v])-1;
-						}
-						c++;
-						
-						break;
-				}
-			}
-			
-			brd.close();
-		}
-		catch (IOException e)
-		{
-			
+			throw new RuntimeException("Instance not loaded in Max-k-SAT");
 		}
 		
-	}
-
-	@Override
-	public double evaluate(Solution sol) {
-		PBSolution pbs = (PBSolution)sol;
-		double res = 0;
-		
-		for (int c=0; c < m; c++)
+		k = clauses[0].length;
+		for (int i=1; i < clauses.length; i++)
 		{
-			for (int v: clauses[c])
+			if (clauses[i].length != k)
 			{
-				int bit =pbs.getBit(Math.abs(v)-1);
-				
-				if (bit>0 && v > 0 || bit ==0 && v < 0)
-				{
-					res++;
-					break;
-				}
+				throw new RuntimeException ("This instance is not a Max-k-SAT instance (different values for k)");
 			}
 		}
-		
-		return res;
-	}
-
-	@Override
-	public double evaluateSubfunction(int sf, PBSolution pbs) {
-		int i=0; 
-		for (int v: clauses[sf])
-		{
-			int bit =pbs.getBit(i);
-			
-			if (bit>0 && v > 0 || bit ==0 && v < 0)
-			{
-				return 1;
-			}
-			i++;
-				
-		}
-		return 0;
 	}
 	
+	public int getK() {
+		return k;
+	}
+
 	public static void main (String [] args)
 	{
 		if (args.length < 1)

@@ -12,7 +12,7 @@ public class Driver {
 		
 		// Something wrong with n=15, k=3 and r=4 (q not set)
 		
-		KBoundedEpistasisPBF pbf = new NKLandscapes();
+		NKLandscapes pbf = new NKLandscapes();
 		Properties prop = new Properties();
 		prop.setProperty(NKLandscapes.N_STRING, "12000");
 		prop.setProperty(NKLandscapes.K_STRING, "3");
