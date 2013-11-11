@@ -347,18 +347,18 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	
 	private void moveSeveralBitsEff(SetOfVars bits)
 	{
-		int [][] masks = problem.getMasks();
+		//int [][] masks = problem.getMasks();
 		
 		// Identify which which subfunctions will be afffected
 		
 		for (int sf: subFunctionsAffected(bits))
 		{
-			int k= masks[sf].length;
+			int k= problem.getMaskLength(sf); // masks[sf].length;
 			// For each subfunction do ...			
 			// For each move score evaluate the subfunction and update the corresponding value
 			for (int j=0; j < k; j++)
 			{
-				int bit = masks[sf][j];
+				int bit = problem.getMasks(sf, j); //masks[sf][j];
 				sub.setBit(j,sol.getBit(bit));
 			}
 			double v_sub = problem.evaluateSubfunction(sf, sub);
@@ -376,7 +376,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 				int ind_i = 0;
 				for (int j=0; j < k; j++)
 				{
-					int bit = masks[sf][j];
+					int bit = problem.getMasks(sf, j); //masks[sf][j];
 					if (sov.contains(bit))
 					{
 						sub_sov.flipBit(j);
@@ -521,7 +521,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		int n = problem.getN();
 		int m = problem.getM();
 		int max_k = 0;
-		int [][] masks = problem.getMasks();
+		//int [][] masks = problem.getMasks();
 		subfns = new int [m][];
 		oneFlipScores = new int [n];
 		
@@ -573,14 +573,16 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		for (int sf=0; sf < subfns.length; sf++)
 		{
 			set.clear();
-			if (masks[sf].length > max_k)
+			if (problem.getMaskLength(sf) /*masks[sf].length*/ > max_k)
 			{
-				max_k = masks[sf].length;
+				max_k = problem.getMaskLength(sf); // masks[sf].length;
 			}
 			
-			for (int v: masks[sf])
+			//for (int v: masks[sf])
+			int limit = problem.getMaskLength(sf);	
+			for (int v=0; v < limit; v++)
 			{
-				set.addAll(aux_var_combs[v]);
+				set.addAll(aux_var_combs[problem.getMasks(sf,v)] /*v*/);
 			}
 			
 			subfns[sf] = new int [set.size()];
@@ -684,7 +686,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	{
 		long init = System.currentTimeMillis();
 		// Compute the scores for all the values of the map
-		int [][] masks = problem.getMasks();
+		//int [][] masks = problem.getMasks();
 		for (int i=1; i <= radius; i++)
 		{
 			maxNomEmptyScore[i] = 0;
@@ -706,7 +708,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 			
 			for (int sf: subFunctionsAffected(sov))
 			{
-				int k=masks[sf].length;
+				int k= problem.getMaskLength(sf);//masks[sf].length;
 				// For each subfunction do ...	
 				double v_sub;
 				if (subfns_evals[sf] != null)
@@ -718,7 +720,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 					
 					for (int j=0; j < k; j++)
 					{
-						int bit = masks[sf][j];
+						int bit = problem.getMasks(sf, j); //masks[sf][j];
 						sub.setBit(j,sol.getBit(bit));
 					}
 					subfns_evals[sf] = v_sub = problem.evaluateSubfunction(sf, sub);
@@ -728,7 +730,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 				// Build the subsolutions
 				for (int j=0; j < k; j++)
 				{
-					int bit = masks[sf][j];
+					int bit = problem.getMasks(sf, j); //masks[sf][j];
 					sub_sov.setBit(j,sol.getBit(bit) ^ (sov.contains(bit)?0x01:0x00));
 				}
 

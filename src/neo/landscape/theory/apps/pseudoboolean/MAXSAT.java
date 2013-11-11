@@ -298,7 +298,8 @@ public class MAXSAT extends EmbeddedLandscape {
 		return Math.abs(clauses[sf][i])-1;
 	}
 	
-	public int getMasksLength(int sf)
+	@Override
+	public int getMaskLength(int sf)
 	{
 		return clauses[sf].length;
 	}
