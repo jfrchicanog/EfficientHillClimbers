@@ -26,6 +26,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	public static final String FLIP_STAT = "flip_stat";
 	public static final String QUALITY_LIMITS = "ql";
 	public static final String SEED = "seed";
+	public static final String FIFO = "fifo";
 
 	public static class SetOfSetOfVars extends HashSet<SetOfVars>{}
 	public static class SetOfVars extends BitSet implements Iterable<Integer> {
@@ -179,7 +180,10 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	protected EmbeddedLandscape problem;
 	protected PBSolution sol;
 	
+	
+	// Main configuration parameters and variables
 	private double [] quality_limits;
+	private boolean fifo;
 	private DoubleLinkedList<RBallPBMove> [][] scores;
 	private int [] maxNomEmptyScore;
 	private int minImpRadius;
@@ -236,6 +240,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		}
 		
 		collect_flips=prop.containsKey(FLIP_STAT);
+		fifo = prop.containsKey(FIFO);
 		
 		quality_limits = quality_l;
 		this.radius = r;
@@ -513,7 +518,15 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 				{
 					int p = sov.size();
 					scores[p][old_q_ind].remove(e);
-					scores[p][new_q_ind].add(e);
+					if (fifo)
+					{
+						scores[p][new_q_ind].add(e);
+					}
+					else
+					{
+						scores[p][new_q_ind].append(e);
+					}
+					
 					
 					if (new_q_ind > maxNomEmptyScore[p])
 					{

@@ -23,10 +23,12 @@ public class DoubleLinkedList<T> implements Iterable<T>{
 	}
 	
 	private Entry<T> first;
+	private Entry<T> last;
 	
 	public DoubleLinkedList()
 	{
 		first =null;
+		last = null;
 	}
 	
 	public void remove(Entry<T> e)
@@ -44,6 +46,10 @@ public class DoubleLinkedList<T> implements Iterable<T>{
 		{
 			e.next.prev = e.prev;
 		}
+		else
+		{
+			last = e.prev;
+		}
 	}
 	
 	public void add(Entry<T> e)
@@ -55,6 +61,31 @@ public class DoubleLinkedList<T> implements Iterable<T>{
 			first.prev = e;
 		}
 		first = e;
+		
+		if (last==null)
+		{
+			last=first;
+		}
+	}
+	
+	/**
+	 * Added to implement Adele's suggestion
+	 * @param e
+	 */
+	public void append(Entry<T> e)
+	{
+		e.next=null;
+		e.prev = last;
+		if (last != null)
+		{
+			last.next = e;
+		}
+		last = e;
+		
+		if (first==null)
+		{
+			first=last;
+		}
 	}
 	
 	public void add (T t)
@@ -65,6 +96,11 @@ public class DoubleLinkedList<T> implements Iterable<T>{
 	public Entry<T> getFirst()
 	{
 		return first;
+	}
+	
+	public Entry<T> getLast()
+	{
+		return last;
 	}
 
 	@Override
