@@ -293,12 +293,12 @@ public class Experiments {
 	
 	public void showMaxsatHelp()
 	{
-		System.out.println("Arguments: maxsat [-h] [-i <instance>] [-r <r>] [-l <quality>, <limits>,...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)]");
+		System.out.println("Arguments: maxsat [-h] [-i <instance>] [-r <r>] [-ma(xsat specific HC)] [-l <quality> <limits> ...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)] [-fl(ips) vs appearance]");
 	}
 	
 	public void showNkVsMaxksatHelp()
 	{
-		System.out.println("Arguments: nkVSmaxksat [-h] [-n <vars>] [-k <k>] [-m <clauses>] [-f (nk compliant)] [-sh(uffle) clauses] [-r <r>] [-l <quality>, <limits>,...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)]");
+		System.out.println("Arguments: nkVSmaxksat [-h] [-n <vars>] [-k <k>] [-m <clauses>] [-f (nk compliant)] [-sh(uffle) clauses] [-r <r>] [-ma(xsat specific HC)] [-l <quality> <limits> ...] [-t <time(s)>] [-d <descents>] [-s <soft_restart>] [-se <seed>] [-tr(ace)] [-de(bug)] [-fl(ips) vs appearance]");
 	}
 	
 	public boolean checkOneValue(Map<String,List<String>> options, String key, String name)
@@ -399,18 +399,16 @@ public class Experiments {
 		}
 		
 		// Check debug
-		boolean debug = false;
-		if (options.containsKey("de"))
-		{
-			debug = true;
-		}
+		boolean debug = options.containsKey("de");
 		
 		// Check trace
-		boolean trace = false;
-		if (options.containsKey("tr"))
-		{
-			trace=true;
-		}
+		boolean trace = options.containsKey("tr");
+		
+		// Check maxsat specific
+		boolean maxsat_spec = options.containsKey("ma");
+		
+		// Check flips vs appearance plot
+		boolean flipvsapp = options.containsKey("fl");
 		
 		// Create the problem
 		
@@ -452,8 +450,32 @@ public class Experiments {
 		
 		// Prepare the hill climber
 		
-		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, quality_limits);
-		rball.setSeed(seed);
+		Properties rball_prop = new Properties();
+		rball_prop.setProperty(RBallEfficientHillClimber.R_STRING, String.valueOf(r));
+		rball_prop.setProperty(RBallEfficientHillClimber.SEED, String.valueOf(seed));
+		if (flipvsapp)
+		{
+			rball_prop.setProperty(RBallEfficientHillClimber.FLIP_STAT, "");
+		}
+		if (quality_limits != null)
+		{
+			String str = ""+quality_limits[0];
+			for (int i=1; i < quality_limits.length; i++)
+			{
+				str += " "+quality_limits[i];
+			}
+			rball_prop.setProperty(RBallEfficientHillClimber.QUALITY_LIMITS,str);
+		}
+		
+		RBallEfficientHillClimber rball;
+		if (maxsat_spec)
+		{
+			rball = new RBall4MAXSAT(rball_prop);
+		}
+		else
+		{
+			rball = new RBallEfficientHillClimber(rball_prop);
+		}
 		
 		
 		// Initialize data
@@ -556,6 +578,20 @@ public class Experiments {
 		ps.println("Stored scores:"+rball.getStoredScores());
 		ps.println("Var appearance (histogram):"+appearance);
 		ps.println("Var interaction (histogram):"+interactions);
+		
+		if (flipvsapp)
+		{
+			int [] flips = rball.getFlipStat();
+			int [][] appearsIn = pbf.getAppearsIn();
+			// Show the flip vs appearance data (CSV values)
+			ps.println("Flips vs appearance: CSV data below");
+			ps.println("flips,appearance");
+			for (int i=0; i < flips.length; i++)
+			{
+				ps.println(flips[i]+","+appearsIn[i].length);
+			}
+			ps.println("CSV End");
+		}
 		
 		ps.close();
 		
@@ -666,18 +702,16 @@ public class Experiments {
 		}
 		
 		// Check debug
-		boolean debug = false;
-		if (options.containsKey("de"))
-		{
-			debug = true;
-		}
+		boolean debug = options.containsKey("de");
 		
 		// Check trace
-		boolean trace = false;
-		if (options.containsKey("tr"))
-		{
-			trace=true;
-		}
+		boolean trace = options.containsKey("tr");
+		
+		// Check maxsat specific
+		boolean maxsat_spec = options.containsKey("ma");
+		
+		// Check flips vs appearance plot
+		boolean flipvsapp = options.containsKey("fl");
 		
 		// Create the problem
 		
@@ -724,8 +758,32 @@ public class Experiments {
 		
 		// Prepare the hill climber
 		
-		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, quality_limits);
-		rball.setSeed(seed);
+		Properties rball_prop = new Properties();
+		rball_prop.setProperty(RBallEfficientHillClimber.R_STRING, String.valueOf(r));
+		rball_prop.setProperty(RBallEfficientHillClimber.SEED, String.valueOf(seed));
+		if (flipvsapp)
+		{
+			rball_prop.setProperty(RBallEfficientHillClimber.FLIP_STAT, "");
+		}
+		if (quality_limits != null)
+		{
+			String str = ""+quality_limits[0];
+			for (int i=1; i < quality_limits.length; i++)
+			{
+				str += " "+quality_limits[i];
+			}
+			rball_prop.setProperty(RBallEfficientHillClimber.QUALITY_LIMITS,str);
+		}
+		
+		RBallEfficientHillClimber rball;
+		if (maxsat_spec)
+		{
+			rball = new RBall4MAXSAT(rball_prop);
+		}
+		else
+		{
+			rball = new RBallEfficientHillClimber(rball_prop);
+		}
 		
 		
 		// Initialize data
@@ -824,6 +882,20 @@ public class Experiments {
 		ps.println("Stored scores:"+rball.getStoredScores());
 		ps.println("Var appearance (histogram):"+appearance);
 		ps.println("Var interaction (histogram):"+interactions);
+		
+		if (flipvsapp)
+		{
+			int [] flips = rball.getFlipStat();
+			int [][] appearsIn = pbf.getAppearsIn();
+			// Show the flip vs appearance data (CSV values)
+			ps.println("Flips vs appearance: CSV data below");
+			ps.println("flips,appearance");
+			for (int i=0; i < flips.length; i++)
+			{
+				ps.println(appearsIn[i].length+","+flips[i]);
+			}
+			ps.println("CSV End");
+		}
 		
 		ps.close();
 		

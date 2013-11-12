@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
@@ -17,8 +18,14 @@ import neo.landscape.theory.apps.util.DoubleLinkedList.Entry;
 import neo.landscape.theory.apps.util.IteratorFromArray;
 import neo.landscape.theory.apps.util.RootedTreeGenerator;
 import neo.landscape.theory.apps.util.RootedTreeGenerator.RootedTreeCallback;
+import neo.landscape.theory.apps.util.Seeds;
 
 public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape> {
+	
+	public static final String R_STRING = "r";
+	public static final String FLIP_STAT = "flip_stat";
+	public static final String QUALITY_LIMITS = "ql";
+	public static final String SEED = "seed";
 
 	public static class SetOfSetOfVars extends HashSet<SetOfVars>{}
 	public static class SetOfVars extends BitSet implements Iterable<Integer> {
@@ -165,21 +172,25 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		public void run(int depth);
 	}
 
-	private EmbeddedLandscape problem;
-	private PBSolution sol;
+	public static interface SubfunctionChangeListener {
+		public void valueChanged(int sf, double old_value, double new_value);
+	}
+	
+	protected EmbeddedLandscape problem;
+	protected PBSolution sol;
 	
 	private double [] quality_limits;
 	private DoubleLinkedList<RBallPBMove> [][] scores;
 	private int [] maxNomEmptyScore;
 	private int minImpRadius;
-	private Entry<RBallPBMove> [] mos;
+	protected Entry<RBallPBMove> [] mos;
 	private int [][] subfns;
 	
-	private int radius;
-	private int [] oneFlipScores;
+	protected int radius;
+	protected int [] oneFlipScores;
 	
 	// Used for soft restarts
-	private Random rnd;
+	protected Random rnd;
 	
 	// Auxiliary data structures
 	private int [] flip_bits;
@@ -187,9 +198,12 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	private PBSolution sub_sov;
 	private SetOfVars affected_subfns;
 	private Double [] subfns_evals;
-	private double sol_quality;
+	protected double sol_quality;
 	private int [] variables;
 	private int [] indices;
+	
+	// Listeners
+	private SubfunctionChangeListener scl;
 	
 	// Statistics of the operator
 	private int [] moves_per_distance;
@@ -199,18 +213,66 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	private long solution_move_evals;
 	private long total_moves;
 	private long total_sol_inits;
+	private int [] flips;
+	protected boolean collect_flips;
 
 
+	public RBallEfficientHillClimber(Properties prop)
+	{
+		if (!prop.containsKey(R_STRING))
+		{
+			throw new IllegalArgumentException ("Radius of explorarion not found (r)");
+		}
+		int r = Integer.parseInt(prop.getProperty(R_STRING));
+		double [] quality_l = parseQL(prop.getProperty(QUALITY_LIMITS));
+		long seed;
+		if (prop.containsKey(SEED))
+		{
+			seed = Long.parseLong(prop.getProperty(SEED));
+		}
+		else
+		{
+			seed = Seeds.getSeed();
+		}
+		
+		collect_flips=prop.containsKey(FLIP_STAT);
+		
+		quality_limits = quality_l;
+		this.radius = r;
+		rnd = new Random(seed);
+		initializeOperatorDependentStructures();
+		
+	}
+	
+	private double [] parseQL(String s)
+	{
+		if (s==null)
+		{
+			return null;
+		}
+		String [] strs = s.split(" ");
+		double [] res = new double [strs.length];
+		for (int i=0; i < res.length; i++)
+		{
+			res[i] = Double.parseDouble(strs[i]);
+		}
+		return res;
+		
+	}
+	
 	public RBallEfficientHillClimber(int r)
 	{
+		// Kept for backward compatibility
 		this(r, null);
 	}
 	
 	public RBallEfficientHillClimber(int r, double [] quality_l)
 	{
+		// Kept for backward compatibility
 		quality_limits = quality_l;
 		this.radius = r;
-		rnd = new Random();
+		rnd = new Random(Seeds.getSeed());
+		collect_flips = false;
 		initializeOperatorDependentStructures();
 	}
 	
@@ -345,7 +407,8 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		return sfs;
 	}
 	
-	private void moveSeveralBitsEff(SetOfVars bits)
+	
+	protected void moveSeveralBitsEff(SetOfVars bits)
 	{
 		//int [][] masks = problem.getMasks();
 		
@@ -356,14 +419,45 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 			int k= problem.getMaskLength(sf); // masks[sf].length;
 			// For each subfunction do ...			
 			// For each move score evaluate the subfunction and update the corresponding value
+			double v_sub;
+			
+			int ind_i = 0;
 			for (int j=0; j < k; j++)
 			{
 				int bit = problem.getMasks(sf, j); //masks[sf][j];
 				sub.setBit(j,sol.getBit(bit));
+				if (bits.contains(bit))
+				{
+					flip_bits[ind_i++]=j; 
+				}
 			}
-			double v_sub = problem.evaluateSubfunction(sf, sub);
+			
+			v_sub = subfns_evals[sf];
+			
+//			if (sf_values != null)
+//			{
+//				v_sub = [sf];
+//			}
+//			else
+//			{
+//				v_sub = problem.evaluateSubfunction(sf, sub);
+//				solution_move_evals++;
+//			}
+			
+			for (int j=0; j < ind_i; j++)
+			{
+				sub.flipBit(flip_bits[j]);
+			}
+			
+			double v_sub_i = problem.evaluateSubfunction(sf, sub);
 			
 			solution_move_evals++;
+			
+			// Revert the solution to the current value
+			for (int j=0; j < ind_i; j++)
+			{
+				sub.flipBit(flip_bits[j]);
+			}
 			
 			for (int e_ind: subfns[sf])
 			{
@@ -373,7 +467,6 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 				// Build the subsolutions
 				sub_sov.copyFrom(sub);
 				
-				int ind_i = 0;
 				for (int j=0; j < k; j++)
 				{
 					int bit = problem.getMasks(sf, j); //masks[sf][j];
@@ -382,10 +475,10 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 						sub_sov.flipBit(j);
 					}
 					
-					if (bits.contains(bit))
-					{
-						flip_bits[ind_i++]=j; 
-					}
+//					if (bits.contains(bit))
+//					{
+//						flip_bits[ind_i++]=j; 
+//					}
 				}
 				
 				double v_sub_sov = problem.evaluateSubfunction(sf, sub_sov); 
@@ -394,19 +487,19 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 				
 				for (int j=0; j < ind_i; j++)
 				{
-					sub.flipBit(flip_bits[j]);
+					//sub.flipBit(flip_bits[j]);
 					sub_sov.flipBit(flip_bits[j]);
 				}
 				
 				double v_sub_sov_i = problem.evaluateSubfunction(sf, sub_sov);
-				double v_sub_i = problem.evaluateSubfunction(sf, sub);
+				//double v_sub_i = problem.evaluateSubfunction(sf, sub);
 				
-				solution_move_evals += 2;
+				solution_move_evals += 1;
 				
-				for (int j=0; j < ind_i; j++)
-				{
-					sub.flipBit(flip_bits[j]);
-				}
+//				for (int j=0; j < ind_i; j++)
+//				{
+//					sub.flipBit(flip_bits[j]);
+//				}
 				
 				double update = (v_sub_sov_i - v_sub_i) - (v_sub_sov-v_sub); 
 				
@@ -429,6 +522,15 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 					}
 				}
 			}
+			
+			subfns_evals[sf] = v_sub_i;
+			fireChange(sf, v_sub, v_sub_i);
+			
+//			if (sf_values != null)
+//			{
+//				sf_values[sf] = v_sub_i;
+//			}
+			
 		}
 		
 		//Update the maxNomEmptyScore and the minImpRadius (in case they are overestimated)
@@ -449,6 +551,10 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		for (int bit: bits)
 		{
 			sol.flipBit(bit);
+			if (collect_flips)
+			{
+				flips[bit]++;
+			}
 		}
 		
 		total_moves++;
@@ -457,6 +563,11 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	public void moveOneBit(int i)
 	{
 		moveSeveralBitsEff(SetOfVars.immutable(i));
+	}
+	
+	public int [] getFlipStat()
+	{
+		return flips;
 	}
 	
 	private void initializeProblemDependentStructures()
@@ -524,6 +635,11 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		//int [][] masks = problem.getMasks();
 		subfns = new int [m][];
 		oneFlipScores = new int [n];
+		
+		if (collect_flips)
+		{
+			flips = new int [n];
+		}
 		
 		Set<Integer> [] aux_var_combs = new HashSet [n];
 		int index=0;
@@ -714,6 +830,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 				if (subfns_evals[sf] != null)
 				{
 					v_sub = subfns_evals[sf];
+					fireChange(sf, Double.NaN, v_sub);
 				}
 				else
 				{
@@ -937,12 +1054,15 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	
 	public void softRestart(int soft_restart) {
 		int n = problem.getN();
+		boolean tmp = collect_flips;
+		collect_flips =false;
 		for (int i=0; i < soft_restart; i++)
 		{
 			int var = rnd.nextInt(n);
 			sol_quality+= mos[oneFlipScores[var]].v.improvement;
 			moveOneBit(var);
 		}
+		collect_flips = tmp;
 	}
 	
 	public int [] getMovesPerDinstance()
@@ -996,5 +1116,17 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		return sol_quality;
 	}
 	
+	protected void fireChange (int sf, double old_val, double new_val)
+	{
+		if (scl != null)
+		{
+			scl.valueChanged(sf, old_val, new_val);
+		}
+	}
+	
+	public void setSubfunctionChangeListener(SubfunctionChangeListener scl)
+	{
+		this.scl = scl;
+	}
 
 }
