@@ -55,6 +55,9 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 		return n;
 	}
 	
+	/**
+	 * The string prints the binary string in Big Endian order.
+	 */
 	public String toString()
 	{
 		String str="";
@@ -65,6 +68,10 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 		return str;
 	}
 
+	/**
+	 * This method assumes that the binary string is in Big Endian order.
+	 * @param string
+	 */
 	public void parse(String string) {
 		if (string.length() != n)
 		{

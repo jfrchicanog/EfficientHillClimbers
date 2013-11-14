@@ -21,16 +21,20 @@ public class MAXSAT extends EmbeddedLandscape {
 	public static final String MAX_K_STRING = "max_k"; 
 	public static final String INSTANCE_STRING = "instance";
 	public static final String MIN_STRING="min";
+	public static final String HYPERPLANE_INIT = "hp_init";
 	
 	protected int [][] clauses;
 	protected int topClauses;
 	protected boolean min;
+	protected boolean hpInit;
+	protected String instance;
 	
 	@Override
 	public void setConfiguration(Properties prop) {
 		if (prop.getProperty(INSTANCE_STRING)!=null)
 		{
-			loadInstance(new File(prop.getProperty(INSTANCE_STRING)));
+			instance=prop.getProperty(INSTANCE_STRING);
+			loadInstance(new File(instance));
 		}
 		else
 		{
@@ -48,6 +52,12 @@ public class MAXSAT extends EmbeddedLandscape {
 		if (prop.getProperty(MIN_STRING)!=null)
 		{
 			min = prop.getProperty(MIN_STRING).equals("yes");
+		}
+		
+		hpInit=false;
+		if (prop.getProperty(HYPERPLANE_INIT)!=null)
+		{
+			hpInit = prop.getProperty(HYPERPLANE_INIT).equals("yes");
 		}
 	}
 
@@ -319,6 +329,50 @@ public class MAXSAT extends EmbeddedLandscape {
 				
 		}
 		return 0;
+	}
+	
+	
+	/**
+	 * This method potentially uses the hyperplane initialization.
+	 */
+	@Override
+	public PBSolution getRandomSolution() {
+		if (!hpInit)
+		{
+			return super.getRandomSolution();
+		}
+		// else
+		return getHyperplaneInitSol(instance, rnd.nextLong());
+	}
+	
+	private PBSolution getHyperplaneInitSol(String instance, long seed)
+	{
+		PBSolution sol=null;
+		try {
+			Runtime rt = Runtime.getRuntime();
+			Process pr = rt.exec("./MaxsatHP -hyperplaneinit -seed "+seed+" "+instance);
+			pr.waitFor();
+			BufferedReader brd = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+			sol = new PBSolution (n);
+			sol.parse(brd.readLine());
+			try {
+				brd.close();
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
+
+		} catch (IOException e) {
+			System.err.println("Error running MaxsatHP (using a random solution)");
+			e.printStackTrace();
+			sol=super.getRandomSolution();
+		} catch (InterruptedException e) {
+			System.err.println("Error running MaxsatHP: interrupted (using a random solution)");
+			e.printStackTrace();
+			sol=super.getRandomSolution();
+		}
+		return sol;
 	}
 	
 	public static void main (String [] args)
