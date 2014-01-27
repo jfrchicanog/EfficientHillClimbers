@@ -9,6 +9,12 @@ import java.util.Properties;
 import neo.landscape.theory.apps.efficienthc.HillClimber;
 import neo.landscape.theory.apps.util.Seeds;
 
+/**
+ * 
+ * @author francis
+ *
+ */
+
 public class Driver {
 
 	public void runDebugExecution(String [] args) throws Exception
@@ -137,7 +143,10 @@ public class Driver {
 			do
 			{
 				imp = hc.move();
-				n_moves++;
+				if (imp < 0.0)
+				{
+					n_moves++;
+				}
 			} while (n_moves < moves && imp < 0.0);
 			
 			double fitness = wgc.evaluate(hc.getSolution());
@@ -155,6 +164,7 @@ public class Driver {
 		System.out.println("Vertices: "+wgc.getVertices());
 		System.out.println("Edges: "+wgc.getEdges());
 		System.out.println("Colors: "+wgc.getColors());
+		System.out.println("Max degree:"+wgc.getMaxDegree());
 		
 	}
 	

@@ -36,6 +36,11 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 	{
 		int list = computeIndex(m.v.improvement);
 		
+		if (moves[list]==null)
+		{
+			moves[list] = new DoubleLinkedList<>();
+		}
+		
 		moves[list].add(m);
 		
 		if (list > maxImprovement)
@@ -178,7 +183,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 	
 	private void checkMaxImprovement()
 	{
-		while (moves[maxImprovement] == null)
+		while (moves[maxImprovement] == null || moves[maxImprovement].isEmpty())
 		{
 			maxImprovement--;
 		}

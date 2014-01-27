@@ -1,10 +1,12 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Properties;
@@ -27,6 +29,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	public static final String QUALITY_LIMITS = "ql";
 	public static final String SEED = "seed";
 	public static final String FIFO = "fifo";
+	public static final String PROFILE="profile";
 
 	public static class SetOfSetOfVars extends HashSet<SetOfVars>{}
 	public static class SetOfVars extends BitSet implements Iterable<Integer> {
@@ -177,6 +180,18 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		public void valueChanged(int sf, double old_value, double new_value);
 	}
 	
+	public static class ProfileData
+	{
+		public ProfileData(int radius, int moves)
+		{
+			this.radius = radius;
+			this.moves = moves;
+		}
+		
+		public int radius;
+		public int moves;
+	}
+	
 	protected EmbeddedLandscape problem;
 	protected PBSolution sol;
 	
@@ -218,6 +233,7 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 	private long total_moves;
 	private long total_sol_inits;
 	private int [] flips;
+	private List<ProfileData> profile;
 	protected boolean collect_flips;
 
 
@@ -241,6 +257,11 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		
 		collect_flips=prop.containsKey(FLIP_STAT);
 		fifo = prop.containsKey(FIFO);
+		
+		if (prop.containsKey(PROFILE))
+		{
+			profile = new ArrayList<ProfileData>();
+		}
 		
 		quality_limits = quality_l;
 		this.radius = r;
@@ -375,11 +396,39 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 		
 		sol_quality+=imp;
 		
-		moves_per_distance[minImpRadius]++;
-		
+		reportMovement(minImpRadius);
 		moveSeveralBitsEff(move.flipVariables);
 		
 		return imp;
+	}
+	
+	private void reportMovement(int r)
+	{
+		moves_per_distance[r]++;
+		if (profile != null)
+		{
+			ProfileData pd;
+			if (profile.size() > 0)
+			{
+				pd=profile.get(profile.size()-1);
+			}
+			else
+			{
+				pd = new ProfileData(r,0);
+				profile.add(pd);
+			}
+			
+			if (pd.radius == r)
+			{
+				pd.moves++;
+			}
+			else
+			{
+				pd = new ProfileData(r,1);
+				profile.add(pd);
+			}
+		}
+		
 	}
 
 	@Override
@@ -1063,6 +1112,18 @@ public class RBallEfficientHillClimber implements HillClimber<EmbeddedLandscape>
 				}
 			}
 		}
+	}
+	
+	public List<ProfileData> getProfile()
+	{
+		return profile;
+	}
+	
+	// TODO: I have to test the profile implementation and make it accessible from the experiments classes 
+	
+	public void resetProfile()
+	{
+		profile = new ArrayList<ProfileData>();
 	}
 	
 	public void softRestart(int soft_restart) {

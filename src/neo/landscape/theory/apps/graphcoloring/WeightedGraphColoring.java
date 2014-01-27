@@ -28,6 +28,8 @@ public class WeightedGraphColoring implements Problem {
 	private long seed;
 	private int vertices;
 	private int edges;
+	private int max_degree;
+	
 	public int getEdges() {
 		return edges;
 	}
@@ -92,6 +94,11 @@ public class WeightedGraphColoring implements Problem {
 		}
 	}
 	
+	public int getMaxDegree()
+	{
+		return max_degree;
+	}
+	
 	private void readInstance (Reader rd) throws IOException
 	{	
 		Set<Integer> [] aux_adjs=null;
@@ -124,9 +131,10 @@ public class WeightedGraphColoring implements Problem {
 		}
 		
 		adjacents = new int [aux_adjs.length][];
+		int sum_degree=0;
+		max_degree=0;
 		for (int i=0; i < adjacents.length; i++)
 		{	
-			
 			if (aux_adjs[i] == null)
 			{
 				adjacents[i] = new int [0];
@@ -140,9 +148,18 @@ public class WeightedGraphColoring implements Problem {
 				{
 					adjacents[i][j++] = val;
 				}
+				
+				if (j > max_degree)
+				{
+					max_degree=j;
+				}
+				
+				sum_degree += j;
+				
 			}
-			
 		}
+		
+		edges = sum_degree/2;
 		
 		equalWeights=true;
 		
