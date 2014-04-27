@@ -1,12 +1,14 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import java.math.BigDecimal;
+
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
 
-public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandscapes>{
+public class NKLandscapesCircularDynProgBigDecimal implements ExactSolutionMethod<NKLandscapes>{
 	
-	private double [][] subfunctions; 
-	private double [][] u; // Wright et al.'s u temporary array
-	private double [][] v; // Wright et al.'s v temporary array
+	private BigDecimal [][] subfunctions; 
+	private BigDecimal [][] u; // Wright et al.'s u temporary array
+	private BigDecimal [][] v; // Wright et al.'s v temporary array
 	private int n;
 	private int K;
 	private int r;
@@ -21,13 +23,13 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 		n = problem.getN();
 		if (K==0)
 		{
-			subfunctions = problem.getSubFunctions();
+			adaptSubfunctions(problem.getSubFunctions());
 			// Linear problem, solve it directly
 			return solveLinear();
 		}
 		else if (K==1)
 		{
-			subfunctions = problem.getSubFunctions().clone();
+			adaptSubfunctions(problem.getSubFunctions());
 			r=K;
 		}
 		else if ((n % K) != 0  && n < 2*K)
@@ -41,6 +43,19 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 		}
 		
 		return solveWright();
+	}
+	
+	private void adaptSubfunctions(double [][] subfns)
+	{
+		subfunctions = new BigDecimal[subfns.length][];
+		for (int i=0; i < subfns.length; i++)
+		{
+			subfunctions[i] = new BigDecimal[subfns[i].length];
+			for (int j=0; j < subfns[i].length; j++)
+			{
+				subfunctions[i][j] = new BigDecimal(subfns[i][j]);
+			}
+		}
 	}
 	
 	private void computeSubfunctions() {
@@ -60,7 +75,7 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 		
 		int limit_b = 1 << K;
 		
-		subfunctions = new double [number][];
+		subfunctions = new BigDecimal [number][];
 		int fn=0;
 		for (int f=0; f < number; f++)
 		{
@@ -71,18 +86,18 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 			}
 			
 			int limit_a = 1 << shift_a;
-			subfunctions[f] = new double [1 << (K+shift_a)];
+			subfunctions[f] = new BigDecimal [1 << (K+shift_a)];
 			
 			for (int a=0; a < limit_a; a++)
 			{
 				for (int b = 0; b < limit_b; b++)
 				{
-					double val=0;
+					BigDecimal val=BigDecimal.ZERO;
 					int shift =  (b << shift_a) +a;
 					
 					for (int j=0; j < shift_a; j++ )
 					{
-						val += orig_subfn[fn+j][shift & ((1 << (K+1))-1)];
+						val = val.add(new BigDecimal(orig_subfn[fn+j][shift & ((1 << (K+1))-1)]));
 						shift >>>= 1;
 					}
 					
@@ -95,13 +110,13 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 		
 	}
 
-	private double readFn(int i, int a, int b)
+	private BigDecimal readFn(int i, int a, int b)
 	{
 		int index = (b << K) + a;
 		return subfunctions[i][index];
 	}
 	
-	private void writeFn(int i, int a, int b, double v)
+	private void writeFn(int i, int a, int b, BigDecimal v)
 	{
 		int index = (b << K) + a;
 		subfunctions[i][index] = v;
@@ -111,22 +126,22 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 		// Wright et al.'s algorithm (IEEE TEVC 4(4):373, 2000)
 		
 		final int limit = 1 << K;
-		u = new double [limit][limit];
-		v = new double [limit][limit];
+		u = new BigDecimal [limit][limit];
+		v = new BigDecimal [limit][limit];
 		
 		for (int f=subfunctions.length-1; f >= (r < K?3:2); f--)
 		{
 			for (int a=0; a < limit; a++)
 				for (int c=0; c < limit; c++)
 				{
-					u[a][c] = -Double.MAX_VALUE;
+					u[a][c] = null;
 					for (int b=0; b < limit; b++)
 					{
-						double sum = readFn(f-1,a,b)+readFn(f,b,c);
-						if (sum > u[a][c])
+						BigDecimal sum = readFn(f-1,a,b).add(readFn(f,b,c));
+						if (u[a][c] == null || sum.compareTo(u[a][c])>0)
 						{
 							u[a][c] = sum;
-							v[a][c] = b;
+							v[a][c] = new BigDecimal(b);
 						}
 					}
 				}
@@ -144,7 +159,7 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 		int amax=0;
 		int cmax=0;
 		int bmax=0;
-		double max=-Double.MAX_VALUE;
+		BigDecimal max=null;
 		PBSolution pbsol = new PBSolution(n);
 		
 		if (r == K)
@@ -152,8 +167,8 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 			for (int a=0; a < limit; a++)
 				for (int c=0; c < limit; c++)
 				{
-					double val = readFn(0,a,c)+readFn(1,c,a);
-					if (val > max)
+					BigDecimal val = readFn(0,a,c).add(readFn(1,c,a));
+					if (max == null || val.compareTo(max)>0)
 					{
 						max = val;
 						amax = a;
@@ -172,8 +187,9 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 						int index0 = ((index1 << K)+a) & ((1 << (2*K))-1);
 						int index2 = ((a << K)+c) & ((1 << (2*K))-1);
 						
-						double val = subfunctions[0][index0]+subfunctions[1][index1]+subfunctions[2][index2];
-						if (val > max)
+						BigDecimal val = subfunctions[0][index0].add(subfunctions[1][index1])
+																.add(subfunctions[2][index2]);
+						if (max== null || val.compareTo(max) > 0)
 						{
 							max = val;
 							amax = a;
@@ -185,7 +201,9 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 
 		SolutionQuality<NKLandscapes> sol = new SolutionQuality<NKLandscapes>();
 		sol.solution=pbsol;
-		sol.quality=max;
+		// Warning: potential lack of precision
+		sol.quality=max.doubleValue();
+		System.out.println("Arbitrary precision optimal value: "+max);
 		// Build the solution
 		
 		int pos=0;
@@ -204,7 +222,8 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 		int val=cmax;
 		for (int f=start_fn; f < subfunctions.length; f++)
 		{
-			val = (int)readFn(f,val,amax);
+			// Warning: potential lack of precision?
+			val = readFn(f,val,amax).intValue();
 			setWithBits(pbsol, pos, K, val);
 			pos += K;
 		}
@@ -229,7 +248,7 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 		for (int i=0; i < n; i++)
 		{
 			int v; 
-			if (subfunctions[i][0] > subfunctions[i][1])
+			if (subfunctions[i][0].compareTo(subfunctions[i][1])>0)
 			{
 				v=0;
 			}
@@ -238,7 +257,8 @@ public class NKLandscapesCircularDynProg implements ExactSolutionMethod<NKLandsc
 				v=1;
 			}
 			pbsol.setBit(i, v);
-			sol.quality += subfunctions[i][v];
+			// Warning: potential lack of precision
+			sol.quality += subfunctions[i][v].doubleValue();
 		}
 		
 		return sol;

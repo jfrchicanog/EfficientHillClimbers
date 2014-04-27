@@ -3,6 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -167,6 +168,31 @@ public class NKLandscapes extends EmbeddedLandscape implements KBoundedEpistasis
 
 		return res;
 	}
+	
+	
+	public BigDecimal evaluateArbitraryPrecision(Solution sol)
+	{
+		PBSolution pbs = (PBSolution)sol;
+
+		if (subfunctions == null)
+		{
+			throw new IllegalStateException("The NK-landscape has not been configured");
+		}
+
+		BigDecimal res=BigDecimal.ZERO;
+
+		for (int sf=0; sf < m; sf ++)
+		{
+			int index=0;
+			for (int i=k-1; i >= 0; i--)
+			{
+				index = (index << 1) + pbs.getBit(masks[sf][i]);
+			}
+			res = res.add(new BigDecimal(subfunctions[sf][index]));
+		}
+
+		return res;
+	}
 
 	@Override
 	public double evaluateSubfunction(int sf, PBSolution pbs) {
@@ -184,13 +210,15 @@ public class NKLandscapes extends EmbeddedLandscape implements KBoundedEpistasis
 		return subfunctions[sf][index];
 	}
 	
+	
+	
 	public static void showHelp()
 	{
-		System.err.println("Arguments: <N> <K> <q> <c> [<seed>]");
+		System.err.println("Arguments: <N> <K> <q> <c> [<seed>] [<solution>]");
 		System.err.println("Use <q>="+FORCE_NK+" for NK landscapes (otherwise NKq-landscape is generated)");
 		System.err.println("Use <q>=- for q=2^(K+1)");
 		System.err.println("<c> hould be yes (for adjacent-model) or no (for random-model)");
-		System.err.println("The instance is written in the standard output");
+		System.err.println("The instance is written in the standard output (if no solution is given)");
 	}
 	
 	public static void main (String [] args)
@@ -205,6 +233,7 @@ public class NKLandscapes extends EmbeddedLandscape implements KBoundedEpistasis
 		String k = args[1];
 		String q = args[2];
 		String circular = args[3];
+		PBSolution sol = null;
 		long seed = 0;
 		if (args.length >= 5)
 		{
@@ -213,6 +242,11 @@ public class NKLandscapes extends EmbeddedLandscape implements KBoundedEpistasis
 		else
 		{
 			seed = Seeds.getSeed();
+		}
+		
+		if (args.length >= 6)
+		{
+			sol = PBSolution.toPBSolution(args[5]);
 		}
 
 		NKLandscapes pbf = new NKLandscapes();
@@ -228,7 +262,17 @@ public class NKLandscapes extends EmbeddedLandscape implements KBoundedEpistasis
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 		
-		pbf.writeTo(new OutputStreamWriter(System.out));
+		if (sol == null)
+		{
+			pbf.writeTo(new OutputStreamWriter(System.out));
+		}
+		else
+		{
+			BigDecimal res = pbf.evaluateArbitraryPrecision(sol);
+			System.out.println("Arbitrary precision optimal value: "+res);
+			System.out.println("Double: "+res.doubleValue());
+		}
+		
 				
 	}
 

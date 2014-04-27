@@ -67,6 +67,13 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 		}
 		return str;
 	}
+	
+	public static PBSolution toPBSolution (String str)
+	{
+		PBSolution sol = new PBSolution (str.length());
+		sol.parse(str);
+		return sol;
+	}
 
 	/**
 	 * This method assumes that the binary string is in Big Endian order.

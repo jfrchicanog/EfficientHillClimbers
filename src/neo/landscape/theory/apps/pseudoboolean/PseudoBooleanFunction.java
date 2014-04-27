@@ -1,8 +1,10 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import java.math.BigDecimal;
 import java.util.Random;
 
 import neo.landscape.theory.apps.efficienthc.Problem;
+import neo.landscape.theory.apps.efficienthc.Solution;
 
 public abstract class PseudoBooleanFunction implements Problem {
 
@@ -24,6 +26,11 @@ public abstract class PseudoBooleanFunction implements Problem {
 	public long getSeed()
 	{
 		return seed;
+	}
+	
+	public BigDecimal evaluateArbitraryPrecision(Solution sol)
+	{
+		return new BigDecimal (evaluate(sol));
 	}
 
 	@Override

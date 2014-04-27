@@ -12,7 +12,7 @@ public class ExactSolutionNK {
 
 		if (args.length < 3)
 		{
-			System.out.println("Arguments: <n> <k> <q> (enum|dynp) [<seed>] (all the instances are circular)");
+			System.out.println("Arguments: <n> <k> <q> (enum|enumbd|dynp|dynpbd) [<seed>] (all the instances are circular)");
 			return;
 		}
 
@@ -20,6 +20,7 @@ public class ExactSolutionNK {
 		String k = args[1];
 		String q = args[2];
 		String algorithm = args[3];
+		PBSolution sol=null;
 		long seed = 0;
 		if (args.length >= 5)
 		{
@@ -29,6 +30,7 @@ public class ExactSolutionNK {
 		{
 			seed = Seeds.getSeed();
 		}
+
 
 		NKLandscapes pbf = new NKLandscapes();
 		Properties prop = new Properties();
@@ -50,8 +52,14 @@ public class ExactSolutionNK {
 		case "enum":
 			es = new CompleteEnumeration<NKLandscapes>();
 			break;
+		case "enumbd":
+			es = new CompleteEnumerationBigDecimal<NKLandscapes>();
+			break;	
 		case "dynp":
 			es = new NKLandscapesCircularDynProg();
+			break;
+		case "dynpbd":
+			es = new NKLandscapesCircularDynProgBigDecimal();
 			break;
 		default:
 			System.out.println("Algorithm desconocido: "+algorithm);

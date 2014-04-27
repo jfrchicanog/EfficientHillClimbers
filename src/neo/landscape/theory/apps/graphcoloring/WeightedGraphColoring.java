@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Properties;
@@ -189,6 +190,12 @@ public class WeightedGraphColoring implements Problem {
 			sol.colors[i] = rnd.nextInt(colors);
 		}
 		return sol;
+	}
+	
+	@Override
+	public BigDecimal evaluateArbitraryPrecision(Solution sol)
+	{
+		return new BigDecimal (evaluate(sol));
 	}
 
 	public double evaluate(WGCSolution sol) {
