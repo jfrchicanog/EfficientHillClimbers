@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="US-ASCII" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <jardesc>
     <jar path="EfficientSteepestDescent/rball.jar"/>
     <options buildIfNeeded="true" compress="true" descriptionLocation="/EfficientSteepestDescent/rball.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
