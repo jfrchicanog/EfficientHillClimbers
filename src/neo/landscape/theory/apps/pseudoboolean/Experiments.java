@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
 
+import neo.landscape.theory.apps.util.GrayCodeBitFlipIterable;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class Experiments {
@@ -1315,6 +1317,112 @@ public class Experiments {
 		
 		
 	}
+	
+	private int localOptima;
+	private void notifyLocalOptima(RBallEfficientHillClimber rball, NKLandscapes pbf)
+	{
+		double imp = rball.getMovement().getImprovement();
+		if (imp <= 0.0)
+		{
+			
+			System.out.println(localOptima+": "+rball.getSolution() + ": "+pbf.evaluate(rball.getSolution()));
+			localOptima++;
+		}
+	}
+	
+	public void localOptimaExperiments(String [] args)
+	{
+		if (args.length < 5)
+		{
+			System.out.println("Arguments: lo <n> <k> <q> <circular> <r> [<seed>]");
+			return;
+		}
+		
+		String n = args[0];
+		String k = args[1];
+		String q = args[2];
+		String circular = args[3];
+		int r = Integer.parseInt(args[4]);
+		long seed = 0;
+		if (args.length >= 6)
+		{
+			seed = Long.parseLong(args[5]);
+		}
+		else
+		{
+			seed = Seeds.getSeed();
+		}
+		
+		
+		NKLandscapes pbf = new NKLandscapes();
+		Properties prop = new Properties();
+		prop.setProperty(NKLandscapes.N_STRING, n);
+		prop.setProperty(NKLandscapes.K_STRING, k);
+		
+		if (!q.equals("-"))
+		{
+			prop.setProperty(NKLandscapes.Q_STRING, q);
+		}
+		
+		if (circular.equals("y"))
+		{
+			prop.setProperty(NKLandscapes.CIRCULAR_STRING,"yes");
+		}
+		
+		pbf.setSeed(seed);
+		pbf.setConfiguration(prop);
+		
+		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
+		PBSolution pbs = pbf.getRandomSolution();
+		
+		rball.initialize(pbf, pbs);
+		
+		int n_int = pbf.getN();
+		
+		long init_time = System.currentTimeMillis();
+	
+		localOptima = 0;
+		notifyLocalOptima(rball,pbf);
+		for (int bit: new GrayCodeBitFlipIterable(n_int))
+		{
+			rball.moveOneBit(bit);
+			notifyLocalOptima(rball,pbf);
+		}
+		
+		long final_time = System.currentTimeMillis();
+		
+		int max_app=0;
+		int max_interactions=0;
+		for (int i=0; i < n_int; i++)
+		{
+			if (pbf.getAppearsIn()[i].length > max_app)
+			{
+				max_app = pbf.getAppearsIn()[i].length;
+			}
+			
+			if (pbf.getInteractions()[i].length > max_interactions)
+			{
+				max_interactions = pbf.getInteractions()[i].length;
+			}
+		}
+		
+		System.out.println("Problem init time: "+rball.getProblemInitTime());
+		System.out.println("Solution init time: "+rball.getSolutionInitTime());
+		System.out.println("Move time: "+(final_time-init_time));
+		System.out.println("Stored scores:"+rball.getStoredScores());
+		//System.out.println("Total solution init time: "+total_all_sols);
+		//System.out.println("Total moves: "+rball.getTotalMoves());
+		//System.out.println("Subfns evals in moves: "+rball.getSubfnsEvalsInMoves());
+		//System.out.println("Total solution inits: "+rball.getTotalSolutionInits());
+		//System.out.println("Subfns evals in sol inits: "+rball.getSubfnsEvalsInSolInits());
+		System.out.println("Var appearance (max):"+max_app);
+		System.out.println("Var interaction (max):"+max_interactions);
+		
+		pbf.writeTo(new OutputStreamWriter(System.out));
+		
+
+	}
+
 
 	/**
 	 * @param args
@@ -1323,7 +1431,7 @@ public class Experiments {
 		
 		if (args.length < 1)
 		{
-			System.out.println("First argument: time | quality | maxsat | minsat | nkVsmaxksat | maxsatHpInit");
+			System.out.println("First argument: time | quality | maxsat | minsat | nkVsmaxksat | maxsatHpInit | lo");
 			return;
 		}
 		
@@ -1347,6 +1455,9 @@ public class Experiments {
 				break;
 			case "maxsatHpInit":
 				e.maxsatHpInitExperiments(Arrays.copyOfRange(args, 1, args.length));
+				break;
+			case "lo":
+				e.localOptimaExperiments(Arrays.copyOfRange(args, 1, args.length));
 				break;
 			
 		}
