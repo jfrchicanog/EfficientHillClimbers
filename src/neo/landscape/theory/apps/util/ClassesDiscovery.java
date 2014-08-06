@@ -30,7 +30,7 @@ public class ClassesDiscovery {
 	 * @throws ClassNotFoundException
 	 */
 	private static void checkDirectory(File directory, String pckgname,
-	        ArrayList<Class<?>> classes) throws ClassNotFoundException {
+	        List<Class<?>> classes) throws ClassNotFoundException {
 	    File tmpDirectory;
 
 	    if (directory.exists() && directory.isDirectory()) {
@@ -69,7 +69,7 @@ public class ClassesDiscovery {
 	 *             if it can't correctly read from the jar file.
 	 */
 	private static void checkJarFile(JarURLConnection connection,
-	        String pckgname, ArrayList<Class<?>> classes)
+	        String pckgname, List<Class<?>> classes)
 	        throws ClassNotFoundException, IOException {
 	    final JarFile jarFile = connection.getJarFile();
 	    final Enumeration<JarEntry> entries = jarFile.entries();
@@ -88,6 +88,44 @@ public class ClassesDiscovery {
 	        }
 	    }
 	}
+	
+	private static void exploreResources(String pckgname, Enumeration<URL> resources, List<Class<?>> classes) throws ClassNotFoundException
+	{
+		URLConnection connection;
+
+        for (URL url = null; resources.hasMoreElements()
+                && ((url = resources.nextElement()) != null);) {
+            try {
+                connection = url.openConnection();
+                
+
+                if (connection instanceof JarURLConnection) {
+                    checkJarFile((JarURLConnection) connection, pckgname,
+                            classes);
+                } else {
+                    try {
+                        checkDirectory(
+                                new File(URLDecoder.decode(url.getPath(),
+                                        "UTF-8")), pckgname, classes);
+                    } catch (final UnsupportedEncodingException ex) {
+                        throw new ClassNotFoundException(
+                                pckgname
+                                        + " does not appear to be a valid package (Unsupported encoding)",
+                                ex);
+                    }
+                } 
+                /*else
+                    throw new ClassNotFoundException(pckgname + " ("
+                            + url.getPath()
+                            + ") does not appear to be a valid package");*/
+            } catch (final IOException ioex) {
+                throw new ClassNotFoundException(
+                        "IOException was thrown when trying to get all resources for "
+                                + pckgname, ioex);
+            }
+        }
+    
+	}
 
 	/**
 	 * Attempts to list all the classes in the specified package as determined
@@ -104,46 +142,25 @@ public class ClassesDiscovery {
 	    final ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
 
 	    try {
-	        final ClassLoader cld = Thread.currentThread()
-	                .getContextClassLoader();
+	        final ClassLoader cld = ClassLoader.getSystemClassLoader();
 
 	        if (cld == null)
 	            throw new ClassNotFoundException("Can't get class loader.");
-
-	        final Enumeration<URL> resources = cld.getResources(pckgname
-	                .replace('.', '/'));
-	        URLConnection connection;
-
-	        for (URL url = null; resources.hasMoreElements()
-	                && ((url = resources.nextElement()) != null);) {
-	            try {
-	                connection = url.openConnection();
-
-	                if (connection instanceof JarURLConnection) {
-	                    checkJarFile((JarURLConnection) connection, pckgname,
-	                            classes);
-	                } else {
-	                    try {
-	                        checkDirectory(
-	                                new File(URLDecoder.decode(url.getPath(),
-	                                        "UTF-8")), pckgname, classes);
-	                    } catch (final UnsupportedEncodingException ex) {
-	                        throw new ClassNotFoundException(
-	                                pckgname
-	                                        + " does not appear to be a valid package (Unsupported encoding)",
-	                                ex);
-	                    }
-	                } 
-	                /*else
-	                    throw new ClassNotFoundException(pckgname + " ("
-	                            + url.getPath()
-	                            + ") does not appear to be a valid package");*/
-	            } catch (final IOException ioex) {
-	                throw new ClassNotFoundException(
-	                        "IOException was thrown when trying to get all resources for "
-	                                + pckgname, ioex);
-	            }
+	        
+	        
+	        Enumeration<URL> resources = cld.getResources(pckgname.replace('.', '/'));
+	        if (resources.hasMoreElements())
+	        {
+	        	exploreResources(pckgname, resources, classes);
 	        }
+	        
+	        resources = cld.getResources(
+	        		ClassesDiscovery.class.getName().replace('.', '/')+".class");
+	        if (resources.hasMoreElements())
+	        {
+	        	exploreResources(pckgname, resources, classes);
+	        }
+	        
 	    } catch (final NullPointerException ex) {
 	        throw new ClassNotFoundException(
 	                pckgname

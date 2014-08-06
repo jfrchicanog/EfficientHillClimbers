@@ -47,15 +47,20 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 		
 		for (int i=0; i < m; i++)
 		{	
-			for (int j=0; j < masks[i].length; j++)
-			{
-				sub.setBit(j,pbs.getBit(masks[i][j]));
-			}
-			// Evaluate
-			res += evaluateSubfunction (i, sub);
+			res += evaluateSubFunctionFromCompleteSolution(i, pbs);
 		}
 		
 		return res;
+	}
+	
+	public double evaluateSubFunctionFromCompleteSolution(int sf, PBSolution pbs)
+	{
+		for (int j=0; j < masks[sf].length; j++)
+		{
+			sub.setBit(j,pbs.getBit(masks[sf][j]));
+		}
+		// Evaluate
+		return evaluateSubfunction (sf, sub);
 	}
 
 	protected void prepareStructures() {

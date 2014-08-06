@@ -1,5 +1,7 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import java.util.Arrays;
+
 import neo.landscape.theory.apps.efficienthc.Solution;
 
 public class PBSolution implements Solution<PseudoBooleanFunction> {
@@ -102,4 +104,31 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 	{
 		return data;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(data);
+		result = prime * result + n;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		PBSolution other = (PBSolution) obj;
+		if (!Arrays.equals(data, other.data))
+			return false;
+		if (n != other.n)
+			return false;
+		return true;
+	}
+	
+	
 }

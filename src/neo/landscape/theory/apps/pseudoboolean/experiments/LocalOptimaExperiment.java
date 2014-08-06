@@ -1,18 +1,34 @@
 package neo.landscape.theory.apps.pseudoboolean.experiments;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import neo.landscape.theory.apps.pseudoboolean.IExperiment;
 import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossover;
 import neo.landscape.theory.apps.util.GrayCodeBitFlipIterable;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class LocalOptimaExperiment implements IExperiment {
 	
-	private int localOptima;
+	private List<PBSolution> localOptima;
+	private PrintWriter nodesFile;
+	private PrintWriter edgesFile;
+	private Set<Integer> appearedEdges;
+	
+	public LocalOptimaExperiment()
+	{
+		localOptima = new ArrayList<>();
+	}
 	
 	@Override
 	public String getDescription() {
@@ -36,9 +52,11 @@ public class LocalOptimaExperiment implements IExperiment {
 		double imp = rball.getMovement().getImprovement();
 		if (imp <= 0.0)
 		{
-			
-			System.out.println(localOptima+": "+rball.getSolution() + ": "+pbf.evaluate(rball.getSolution()));
-			localOptima++;
+			PBSolution lo =  new PBSolution (rball.getSolution());
+			double val=pbf.evaluate(lo);
+			System.out.println(wI(localOptima.size())+": "+lo + ": "+val);
+			localOptima.add(lo);
+			nodesFile.println(val);
 		}
 	}
 
@@ -80,20 +98,33 @@ public class LocalOptimaExperiment implements IExperiment {
 		{
 			prop.setProperty(NKLandscapes.CIRCULAR_STRING,"yes");
 		}
+
+		String file_name = "nkq-"+n+"-"+k+"-"+q+"-"+circular+"-"+r+"-"+seed;
+		try
+		{
+			nodesFile = new PrintWriter(new FileOutputStream(file_name+".nodes"));
+			nodesFile.println("FITNESS");
+			edgesFile = new PrintWriter(new FileOutputStream(file_name+".edges"));
+		}
+		catch (FileNotFoundException e)
+		{
+			throw new RuntimeException("I cannot open the output files");
+		}
+		
+		appearedEdges = new HashSet<>();
 		
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 		
 		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
 		PBSolution pbs = pbf.getRandomSolution();
-		
+
 		rball.initialize(pbf, pbs);
 		
 		int n_int = pbf.getN();
-		
+
 		long init_time = System.currentTimeMillis();
 	
-		localOptima = 0;
 		notifyLocalOptima(rball,pbf);
 		for (int bit: new GrayCodeBitFlipIterable(n_int))
 		{
@@ -102,6 +133,20 @@ public class LocalOptimaExperiment implements IExperiment {
 		}
 		
 		long final_time = System.currentTimeMillis();
+		
+		// Applying PX to all the pair of LO
+		PartitionCrossover px = new PartitionCrossover(pbf);
+		
+		PBSolution [] los = localOptima.toArray(new PBSolution [0]);
+		for (int i=0; i < los.length; i++)
+		{
+			for (int j=i+1; j < los.length; j++)
+			{
+				PBSolution res = px.recombine(los[i], los[j]);
+				notifyCrossover(i,j,res);
+			}
+		}
+		
 		
 		int max_app=0;
 		int max_interactions=0;
@@ -126,7 +171,47 @@ public class LocalOptimaExperiment implements IExperiment {
 		System.out.println("Var interaction (max):"+max_interactions);
 		
 		pbf.writeTo(new OutputStreamWriter(System.out));
+		nodesFile.close();
+		edgesFile.close();
 
+	}
+	
+	private String wI(int i)
+	{
+		return ""+(i+1);
+	}
+	
+	private int edgeID(int i,int j)
+	{
+		return localOptima.size()*i + j;
+	}
+	
+	private void notifyEdge(int i, int j)
+	{
+		int eid = edgeID(i,j);
+		if (!appearedEdges.contains(eid))
+		{
+			appearedEdges.add(eid);
+			edgesFile.println(wI(i)+" "+wI(j)+" 1");
+		}
+	}
+
+	private void notifyCrossover(int i, int j, PBSolution res) {
+		int index = localOptima.indexOf(res);
+
+		if (index < 0 || (index != i && index != j))
+		{
+			System.out.println("R:"+localOptima.get(i)+"(" + wI(i) +
+					") x "+localOptima.get(j)+"(" + wI(j) +
+					") -> "+res + (index < 0?"":"(" + wI(index) +
+							")"));
+			
+			if (index >= 0)
+			{
+				notifyEdge(i, index);
+				notifyEdge(j, index);
+			}
+		}
 	}
 
 }
