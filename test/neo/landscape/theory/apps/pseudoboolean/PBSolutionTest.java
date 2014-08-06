@@ -110,5 +110,47 @@ public class PBSolutionTest {
 		}
 	}
 	
+	@Test
+	public void testEquals1()
+	{
+		Random rnd = new Random (0);
+		
+		for (int n : new int [] {1,5,31,32,63,64,2000})
+		{
+			PBSolution pbs = new PBSolution(n);
+			PBSolution pbs2 = new PBSolution(n);
+			for (int i=0; i < n; i++)
+			{
+				int v = rnd.nextInt(2);
+				
+				pbs.setBit(i, v);
+				pbs2.setBit(i, v);
+				
+			}
+			assertEquals("equals not working", pbs, pbs2);
+		}
+	}
+	
+	@Test
+	public void testEquals2()
+	{
+		Random rnd = new Random (0);
+		
+		for (int n : new int [] {1,5,31,32,63,64,2000})
+		{
+			PBSolution pbs = new PBSolution(n);
+			for (int i=0; i < n; i++)
+			{
+				int v = rnd.nextInt(2);
+				
+				pbs.setBit(i, v);
+				
+				
+			}
+			PBSolution pbs2 = new PBSolution (pbs);
+			assertEquals("equals not working", pbs, pbs2);
+		}
+	}
+	
 
 }
