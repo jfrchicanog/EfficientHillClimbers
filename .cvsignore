@@ -59,3 +59,7 @@ pp.c
 graph-coloring_old.jar
 rball.tgz
 pp
+*.nodes
+*.edges
+*.txt
+XNetworks-7-8-2014.zip
