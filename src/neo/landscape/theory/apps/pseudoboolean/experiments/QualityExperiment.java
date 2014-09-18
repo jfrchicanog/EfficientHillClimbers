@@ -13,6 +13,8 @@ import neo.landscape.theory.apps.pseudoboolean.IExperiment;
 import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class QualityExperiment implements IExperiment {
@@ -86,6 +88,7 @@ public class QualityExperiment implements IExperiment {
 		pbf.setConfiguration(prop);
 		
 		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
+		RBallEfficientHillClimberForInstanceOf rballf = (RBallEfficientHillClimberForInstanceOf)rball.initialize(pbf);
 		
 		long init_time = System.currentTimeMillis();
 		long elapsed_time = init_time;
@@ -94,21 +97,21 @@ public class QualityExperiment implements IExperiment {
 		while (elapsed_time-init_time < time*1000)
 		{
 			PBSolution pbs = pbf.getRandomSolution();
-			rball.initialize(pbf, pbs);
-			double init_quality = rball.getSolutionQuality();
+			RBallEfficientHillClimberSnapshot rballs = (RBallEfficientHillClimberSnapshot)rballf.initialize(pbs);
+			double init_quality = rballs.getSolutionQuality();
 			double imp;
 			long moves = 0;
 			
-			rball.resetMovesPerDistance();
+			rballs.resetMovesPerDistance();
 			
 			do
 			{
-				imp = rball.move();
+				imp = rballs.move();
 				moves++;
 			} while (imp > 0);
 			moves--;
 			
-			double final_quality = rball.getSolutionQuality();
+			double final_quality = rballs.getSolutionQuality();
 			
 			if (final_quality > sol_q)
 			{
@@ -120,7 +123,7 @@ public class QualityExperiment implements IExperiment {
 			
 			
 			ps.println("Moves: "+moves);
-			ps.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
+			ps.println("Move histogram: "+Arrays.toString(rballs.getMovesPerDinstance()));
 			ps.println("Improvement: "+(final_quality-init_quality));
 			ps.println("Best solution quality: "+sol_q);
 			ps.println("Elapsed Time: "+(elapsed_time-init_time));
@@ -166,7 +169,7 @@ public class QualityExperiment implements IExperiment {
 		}
 		ps.println("R: " + r);
 		ps.println("Seed: "+seed);
-		ps.println("Stored scores:"+rball.getStoredScores());
+		ps.println("Stored scores:"+rballf.getStoredScores());
 		ps.println("Var appearance (histogram):"+appearance);
 		ps.println("Var interaction (histogram):"+interactions);
 		

@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import neo.landscape.theory.apps.efficienthc.Move;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber.SetOfVars;
+import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
 public class RBallPBMove implements Move<PseudoBooleanFunction, PBSolution> {
 

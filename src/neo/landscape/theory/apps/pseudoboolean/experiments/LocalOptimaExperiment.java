@@ -16,6 +16,8 @@ import neo.landscape.theory.apps.pseudoboolean.IExperiment;
 import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossover;
 import neo.landscape.theory.apps.util.GrayCodeBitFlipIterable;
 import neo.landscape.theory.apps.util.Seeds;
@@ -71,7 +73,7 @@ public class LocalOptimaExperiment implements IExperiment {
 				" <n> <k> <q> <circular> <r> [<seed>]";
 	}
 	
-	private void notifyLocalOptima(RBallEfficientHillClimber rball, NKLandscapes pbf)
+	private void notifyLocalOptima(RBallEfficientHillClimberSnapshot rball, NKLandscapes pbf)
 	{
 		double imp = rball.getMovement().getImprovement();
 		if (imp <= 0.0)
@@ -142,10 +144,11 @@ public class LocalOptimaExperiment implements IExperiment {
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 		
-		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
+		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf)new RBallEfficientHillClimber(r).initialize(pbf);
 		PBSolution pbs = pbf.getRandomSolution();
 
-		rball.initialize(pbf, pbs);
+		RBallEfficientHillClimberSnapshot rball = rballfio.initialize(pbs);
+		rball.setSeed(seed);
 		
 		int n_int = pbf.getN();
 
@@ -163,6 +166,7 @@ public class LocalOptimaExperiment implements IExperiment {
 		loHistogram = new int [localOptima.size()];
 		// Applying PX to all the pair of LO
 		PartitionCrossover px = new PartitionCrossover(pbf);
+		px.setSeed(seed);
 		
 		PBSolution [] los = localOptima.toArray(new PBSolution [0]);
 		for (int i=0; i < los.length; i++)
@@ -194,11 +198,11 @@ public class LocalOptimaExperiment implements IExperiment {
 			}
 		}
 		
-		System.out.println("Problem init time: "+rball.getProblemInitTime());
+		System.out.println("Problem init time: "+rballfio.getProblemInitTime());
 		System.out.println("Solution init time: "+rball.getSolutionInitTime());
 		System.out.println("Move time: "+(final_time-init_time));
 		System.out.println("Move+crossover time: "+(crossover-init_time));
-		System.out.println("Stored scores:"+rball.getStoredScores());
+		System.out.println("Stored scores:"+rballfio.getStoredScores());
 		System.out.println("Var appearance (max):"+max_app);
 		System.out.println("Var interaction (max):"+max_interactions);
 		
@@ -305,8 +309,7 @@ public class LocalOptimaExperiment implements IExperiment {
 	}
 
 	private PBSolution climbToLocalOptima(PBSolution res) {
-		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
-		rball.initialize(pbf, res);
+		RBallEfficientHillClimberSnapshot rball = (RBallEfficientHillClimberSnapshot)new RBallEfficientHillClimber(r).initialize(pbf).initialize(res);
 		
 		double imp;
 		do

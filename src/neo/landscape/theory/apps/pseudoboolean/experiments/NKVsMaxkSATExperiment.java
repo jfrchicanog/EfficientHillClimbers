@@ -15,6 +15,8 @@ import neo.landscape.theory.apps.pseudoboolean.MAXkSAT;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.RBall4MAXSAT;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class NKVsMaxkSATExperiment implements IExperiment {
@@ -224,6 +226,7 @@ public class NKVsMaxkSATExperiment implements IExperiment {
 			rball = new RBallEfficientHillClimber(rball_prop);
 		}
 		
+		RBallEfficientHillClimberForInstanceOf rballf = (RBallEfficientHillClimberForInstanceOf)rball.initialize(pbf);
 		
 		// Initialize data
 		long init_time = System.currentTimeMillis();
@@ -234,34 +237,35 @@ public class NKVsMaxkSATExperiment implements IExperiment {
 		long best_sol_time = -1;
 		long descents = 0;
 		
+		RBallEfficientHillClimberSnapshot rballs=null;
 		while (elapsed_time-init_time < stop_time && descents < stop_descents)
 		{
 			if (soft_restart < 0 || first_time)
 			{
 				PBSolution pbs = pbf.getRandomSolution();
-				rball.initialize(pbf, pbs);
+				rballs = rballf.initialize(pbs);
 				first_time=false;
 			}
 			else
 			{
-				rball.softRestart(soft_restart);
+				rballs.softRestart(soft_restart);
 			}
 			
-			double init_quality = rball.getSolutionQuality();
+			double init_quality = rballs.getSolutionQuality();
 			double imp;
 			long moves = 0;
 			
-			rball.resetMovesPerDistance();
+			rballs.resetMovesPerDistance();
 			
 			do
 			{
-				imp = rball.move();
-				if (debug) rball.checkConsistency();
+				imp = rballs.move();
+				if (debug) rballs.checkConsistency();
 				moves++;
 			} while (imp > 0);
 			moves--;
 			
-			double final_quality = rball.getSolutionQuality();
+			double final_quality = rballs.getSolutionQuality();
 			
 			descents++;
 			elapsed_time = System.currentTimeMillis();
@@ -269,14 +273,14 @@ public class NKVsMaxkSATExperiment implements IExperiment {
 			if (final_quality > sol_q)
 			{
 				sol_q = final_quality;
-				best_solution = new PBSolution (rball.getSolution());
+				best_solution = new PBSolution (rballs.getSolution());
 				best_sol_time = elapsed_time;
 			}
 			
 			if (trace)
 			{
 				ps.println("Moves: "+moves);
-				ps.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
+				ps.println("Move histogram: "+Arrays.toString(rballs.getMovesPerDinstance()));
 				ps.println("Improvement: "+(final_quality-init_quality));
 				ps.println("Best solution quality: "+sol_q);
 				ps.println("Elapsed Time: "+(elapsed_time-init_time));
@@ -318,13 +322,13 @@ public class NKVsMaxkSATExperiment implements IExperiment {
 		ps.println("K: "+k);
 		ps.println("R: " + r);
 		ps.println("Seed: "+seed);
-		ps.println("Stored scores:"+rball.getStoredScores());
+		ps.println("Stored scores:"+rballf.getStoredScores());
 		ps.println("Var appearance (histogram):"+appearance);
 		ps.println("Var interaction (histogram):"+interactions);
 		
 		if (flipvsapp)
 		{
-			int [] flips = rball.getFlipStat();
+			int [] flips = rballs.getFlipStat();
 			int [][] appearsIn = pbf.getAppearsIn();
 			// Show the flip vs appearance data (CSV values)
 			ps.println("Flips vs appearance: CSV data below");

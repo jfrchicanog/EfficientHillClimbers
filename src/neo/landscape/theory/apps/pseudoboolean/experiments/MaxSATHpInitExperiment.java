@@ -15,6 +15,8 @@ import neo.landscape.theory.apps.pseudoboolean.MAXSAT;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.RBall4MAXSAT;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class MaxSATHpInitExperiment implements IExperiment {
@@ -166,6 +168,9 @@ public class MaxSATHpInitExperiment implements IExperiment {
 			rball = new RBallEfficientHillClimber(rball_prop);
 		}
 		
+		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf)rball.initialize(pbf);
+		
+		RBallEfficientHillClimberSnapshot rballs= null;
 		
 		// Initialize data
 		long init_time = System.currentTimeMillis();
@@ -175,23 +180,23 @@ public class MaxSATHpInitExperiment implements IExperiment {
 		while (descents < stop_descents)
 		{
 			PBSolution pbs = pbf.getRandomSolution();
-			rball.initialize(pbf, pbs);
+			rballs = rballfio.initialize(pbs);
 			
-			double init_quality = rball.getSolutionQuality();
+			double init_quality = rballs.getSolutionQuality();
 			double imp;
 			long moves = 0;
 			
-			rball.resetMovesPerDistance();
+			rballs.resetMovesPerDistance();
 			
 			do
 			{
-				imp = rball.move();
-				if (debug) rball.checkConsistency();
+				imp = rballs.move();
+				if (debug) rballs.checkConsistency();
 				moves++;
 			} while (imp > 0);
 			moves--;
 			
-			double final_quality = rball.getSolutionQuality();
+			double final_quality = rballs.getSolutionQuality();
 			
 			descents++;
 			elapsed_time = System.currentTimeMillis();
@@ -199,7 +204,7 @@ public class MaxSATHpInitExperiment implements IExperiment {
 
 			ps.println("Initial quality: "+init_quality);
 			ps.println("Moves: "+moves);
-			ps.println("Move histogram: "+Arrays.toString(rball.getMovesPerDinstance()));
+			ps.println("Move histogram: "+Arrays.toString(rballs.getMovesPerDinstance()));
 			ps.println("Final quality: "+final_quality);
 			ps.println("Elapsed Time: "+(elapsed_time-init_time));
 
@@ -241,13 +246,13 @@ public class MaxSATHpInitExperiment implements IExperiment {
 		ps.println("R: " + r);
 		ps.println("Top clauses: "+pbf.getTopClauses());
 		ps.println("Seed: "+seed);
-		ps.println("Stored scores:"+rball.getStoredScores());
+		ps.println("Stored scores:"+rballfio.getStoredScores());
 		ps.println("Var appearance (histogram):"+appearance);
 		ps.println("Var interaction (histogram):"+interactions);
 		
 		if (flipvsapp)
 		{
-			int [] flips = rball.getFlipStat();
+			int [] flips = rballs.getFlipStat();
 			int [][] appearsIn = pbf.getAppearsIn();
 			// Show the flip vs appearance data (CSV values)
 			ps.println("Flips vs appearance: CSV data below");

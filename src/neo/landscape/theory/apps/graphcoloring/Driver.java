@@ -7,6 +7,8 @@ import java.lang.management.ManagementFactory;
 import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.HillClimber;
+import neo.landscape.theory.apps.efficienthc.HillClimberForInstanceOf;
+import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
 import neo.landscape.theory.apps.util.Seeds;
 
 /**
@@ -55,7 +57,7 @@ public class Driver {
 			pw.close();
 			
 			HillClimber<WeightedGraphColoring> hc = new EfficientHillClimber();
-			hc.initialize(wgc, sol);
+			HillClimberSnapshot<WeightedGraphColoring> hcs = hc.initialize(wgc).initialize(sol);
 			
 			
 			int l=0;
@@ -66,12 +68,12 @@ public class Driver {
 				fos = new FileOutputStream(dot);
 				pw = new PrintWriter(fos);
 				
-				WGCMove m = (WGCMove)hc.getMovement();
-				WGCSolution s = (WGCSolution)hc.getSolution();
+				WGCMove m = (WGCMove)hcs.getMovement();
+				WGCSolution s = (WGCSolution)hcs.getSolution();
 				pw.println(wgc.dotLanguage(s, m));
 				pw.close();
 				
-				imp = hc.move();
+				imp = hcs.move();
 				System.out.println("Improvement:"+imp);
 				l++;
 				
@@ -80,7 +82,7 @@ public class Driver {
 			dot = new File ("sol-final.dot");
 			fos = new FileOutputStream(dot);
 			pw = new PrintWriter(fos);
-			pw.println(wgc.dotLanguage((WGCSolution)hc.getSolution()));
+			pw.println(wgc.dotLanguage((WGCSolution)hcs.getSolution()));
 			pw.close();
 			
 		}
@@ -130,6 +132,8 @@ public class Driver {
 		wgc.setConfiguration(prop);
 		wgc.setSeed(seed);
 		
+		HillClimberForInstanceOf<WeightedGraphColoring> hcfio = hc.initialize(wgc);
+		
 		int n_moves=0;
 		long init_time = System.currentTimeMillis();
 		double best_sol = Double.MAX_VALUE;
@@ -137,19 +141,19 @@ public class Driver {
 		
 		do
 		{
-			hc.initialize(wgc, wgc.getRandomSolution());
+			HillClimberSnapshot<WeightedGraphColoring> hcs = hcfio.initialize(wgc.getRandomSolution());
 			restarts++;
 			double imp = 0.0;
 			do
 			{
-				imp = hc.move();
+				imp = hcs.move();
 				if (imp < 0.0)
 				{
 					n_moves++;
 				}
 			} while (n_moves < moves && imp < 0.0);
 			
-			double fitness = wgc.evaluate(hc.getSolution());
+			double fitness = wgc.evaluate(hcs.getSolution());
 			if (fitness < best_sol)
 			{
 				best_sol = fitness;

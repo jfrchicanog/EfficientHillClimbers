@@ -30,14 +30,15 @@ public class Driver {
 		
 		long init_time = System.currentTimeMillis();
 		
-		rball.initialize(pbf, pbs);
+		RBallEfficientHillClimberSnapshot rballs = (RBallEfficientHillClimberSnapshot)rball.initialize(pbf).initialize(pbs);
+		//rball.initialize(pbf, pbs);
 		
 		long after_time = System.currentTimeMillis();
 		
 		//rball.checkConsistency();
 		double init_fitness = pbf.evaluate(pbs);
-		assert (init_fitness == rball.getSolutionQuality());
-		double imp = rball.move();
+		assert (init_fitness == rballs.getSolutionQuality());
+		double imp = rballs.move();
 		//rball.checkConsistency();
 		double sum = imp;
 		
@@ -47,21 +48,21 @@ public class Driver {
 		while (imp > 0 && j < limit_moves)
 		{
 			old_fit=new_fit;
-			new_fit = pbf.evaluate(rball.getSolution());
+			new_fit = pbf.evaluate(rballs.getSolution());
 			if (new_fit - old_fit != imp)
 			{
 				System.out.println("Something wrong (old="+old_fit+", new="+new_fit+", imp="+imp+" in "+j+")");
 			}
 			//System.out.println("Imp:"+imp);
-			imp = rball.move();
+			imp = rballs.move();
 			//rball.checkConsistency();
 			sum += imp;
 			j++;
 		}
 		
-		double final_fitness = pbf.evaluate(rball.getSolution());
+		double final_fitness = pbf.evaluate(rballs.getSolution());
 		
-		assert (final_fitness == rball.getSolutionQuality());
+		assert (final_fitness == rballs.getSolutionQuality());
 		
 		long final_time = System.currentTimeMillis();
 		
@@ -69,12 +70,12 @@ public class Driver {
 		System.out.println("Final fitness:"+final_fitness);
 		System.out.println("Improvement:"+sum);
 		System.out.println("Initialization time: "+(after_time-init_time));
-		System.out.println("Problem initialization time: "+rball.getProblemInitTime());
+		System.out.println("Problem initialization time: "+rballs.getHillClimberForInstanceOf().getProblemInitTime());
 		System.out.println("Move time: "+(final_time - after_time));
 		System.out.println("Total time: "+(final_time-init_time));
 		System.out.println("Total moves: "+j);
-		System.out.println("Stored scores:"+rball.getStoredScores());
-		System.out.println("Moves perdistance:"+Arrays.toString(rball.getMovesPerDinstance()));
+		System.out.println("Stored scores:"+rballs.getHillClimberForInstanceOf().getStoredScores());
+		System.out.println("Moves perdistance:"+Arrays.toString(rballs.getMovesPerDinstance()));
 		
 		if (sum != final_fitness-init_fitness)
 		{

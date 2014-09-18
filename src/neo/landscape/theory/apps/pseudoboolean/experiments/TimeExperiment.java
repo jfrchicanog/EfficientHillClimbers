@@ -6,6 +6,7 @@ import neo.landscape.theory.apps.pseudoboolean.IExperiment;
 import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class TimeExperiment implements IExperiment {
@@ -79,8 +80,7 @@ public class TimeExperiment implements IExperiment {
 		{
 			rball.initialize(pbf, pbf.getRandomSolution());
 		}*/
-		
-		rball.initialize(pbf, pbs);
+		RBallEfficientHillClimberSnapshot rballs = (RBallEfficientHillClimberSnapshot)rball.initialize(pbf).initialize(pbs);
 		
 		//long total_all_sols = System.currentTimeMillis()-all_sols;
 		
@@ -90,7 +90,7 @@ public class TimeExperiment implements IExperiment {
 		
 		for (int m=0; m < moves; m++)
 		{
-			rball.moveOneBit(bit++);
+			rballs.moveOneBit(bit++);
 			if (bit == n_int)
 			{
 				bit = 0;
@@ -114,10 +114,10 @@ public class TimeExperiment implements IExperiment {
 			}
 		}
 		
-		System.out.println("Problem init time: "+rball.getProblemInitTime());
-		System.out.println("Solution init time: "+rball.getSolutionInitTime());
+		System.out.println("Problem init time: "+rballs.getHillClimberForInstanceOf().getProblemInitTime());
+		System.out.println("Solution init time: "+rballs.getSolutionInitTime());
 		System.out.println("Move time: "+(final_time-init_time));
-		System.out.println("Stored scores:"+rball.getStoredScores());
+		System.out.println("Stored scores:"+rballs.getHillClimberForInstanceOf().getStoredScores());
 		//System.out.println("Total solution init time: "+total_all_sols);
 		//System.out.println("Total moves: "+rball.getTotalMoves());
 		//System.out.println("Subfns evals in moves: "+rball.getSubfnsEvalsInMoves());

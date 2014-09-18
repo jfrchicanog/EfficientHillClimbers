@@ -13,6 +13,8 @@ import neo.landscape.theory.apps.pseudoboolean.IExperiment;
 import neo.landscape.theory.apps.pseudoboolean.MAXSAT;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class MinSATExperiment implements IExperiment {
@@ -72,7 +74,7 @@ public class MinSATExperiment implements IExperiment {
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 		
-		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
+		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf)new RBallEfficientHillClimber(r).initialize(pbf);
 		
 		long init_time = System.currentTimeMillis();
 		long elapsed_time = init_time;
@@ -81,7 +83,7 @@ public class MinSATExperiment implements IExperiment {
 		while (elapsed_time-init_time < time*1000)
 		{
 			PBSolution pbs = pbf.getRandomSolution();
-			rball.initialize(pbf, pbs);
+			RBallEfficientHillClimberSnapshot rball = rballfio.initialize(pbs);
 			double init_quality = rball.getSolutionQuality();
 			double imp;
 			long moves = 0;
@@ -146,7 +148,7 @@ public class MinSATExperiment implements IExperiment {
 		ps.println("R: " + r);
 		ps.println("Top clauses: "+pbf.getTopClauses());
 		ps.println("Seed: "+seed);
-		ps.println("Stored scores:"+rball.getStoredScores());
+		ps.println("Stored scores:"+rballfio.getStoredScores());
 		ps.println("Var appearance (histogram):"+appearance);
 		ps.println("Var interaction (histogram):"+interactions);
 		
