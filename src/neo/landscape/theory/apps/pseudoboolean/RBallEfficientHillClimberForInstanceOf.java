@@ -403,4 +403,10 @@ public class RBallEfficientHillClimberForInstanceOf implements HillClimberForIns
 		return rball;
 	}
 
+
+	@Override
+	public EmbeddedLandscape getProblem() {
+		return problem;
+	}
+
 }

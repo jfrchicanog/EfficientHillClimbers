@@ -34,5 +34,11 @@ public class NaiveHillClimberForInstanceOf implements HillClimberForInstanceOf<W
 			Solution<? super WeightedGraphColoring> sol) {
 		return new NaiveHillClimberSnapshot(this, sol);
 	}
+
+
+	@Override
+	public WeightedGraphColoring getProblem() {
+		return prob;
+	}
 	
 }

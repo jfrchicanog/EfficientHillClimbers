@@ -266,6 +266,12 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 		@Override
 		public HillClimber<WeightedGraphColoring> getHillClimber() {
 			return EfficientHillClimber.this;
+		}
+
+
+		@Override
+		public WeightedGraphColoring getProblem() {
+			return prob;
 		}	
 	}
 
