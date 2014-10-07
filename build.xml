@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. --><project basedir="." default="build" name="EfficientSteepestDescent">
+    <property environment="env"/>
+    <property name="ECLIPSE_HOME" value="../../../Software/eclipse/eclipse-juno"/>
+    <property name="junit.output.dir" value="junit"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="1.7"/>
+    <property name="source" value="1.7"/>
+    <path id="JUnit 4.libraryclasspath">
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.junit_4.10.0.v4_10_0_v20120426-0900/junit.jar"/>
+        <pathelement location="${ECLIPSE_HOME}/plugins/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
+    </path>
+    <path id="JSoup.userclasspath">
+        <pathelement location="../../investigacion/software/jsoup/jsoup-1.7.2.jar"/>
+    </path>
+    <path id="EfficientSteepestDescent.classpath">
+        <pathelement location="bin"/>
+        <path refid="JUnit 4.libraryclasspath"/>
+        <path refid="JSoup.userclasspath"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="test">
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall"/>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects"/>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" includeantruntime="false" source="${source}" target="${target}">
+            <src path="src"/>
+            <src path="test"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </javac>
+    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+    <target name="Driver-PB">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.Driver" failonerror="true" fork="yes">
+            <jvmarg line="-ea"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="Driver">
+        <java classname="neo.landscape.theory.apps.graphcoloring.Driver" failonerror="true" fork="yes">
+            <arg line="myciel4.col 4"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="ExactSolutionNK">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.ExactSolutionNK" failonerror="true" fork="yes">
+            <arg line="4 2 4 dynp 0"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="Experiments-maxsat">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.Experiments" failonerror="true" fork="yes">
+            <arg line="maxsatHpInit -i HG-4SAT-V100-C900-14.cnf -r 1 -d 100 -hp"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="Experiments-quality">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.Experiments" failonerror="true" fork="yes">
+            <arg line="quality 12000 3 - y 2 20"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="Experiments-time">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.Experiments" failonerror="true" fork="yes">
+            <arg line="time 12000 3 - y 2 12000"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="MAXkSAT">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.MAXkSAT" failonerror="true" fork="yes">
+            <arg line="random 10 40 3 yes 0"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="MaxNKStatistics">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.MaxNKStatistics" failonerror="true" fork="yes">
+            <arg line="2 2"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="MAXSAT">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.MAXSAT" failonerror="true" fork="yes">
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="NKLandscapes">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.NKLandscapes" failonerror="true" fork="yes">
+            <arg line="100 3"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="ParseResults">
+        <java classname="neo.landscape.theory.apps.pseudoboolean.ParseResults" failonerror="true" fork="yes">
+            <arg line="maxsat &quot;/Users/francis/Documents/investigacion/experimentacion/next-descent/max-sat/MAX-SAT 2013/ms_random/ms-random-incomplete-table.html&quot; . &quot;min.*&quot; 0.1 r-2"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="PBSolutionTest">
+        <mkdir dir="${junit.output.dir}"/>
+        <junit fork="yes" printsummary="withOutAndErr">
+            <formatter type="xml"/>
+            <test name="neo.landscape.theory.apps.pseudoboolean.PBSolutionTest" todir="${junit.output.dir}"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </junit>
+    </target>
+    <target name="RootedTreeGenerator">
+        <java classname="neo.landscape.theory.apps.util.RootedTreeGenerator" failonerror="true" fork="yes">
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="WeightedGraphColoring">
+        <java classname="neo.landscape.theory.apps.graphcoloring.WeightedGraphColoring" failonerror="true" fork="yes">
+            <arg line="myciel4.col 5"/>
+            <classpath refid="EfficientSteepestDescent.classpath"/>
+        </java>
+    </target>
+    <target name="junitreport">
+        <junitreport todir="${junit.output.dir}">
+            <fileset dir="${junit.output.dir}">
+                <include name="TEST-*.xml"/>
+            </fileset>
+            <report format="frames" todir="${junit.output.dir}"/>
+        </junitreport>
+    </target>
+</project>
