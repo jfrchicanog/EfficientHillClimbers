@@ -15,7 +15,7 @@
         <pathelement location="${ECLIPSE_HOME}/plugins/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
     </path>
     <path id="JSoup.userclasspath">
-        <pathelement location="../../investigacion/software/jsoup/jsoup-1.7.2.jar"/>
+        <pathelement location="./jsoup-1.7.2.jar"/>
     </path>
     <path id="EfficientSteepestDescent.classpath">
         <pathelement location="bin"/>
