@@ -177,7 +177,7 @@ public class ClassesDiscovery {
 	
 	public static <T> List<Class<? extends T>> getClassesForPackageWithSuperclass(String pack, Class<T> clazz)
 	{
-		List<Class<? extends T>> res = new ArrayList<>();
+		List<Class<? extends T>> res = new ArrayList<Class<? extends T>>();
 		try
 		{
 			for (Class<?> c: getClassesForPackage(pack))

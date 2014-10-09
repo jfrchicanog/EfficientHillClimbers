@@ -26,7 +26,7 @@ public class Experiments {
 	private Map<String, IExperiment> exps;
 	public Experiments()
 	{
-		exps = new HashMap<>();
+		exps = new HashMap<String, IExperiment>();
 		List<Class<? extends IExperiment>> res = ClassesDiscovery.getClassesForPackageWithSuperclass(EXPERIMENTS_PACKAGE, IExperiment.class);
 		for (Class<? extends IExperiment> c: res)
 		{

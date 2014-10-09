@@ -108,21 +108,7 @@ public class Driver {
 			seed = Long.parseLong(args[4]);
 		}
 		
-		HillClimber<WeightedGraphColoring> hc;
-		
-		switch(algorithm)
-		{
-			case "naive":
-				hc = new NaiveHillClimber();
-			break;
-			
-			case "efficient":
-				hc = new EfficientHillClimber();
-			break;
-			
-			default:
-				throw new RuntimeException ("Algorithm "+algorithm+ " is not a recognized algorithm.");
-		}
+		HillClimber<WeightedGraphColoring> hc = createHillClimber(algorithm);
 		
 		Properties prop = new Properties();
 		prop.setProperty("instance", instance);
@@ -172,7 +158,20 @@ public class Driver {
 		
 	}
 	
-	
+	private HillClimber<WeightedGraphColoring> createHillClimber(String name)
+	{
+		if (name.equals("naive"))
+		{
+				return new NaiveHillClimber();
+		} else if (name.equals("efficient"))
+		{
+			return new EfficientHillClimber();
+		}
+		else
+		{
+				throw new RuntimeException ("Algorithm "+name+ " is not a recognized algorithm.");
+		}
+	}
 	
 	/**
 	 * @param args

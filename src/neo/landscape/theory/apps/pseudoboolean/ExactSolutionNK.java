@@ -45,32 +45,35 @@ public class ExactSolutionNK {
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 		
-		ExactSolutionMethod<? super NKLandscapes> es;
+		ExactSolutionMethod<? super NKLandscapes> es= createSolutionMethod(algorithm);
 		
-		switch (algorithm)
-		{
-		case "enum":
-			es = new CompleteEnumeration<NKLandscapes>();
-			break;
-		case "enumbd":
-			es = new CompleteEnumerationBigDecimal<NKLandscapes>();
-			break;	
-		case "dynp":
-			es = new NKLandscapesCircularDynProg();
-			break;
-		case "dynpbd":
-			es = new NKLandscapesCircularDynProgBigDecimal();
-			break;
-		default:
-			System.out.println("Algorithm desconocido: "+algorithm);
-			return;
-		}
+		
 		
 		SolutionQuality<? super NKLandscapes> sq = es.solveProblem(pbf);
 	
 		System.out.println("Optimal solution: "+sq.solution);
 		System.out.println("Optimal fitness: "+sq.quality);
 
+	}
+
+	private static ExactSolutionMethod<? super NKLandscapes> createSolutionMethod(
+			String algorithm) {
+		if (algorithm.equals("enum"))
+		{
+			return  new CompleteEnumeration<NKLandscapes>();
+		} else if (algorithm.equals("enumbd"))
+		{
+			return new CompleteEnumerationBigDecimal<NKLandscapes>();
+		} else if (algorithm.equals("dynp"))
+		{
+			return new NKLandscapesCircularDynProg();
+		} else if (algorithm.equals("dynpbd"))
+		{
+			return new NKLandscapesCircularDynProgBigDecimal();
+		} else
+		{
+			throw new RuntimeException("Algorithm desconocido: "+algorithm);
+		}
 	}
 
 }

@@ -33,7 +33,7 @@ public class TwoStatesISArrayImplTest {
 	public void testRandom()
 	{
 		Random rnd = new Random (0);
-		List<Integer> values = new ArrayList<>();
+		List<Integer> values = new ArrayList<Integer>();
 		for (int i = 0; i < set.getNumberOfElements(); i++) {
 			values.add(i);
 		}
@@ -79,7 +79,7 @@ public class TwoStatesISArrayImplTest {
 		TwoStatesIntegerSet another= new TwoStatesISSetImpl(set.getNumberOfElements());
 		
 		Random rnd = new Random (0);
-		List<Integer> values = new ArrayList<>();
+		List<Integer> values = new ArrayList<Integer>();
 		for (int i = 0; i < set.getNumberOfElements(); i++) {
 			values.add(i);
 		}

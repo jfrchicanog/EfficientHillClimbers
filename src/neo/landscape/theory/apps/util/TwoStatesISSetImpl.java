@@ -12,8 +12,8 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
 	
 	public TwoStatesISSetImpl(int n)
 	{
-		explored = new HashSet<>();
-		unexplored = new HashSet<>();
+		explored = new HashSet<Integer>();
+		unexplored = new HashSet<Integer>();
 		
 		for (int i = 0; i < n; i++) {
 			unexplored.add(i);

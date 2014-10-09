@@ -388,29 +388,28 @@ public class MAXSAT extends EmbeddedLandscape {
 		MAXSAT mks = new MAXSAT();
 		PBSolution pbs=null;
 		
-		switch (args[0])
+		if (args[0].equals("dimacs"))
 		{
-			case "dimacs":
-				prop.setProperty(INSTANCE_STRING, args[1]);
-				mks.setConfiguration(prop);
-				if (args.length > 2)
-				{
-					pbs = new PBSolution (mks.getN());
-					pbs.parse(args[2]);
-				}
-				break;
-			case "random":
-				prop.setProperty(N_STRING, args[1]);
-				prop.setProperty(M_STRING, args[2]);
-				prop.setProperty(MAX_K_STRING, args[3]);
-				if (args.length > 4)
-				{
-					long seed = Long.parseLong(args[4]);
-					mks.setSeed(seed);
-				}
-				mks.setConfiguration(prop);
-				break;
+			prop.setProperty(INSTANCE_STRING, args[1]);
+			mks.setConfiguration(prop);
+			if (args.length > 2)
+			{
+				pbs = new PBSolution (mks.getN());
+				pbs.parse(args[2]);
+			}
+		} else if (args[0].equals("random"))
+		{
+			prop.setProperty(N_STRING, args[1]);
+			prop.setProperty(M_STRING, args[2]);
+			prop.setProperty(MAX_K_STRING, args[3]);
+			if (args.length > 4)
+			{
+				long seed = Long.parseLong(args[4]);
+				mks.setSeed(seed);
+			}
+			mks.setConfiguration(prop);
 		}
+		
 		
 		if (pbs==null)
 		{

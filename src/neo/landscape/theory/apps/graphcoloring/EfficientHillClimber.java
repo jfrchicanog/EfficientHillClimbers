@@ -54,7 +54,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 					
 					if (moves[list]==null)
 					{
-						moves[list] = new DoubleLinkedList<>();
+						moves[list] = new DoubleLinkedList<WGCMove>();
 					}
 					
 					moves[list].add(m);

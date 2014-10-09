@@ -3,6 +3,11 @@ package neo.landscape.theory.apps.pseudoboolean.experiments;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Stack;
 import java.util.zip.GZIPOutputStream;
@@ -37,6 +42,7 @@ public class PartitionCrossoverWithScoresExperiment implements IExperiment {
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
 	private double bestSoFar;
+	private Map<Integer, Integer> crossoverFailsInGeneration;
 	
 	@Override
 	public String getDescription() {
@@ -71,7 +77,7 @@ public class PartitionCrossoverWithScoresExperiment implements IExperiment {
 		int generationLimit = Integer.parseInt(args[5]);
 		int time = Integer.parseInt(args[6]);
 		seed = 0;
-		if (args.length >= 7)
+		if (args.length > 7)
 		{
 			seed = Long.parseLong(args[7]);
 		}
@@ -98,18 +104,22 @@ public class PartitionCrossoverWithScoresExperiment implements IExperiment {
 
 		initializeOutput();
 		
+		ps.println("Seed: "+seed);
+		
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 		
 		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf)new RBallEfficientHillClimber(r).initialize(pbf);
-		Stack<ExploredSolution> explored = new Stack<>();
+		Stack<ExploredSolution> explored = new Stack<ExploredSolution>();
 		PartitionCrossoverForRBallHillClimber px = new PartitionCrossoverForRBallHillClimber(pbf);
 		px.setSeed(seed);
 		
+		bestSoFar = -Double.MAX_VALUE;
+		crossoverFailsInGeneration = new HashMap<Integer, Integer>();
+		
 		initTime = System.currentTimeMillis();
 		currentTime = System.currentTimeMillis();
-		bestSoFar = -Double.MAX_VALUE;
-		
+
 		while ((currentTime-initTime) < time* 1000)
 		{
 			// Create a generation-0 solution
@@ -136,6 +146,7 @@ public class PartitionCrossoverWithScoresExperiment implements IExperiment {
 					
 					if (result == null)
 					{
+						increaseCrossoverFailInGeneration(currentSolution.generation);
 						currentSolution = null;
 					}
 					else
@@ -159,11 +170,34 @@ public class PartitionCrossoverWithScoresExperiment implements IExperiment {
 
 		}
 		
+		writeCrossoverFails();
 		printOutput();
 		
 
 	}
 	
+	private void writeCrossoverFails() {
+		List<Integer> generations = new ArrayList<Integer>();
+		generations.addAll(crossoverFailsInGeneration.keySet());
+		Collections.sort(generations);
+		for (int generation: generations)
+		{
+			ps.println("Crossover fails in generation "+generation+": "
+						+crossoverFailsInGeneration.get(generation));
+		}
+
+	}
+
+	private void increaseCrossoverFailInGeneration(int generation) {
+		Integer fails = crossoverFailsInGeneration.get(generation);
+		if (fails==null)
+		{
+			fails = 0;
+		}
+		crossoverFailsInGeneration.put(generation, fails+1);
+		
+	}
+
 	private void initializeOutput()
 	{
 		ba = new ByteArrayOutputStream();

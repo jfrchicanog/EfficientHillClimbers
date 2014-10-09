@@ -67,7 +67,7 @@ public class PartitionCrossover {
 	protected List<Set<Integer>> computePartition(PBSolution blue, PBSolution red)
 	{
 		bfsSet.reset();
-		List<Set<Integer>> res = new ArrayList<>();
+		List<Set<Integer>> res = new ArrayList<Set<Integer>>();
 		
 		for (Integer node = nextNodeInReducedGraph(blue, red);
 				node != null;
@@ -81,9 +81,9 @@ public class PartitionCrossover {
 	
 	protected Set<Integer> bfs(Integer node, PBSolution blue, PBSolution red) {
 		
-		Queue<Integer> toExplore = new LinkedList<>();
+		Queue<Integer> toExplore = new LinkedList<Integer>();
 		toExplore.add(node);
-		Set<Integer> res = new HashSet<>();
+		Set<Integer> res = new HashSet<Integer>();
 		
 		while (toExplore.size() > 0)
 		{
@@ -119,7 +119,7 @@ public class PartitionCrossover {
 	{
 		double [] res = new double [sol.length];
 		
-		Set<Integer> subfns = new HashSet<>();
+		Set<Integer> subfns = new HashSet<Integer>();
 		
 		for (int v: vars)
 		{
@@ -142,40 +142,40 @@ public class PartitionCrossover {
 	
 	public PBSolution recombine (PBSolution blue, PBSolution red)
 	{
-		List<Set<Integer>> part= computePartition(blue, red);
-		List<Set<Integer>> takenFromBlue =  new ArrayList<>();
-		List<Set<Integer>> takenFromRed = new ArrayList<>();
+		List<Set<Integer>> partition= computePartition(blue, red);
+		List<Set<Integer>> takenFromBlue =  new ArrayList<Set<Integer>>();
+		List<Set<Integer>> takenFromRed = new ArrayList<Set<Integer>>();
 		
 		int blue_vars = 0;
 		int red_vars = 0;
 	
-		for (Set<Integer> comp: part)
+		for (Set<Integer> component: partition)
 		{
-			double [] vals = evaluateComponent(comp, blue, red);
+			double [] vals = evaluateComponent(component, blue, red);
 			double blue_val = vals[0];
 			double red_val = vals[1];
 			
 			if (blue_val > red_val)
 			{
-				takenFromBlue.add(comp);
-				blue_vars += comp.size();
+				takenFromBlue.add(component);
+				blue_vars += component.size();
 			}
 			else if (red_val > blue_val)
 			{
-				takenFromRed.add(comp);
-				red_vars += comp.size();
+				takenFromRed.add(component);
+				red_vars += component.size();
 			}
 			else
 			{
 				if (rnd.nextDouble() < 0.5)
 				{
-					takenFromBlue.add(comp);
-					blue_vars += comp.size();
+					takenFromBlue.add(component);
+					blue_vars += component.size();
 				}
 				else
 				{
-					takenFromRed.add(comp);
-					red_vars += comp.size();
+					takenFromRed.add(component);
+					red_vars += component.size();
 				}
 			}
 		}

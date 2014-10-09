@@ -824,21 +824,22 @@ public class ParseResults {
 		File file = new File(args[1]);
 		
 		
-		switch (args[0])
+		if (args[0].equals("quality"))
 		{
-			case "quality":
+		
 				pr.parseRBallQualityResults(file);
-				break;
-			case "quality-t":
+		} else if (args[0].equals("quality-t"))
+		{
+		
 				pr.parseRBallQualityResultsTime(file);
-				break;	
-			case "error":
+		} else if (args[0].equals("error"))
+		{
 				pr.parseRBallQualityResultsKnownOptimum(file);
-				break;
-			case "maxsat":
+		} else if (args[0].equals("maxsat"))
+		{
 				pr.parseMaxsatResults(file, new File(args[2]), args[3], Double.parseDouble(args[4]), Arrays.copyOfRange(args, 5,args.length));
-				break;
-			default:
+		} else
+		{
 				System.out.println("Unrecognized option "+args[0]);
 		}
 		

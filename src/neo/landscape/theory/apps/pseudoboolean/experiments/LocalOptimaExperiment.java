@@ -53,7 +53,7 @@ public class LocalOptimaExperiment implements IExperiment {
 	
 	public LocalOptimaExperiment()
 	{
-		localOptima = new ArrayList<>();
+		localOptima = new ArrayList<PBSolution>();
 	}
 	
 	@Override
@@ -139,7 +139,7 @@ public class LocalOptimaExperiment implements IExperiment {
 			throw new RuntimeException("I cannot open the output files");
 		}
 		
-		appearedEdges = new HashSet<>();
+		appearedEdges = new HashSet<Integer>();
 		
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
@@ -216,7 +216,7 @@ public class LocalOptimaExperiment implements IExperiment {
 	
 	private void writeHistogram() {
 		
-		List<SolutionFrequency> aux = new ArrayList<>();
+		List<SolutionFrequency> aux = new ArrayList<SolutionFrequency>();
 		int index =0;
 		for (PBSolution sol: localOptima)
 		{

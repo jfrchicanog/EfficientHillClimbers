@@ -13,16 +13,17 @@ public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover {
 	
 	public RBallEfficientHillClimberSnapshot recombine (RBallEfficientHillClimberSnapshot blue, RBallEfficientHillClimberSnapshot red)
 	{
-		PBSolution res = recombine(blue.getSolution(), red.getSolution());
+		PBSolution blueSolution = blue.getSolution();
+		PBSolution redSolution = red.getSolution();
+		PBSolution res = recombine(blueSolution, redSolution);
 		
-		if (res.equals(blue) || res.equals(red))
+		if (res.equals(blueSolution) || res.equals(redSolution))
 		{
 			return null;
 		}
 		// else
 		
 		return blue.getHillClimberForInstanceOf().initialize(res);
-		
 	}
 
 	
