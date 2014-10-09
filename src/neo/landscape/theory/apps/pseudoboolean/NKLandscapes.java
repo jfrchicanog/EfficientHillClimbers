@@ -269,8 +269,8 @@ public class NKLandscapes extends EmbeddedLandscape implements KBoundedEpistasis
 		else
 		{
 			BigDecimal res = pbf.evaluateArbitraryPrecision(sol);
-			System.out.println("Arbitrary precision optimal value: "+res);
-			System.out.println("Double: "+res.doubleValue());
+			//System.out.println("Arbitrary precision optimal value: "+res);
+			//System.out.println("Double: "+res.doubleValue());
 		}
 		
 				
