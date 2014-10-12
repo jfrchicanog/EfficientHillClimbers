@@ -1,6 +1,5 @@
 package neo.landscape.theory.apps.util;
 
-import java.util.List;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -10,10 +9,13 @@ import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import neo.landscape.theory.apps.pseudoboolean.IExperiment;
+import neo.landscape.theory.apps.pseudoboolean.Process;
 
 public class ClassesDiscovery {
 
@@ -171,6 +173,13 @@ public class ClassesDiscovery {
 	                "IOException was thrown when trying to get all resources for "
 	                        + pckgname, ioex);
 	    }
+	    
+	    // Added to fix a problem with class repetition (Francisco Chicano, 12/10/2014)
+	    
+	    Set<Class<?>> aux = new HashSet<Class<?>>();
+	    aux.addAll(classes);
+	    classes.clear();
+	    classes.addAll(aux);
 
 	    return classes;
 	}
@@ -198,7 +207,7 @@ public class ClassesDiscovery {
 	
 	public static void main (String [] args) throws Exception
 	{
-		for (Class<?> c: getClassesForPackageWithSuperclass("neo.landscape.theory.apps.pseudoboolean.experiments",IExperiment.class))
+		for (Class<?> c: getClassesForPackageWithSuperclass("neo.landscape.theory.apps.pseudoboolean.experiments",Process.class))
 		{
 			System.out.println(c.getName());
 		}

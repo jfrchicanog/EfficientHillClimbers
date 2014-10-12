@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
 
-import neo.landscape.theory.apps.pseudoboolean.IExperiment;
+import neo.landscape.theory.apps.pseudoboolean.Process;
 import neo.landscape.theory.apps.pseudoboolean.MAXSAT;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.RBall4MAXSAT;
@@ -19,7 +19,7 @@ import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInsta
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.util.Seeds;
 
-public class MaxSATExperiment implements IExperiment {
+public class MaxSATExperiment implements Process {
 
 	@Override
 	public String getDescription() {

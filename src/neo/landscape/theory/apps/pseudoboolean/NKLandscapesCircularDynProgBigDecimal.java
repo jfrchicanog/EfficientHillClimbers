@@ -203,7 +203,8 @@ public class NKLandscapesCircularDynProgBigDecimal implements ExactSolutionMetho
 		sol.solution=pbsol;
 		// Warning: potential lack of precision
 		sol.quality=max.doubleValue();
-		System.out.println("Arbitrary precision optimal value: "+max);
+		// Should be better to log the values, instead of writing it to stdout
+		//System.out.println("Arbitrary precision optimal value: "+max);
 		// Build the solution
 		
 		int pos=0;

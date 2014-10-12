@@ -12,7 +12,7 @@ import java.util.Properties;
 import java.util.Stack;
 import java.util.zip.GZIPOutputStream;
 
-import neo.landscape.theory.apps.pseudoboolean.IExperiment;
+import neo.landscape.theory.apps.pseudoboolean.Process;
 import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInstanceOf;
@@ -20,7 +20,7 @@ import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverForRBallHillClimber;
 import neo.landscape.theory.apps.util.Seeds;
 
-public class PartitionCrossoverWithScoresExperiment implements IExperiment {
+public class PartitionCrossoverWithScoresExperiment implements Process {
 
 	private static class ExploredSolution {
 		public RBallEfficientHillClimberSnapshot solution;

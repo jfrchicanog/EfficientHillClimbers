@@ -1,6 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
-public interface IExperiment {
+public interface Process {
 
 	public String getDescription();
 	public String getID();

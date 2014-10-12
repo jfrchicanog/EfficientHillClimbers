@@ -350,7 +350,7 @@ public class MAXSAT extends EmbeddedLandscape {
 		PBSolution sol=null;
 		try {
 			Runtime rt = Runtime.getRuntime();
-			Process pr = rt.exec("./MaxsatHP -hyperplaneinit -seed "+seed+" "+instance);
+			java.lang.Process pr = rt.exec("./MaxsatHP -hyperplaneinit -seed "+seed+" "+instance);
 			pr.waitFor();
 			BufferedReader brd = new BufferedReader(new InputStreamReader(pr.getInputStream()));
 			sol = new PBSolution (n);
