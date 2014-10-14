@@ -104,6 +104,12 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 
 		initializeOutput();
 		
+		ps.println("N: "+n);
+		ps.println("K: "+k);
+		ps.println("Q: "+q);
+		ps.println("Adjacent model?: "+(circular.equals("y")?"true":"false"));
+		ps.println("Generation limit: "+generationLimit);
+		ps.println("R: "+r);
 		ps.println("Seed: "+seed);
 		
 		pbf.setSeed(seed);
