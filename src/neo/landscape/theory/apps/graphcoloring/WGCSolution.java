@@ -6,7 +6,7 @@ import neo.landscape.theory.apps.efficienthc.Solution;
 
 public class WGCSolution implements Solution<WeightedGraphColoring> {
 
-	public int [] colors;
+	public int[] colors;
 
 	@Override
 	public String toString() {

@@ -7,19 +7,16 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
 
 	private Set<Integer> explored;
 	private Set<Integer> unexplored;
-	
-	
-	
-	public TwoStatesISSetImpl(int n)
-	{
+
+	public TwoStatesISSetImpl(int n) {
 		explored = new HashSet<Integer>();
 		unexplored = new HashSet<Integer>();
-		
+
 		for (int i = 0; i < n; i++) {
 			unexplored.add(i);
 		}
 	}
-	
+
 	@Override
 	public void reset() {
 		unexplored.addAll(explored);
@@ -35,12 +32,11 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
 	public boolean hasMoreUnexplored() {
 		return unexplored.iterator().hasNext();
 	}
-	
-	private void checkRange(int v)
-	{
-		if (v < 0 || v >= getNumberOfElements())
-		{
-			throw new IllegalArgumentException("This integer does not exist in the set");
+
+	private void checkRange(int v) {
+		if (v < 0 || v >= getNumberOfElements()) {
+			throw new IllegalArgumentException(
+					"This integer does not exist in the set");
 		}
 	}
 

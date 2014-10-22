@@ -10,9 +10,8 @@ public class Seeds {
 		String pid = nameOfRunningVM.substring(0, p);
 		return Long.parseLong(pid);
 	}
-	
-	public static long getSeed()
-	{
+
+	public static long getSeed() {
 		return System.currentTimeMillis() + getPID();
 	}
 

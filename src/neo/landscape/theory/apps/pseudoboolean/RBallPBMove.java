@@ -11,19 +11,17 @@ public class RBallPBMove implements Move<PseudoBooleanFunction, PBSolution> {
 
 	public SetOfVars flipVariables;
 	public double improvement;
-	
-	public RBallPBMove(double i, SetOfVars fv)
-	{
+
+	public RBallPBMove(double i, SetOfVars fv) {
 		improvement = i;
-		flipVariables =fv;
+		flipVariables = fv;
 	}
-	
-	public RBallPBMove(double i, int n)
-	{
+
+	public RBallPBMove(double i, int n) {
 		improvement = i;
 		flipVariables = new SetOfVars();
 	}
-	
+
 	public RBallPBMove() {
 	}
 
@@ -31,11 +29,10 @@ public class RBallPBMove implements Move<PseudoBooleanFunction, PBSolution> {
 	public double getImprovement() {
 		return improvement;
 	}
-	
-	public String toString()
-	{
+
+	public String toString() {
 		String str;
-		str = flipVariables.toString()+" ("+improvement+")";
+		str = flipVariables.toString() + " (" + improvement + ")";
 		return str;
 	}
 

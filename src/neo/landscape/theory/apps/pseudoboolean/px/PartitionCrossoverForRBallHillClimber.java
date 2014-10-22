@@ -9,22 +9,20 @@ public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover {
 	public PartitionCrossoverForRBallHillClimber(EmbeddedLandscape el) {
 		super(el);
 	}
-	
-	
-	public RBallEfficientHillClimberSnapshot recombine (RBallEfficientHillClimberSnapshot blue, RBallEfficientHillClimberSnapshot red)
-	{
+
+	public RBallEfficientHillClimberSnapshot recombine(
+			RBallEfficientHillClimberSnapshot blue,
+			RBallEfficientHillClimberSnapshot red) {
 		PBSolution blueSolution = blue.getSolution();
 		PBSolution redSolution = red.getSolution();
 		PBSolution res = recombine(blueSolution, redSolution);
-		
-		if (res.equals(blueSolution) || res.equals(redSolution))
-		{
+
+		if (res.equals(blueSolution) || res.equals(redSolution)) {
 			return null;
 		}
 		// else
-		
+
 		return blue.getHillClimberForInstanceOf().initialize(res);
 	}
 
-	
 }

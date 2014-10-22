@@ -19,29 +19,26 @@ public abstract class PseudoBooleanFunction implements Problem {
 
 	@Override
 	public void setSeed(long seed) {
-		rnd = new Random (seed);
-		this.seed=seed;
+		rnd = new Random(seed);
+		this.seed = seed;
 	}
-	
-	public long getSeed()
-	{
+
+	public long getSeed() {
 		return seed;
 	}
-	
-	public BigDecimal evaluateArbitraryPrecision(Solution sol)
-	{
-		return new BigDecimal (evaluate(sol));
+
+	public BigDecimal evaluateArbitraryPrecision(Solution sol) {
+		return new BigDecimal(evaluate(sol));
 	}
 
 	@Override
 	public PBSolution getRandomSolution() {
-		PBSolution pbs = new PBSolution (n);
-		
-		for (int i=0; i < n; i++)
-		{
+		PBSolution pbs = new PBSolution(n);
+
+		for (int i = 0; i < n; i++) {
 			pbs.setBit(i, rnd.nextInt(2));
 		}
-	
+
 		return pbs;
 	}
 
