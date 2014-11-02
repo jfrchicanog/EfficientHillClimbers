@@ -1,25 +1,14 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
-import java.util.Set;
 
-import neo.landscape.theory.apps.efficienthc.HillClimberForInstanceOf;
 import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
-import neo.landscape.theory.apps.efficienthc.Solution;
-import neo.landscape.theory.apps.pseudoboolean.util.SetOfSetOfVars;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 import neo.landscape.theory.apps.util.DoubleLinkedList;
 import neo.landscape.theory.apps.util.DoubleLinkedList.Entry;
-import neo.landscape.theory.apps.util.IteratorFromArray;
-import neo.landscape.theory.apps.util.RootedTreeGenerator;
-import neo.landscape.theory.apps.util.RootedTreeGenerator.RootedTreeCallback;
-import neo.landscape.theory.apps.util.Seeds;
 
 public class RBallEfficientHillClimberSnapshot implements
 		HillClimberSnapshot<EmbeddedLandscape> {
@@ -27,7 +16,7 @@ public class RBallEfficientHillClimberSnapshot implements
 	public static final String PROFILE = "profile";
 
 	public static interface SubfunctionChangeListener {
-		public void valueChanged(int sf, double old_value, double new_value);
+		public void valueChanged(int subFunction, double oldValue, double newValue);
 	}
 
 	/* Solution info */
@@ -68,18 +57,18 @@ public class RBallEfficientHillClimberSnapshot implements
 	/* Solution info */
 	private int minImpRadius;
 	/* Solution info */
-	protected boolean collect_flips;
+	protected boolean collectFlips;
 
 	// Used for soft restarts
 	/* Solution info */
 	protected Random rnd;
 
 	// Auxiliary data structures
-	private int[] flip_bits;
+	private int[] flippedBits;
 	private PBSolution sub;
-	private PBSolution sub_sov;
-	private Double[] subfns_evals;
-	protected double sol_quality;
+	private PBSolution subSov;
+	private Double[] subfnsEvals;
+	protected double solutionQuality;
 
 	// Listeners
 	/* Solution info */
@@ -87,14 +76,14 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	// Statistics of the operator
 	/* Solution info */
-	private int[] moves_per_distance;
+	private int[] movesPerDistance;
 
 	/* Solution info */
-	private long solution_init_time;
-	private long solution_init_evals;
-	private long solution_move_evals;
-	private long total_moves;
-	private long total_sol_inits;
+	private long solutionInitializationTime;
+	private long solutionInitializationEvals;
+	private long solutionMoveEvals;
+	private long totalMoves;
+	private long totalSolutionInitializations;
 	private int[] flips;
 	private List<ProfileData> profile;
 
@@ -104,7 +93,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		this.rball = rballfio.getHillClimber();
 		radius = rball.radius;
 		problem = rballfio.problem;
-		collect_flips = rball.collect_flips;
+		collectFlips = rball.collect_flips;
 		rnd = new Random(rball.rnd.nextLong());
 		if (rball.configuration.containsKey(PROFILE)) {
 			profile = new ArrayList<ProfileData>();
@@ -135,13 +124,13 @@ public class RBallEfficientHillClimberSnapshot implements
 		}
 
 		minImpRadius = radius + 1;
-		moves_per_distance = new int[radius + 1];
-		flip_bits = new int[radius];
+		movesPerDistance = new int[radius + 1];
+		flippedBits = new int[radius];
 
-		solution_init_evals = 0;
-		solution_move_evals = 0;
-		total_moves = 0;
-		total_sol_inits = 0;
+		solutionInitializationEvals = 0;
+		solutionMoveEvals = 0;
+		totalMoves = 0;
+		totalSolutionInitializations = 0;
 
 	}
 
@@ -159,16 +148,16 @@ public class RBallEfficientHillClimberSnapshot implements
 		}
 
 		sub = new PBSolution(rballfio.max_k);
-		sub_sov = new PBSolution(rballfio.max_k);
+		subSov = new PBSolution(rballfio.max_k);
 		sol = null;
-		subfns_evals = new Double[problem.getM()];
+		subfnsEvals = new Double[problem.getM()];
 	}
 
 	/* Problem method /Sol method */
 	private void initializeProblemDependentStructuresDarrell() {
 		// This map is to implement a one-to-one function between SetOfVars and
 		// integers (Minimal Perfect Hashing Function)
-		if (collect_flips) {
+		if (collectFlips) {
 			flips = new int[problem.getN()];
 		}
 
@@ -184,25 +173,24 @@ public class RBallEfficientHillClimberSnapshot implements
 		}
 
 		sub = new PBSolution(rballfio.max_k);
-		sub_sov = new PBSolution(rballfio.max_k);
+		subSov = new PBSolution(rballfio.max_k);
 		sol = null;
-		subfns_evals = new Double[problem.getM()];
+		subfnsEvals = new Double[problem.getM()];
 	}
 
 	/* Sol method */
 	private void initializeSolutionDependentStructuresFromScratch() {
 		long init = System.currentTimeMillis();
 		// Compute the scores for all the values of the map
-		// int [][] masks = problem.getMasks();
 		for (int i = 1; i <= radius; i++) {
 			maxNomEmptyScore[i] = 0;
 		}
 
 		double update;
 
-		sol_quality = 0;
+		solutionQuality = 0;
 		for (int sf = 0; sf < problem.getM(); sf++) {
-			subfns_evals[sf] = null;
+			subfnsEvals[sf] = null;
 		}
 
 		for (Entry<RBallPBMove> e : mos) {
@@ -211,51 +199,51 @@ public class RBallEfficientHillClimberSnapshot implements
 			update = 0;
 
 			for (int sf : rballfio.subFunctionsAffected(sov)) {
-				int k = problem.getMaskLength(sf);// masks[sf].length;
+				int k = problem.getMaskLength(sf);
 				// For each subfunction do ...
-				double v_sub;
-				if (subfns_evals[sf] != null) {
-					v_sub = subfns_evals[sf];
-					fireChange(sf, Double.NaN, v_sub);
+				double vSub;
+				if (subfnsEvals[sf] != null) {
+					vSub = subfnsEvals[sf];
+					fireChange(sf, Double.NaN, vSub);
 				} else {
 
 					for (int j = 0; j < k; j++) {
-						int bit = problem.getMasks(sf, j); // masks[sf][j];
+						int bit = problem.getMasks(sf, j);
 						sub.setBit(j, sol.getBit(bit));
 					}
-					subfns_evals[sf] = v_sub = problem.evaluateSubfunction(sf,
+					subfnsEvals[sf] = vSub = problem.evaluateSubfunction(sf,
 							sub);
-					sol_quality += v_sub;
+					solutionQuality += vSub;
 				}
 
 				// Build the subsolutions
 				for (int j = 0; j < k; j++) {
-					int bit = problem.getMasks(sf, j); // masks[sf][j];
-					sub_sov.setBit(j, sol.getBit(bit)
+					int bit = problem.getMasks(sf, j);
+					subSov.setBit(j, sol.getBit(bit)
 							^ (sov.contains(bit) ? 0x01 : 0x00));
 				}
 
-				double v_sub_sov = problem.evaluateSubfunction(sf, sub_sov);
+				double vSubSov = problem.evaluateSubfunction(sf, subSov);
 
-				solution_init_evals += 2;
+				solutionInitializationEvals += 2;
 
-				update += v_sub_sov - v_sub;
+				update += vSubSov - vSub;
 			}
-			double old_value = e.v.improvement;
+			double oldValue = e.v.improvement;
 			e.v.improvement = update;
 
-			int old_q_ind = rball.getQualityIndex(old_value);
-			int new_q_ind = rball.getQualityIndex(update);
+			int oldQualityIndex = rball.getQualityIndex(oldValue);
+			int newQualityIndex = rball.getQualityIndex(update);
 
-			if (old_q_ind != new_q_ind) {
+			if (oldQualityIndex != newQualityIndex) {
 				int p = sov.size();
-				scores[p][old_q_ind].remove(e);
-				scores[p][new_q_ind].add(e);
+				scores[p][oldQualityIndex].remove(e);
+				scores[p][newQualityIndex].add(e);
 
-				if (new_q_ind > maxNomEmptyScore[p]) {
+				if (newQualityIndex > maxNomEmptyScore[p]) {
 					// It is an improving move (necessarily, because
 					// maxNomEmptyScore is 0 at least
-					maxNomEmptyScore[p] = new_q_ind;
+					maxNomEmptyScore[p] = newQualityIndex;
 				}
 			}
 		}
@@ -273,27 +261,25 @@ public class RBallEfficientHillClimberSnapshot implements
 			}
 		}
 
-		total_sol_inits++;
+		totalSolutionInitializations++;
 
-		solution_init_time = System.currentTimeMillis() - init;
+		solutionInitializationTime = System.currentTimeMillis() - init;
 
-		// System.out.println(solution_init_time);
 	}
 
 	/* Solution method */
 	private void initializeSolutionDependentStructuresFromSolution(
-			PBSolution to_this) {
+			PBSolution toThis) {
 		long init = System.currentTimeMillis();
 		// Move by doing partial updates
-		// SetOfVars aux = new SetOfVars();
 		int n = problem.getN();
 		for (int v = 0; v < n; v++) {
-			if (to_this.getBit(v) != this.sol.getBit(v)) {
+			if (toThis.getBit(v) != this.sol.getBit(v)) {
 				moveOneBit(v);
 			}
 		}
-		solution_init_time = System.currentTimeMillis() - init;
-		total_sol_inits++;
+		solutionInitializationTime = System.currentTimeMillis() - init;
+		totalSolutionInitializations++;
 	}
 
 	/* Solution method */
@@ -325,7 +311,7 @@ public class RBallEfficientHillClimberSnapshot implements
 				.getFirst().v;
 		double imp = move.improvement;
 
-		sol_quality += imp;
+		solutionQuality += imp;
 
 		reportMovement(minImpRadius);
 		moveSeveralBitsEff(move.flipVariables);
@@ -335,10 +321,10 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	/* Sol method */
 	private void reportMovement(int r) {
-		moves_per_distance[r]++;
+		movesPerDistance[r]++;
 		if (profile != null) {
 			ProfileData pd;
-			if (profile.size() > 0) {
+			if (!profile.isEmpty()) {
 				pd = profile.get(profile.size() - 1);
 			} else {
 				pd = new ProfileData(r, 0);
@@ -363,121 +349,94 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	/* Sol method */
 	protected void moveSeveralBitsEff(SetOfVars bits) {
-		// int [][] masks = problem.getMasks();
 
 		// Identify which which subfunctions will be afffected
 
 		for (int sf : rballfio.subFunctionsAffected(bits)) {
-			int k = problem.getMaskLength(sf); // masks[sf].length;
+			int k = problem.getMaskLength(sf);
 			// For each subfunction do ...
 			// For each move score evaluate the subfunction and update the
 			// corresponding value
-			double v_sub;
+			double vSub;
 
-			int ind_i = 0;
+			int indI = 0;
 			for (int j = 0; j < k; j++) {
-				int bit = problem.getMasks(sf, j); // masks[sf][j];
+				int bit = problem.getMasks(sf, j);
 				sub.setBit(j, sol.getBit(bit));
 				if (bits.contains(bit)) {
-					flip_bits[ind_i++] = j;
+					flippedBits[indI++] = j;
 				}
 			}
 
-			v_sub = subfns_evals[sf];
+			vSub = subfnsEvals[sf];
 
-			// if (sf_values != null)
-			// {
-			// v_sub = [sf];
-			// }
-			// else
-			// {
-			// v_sub = problem.evaluateSubfunction(sf, sub);
-			// solution_move_evals++;
-			// }
-
-			for (int j = 0; j < ind_i; j++) {
-				sub.flipBit(flip_bits[j]);
+			for (int j = 0; j < indI; j++) {
+				sub.flipBit(flippedBits[j]);
 			}
 
-			double v_sub_i = problem.evaluateSubfunction(sf, sub);
+			double vSubI = problem.evaluateSubfunction(sf, sub);
 
-			solution_move_evals++;
+			solutionMoveEvals++;
 
 			// Revert the solution to the current value
-			for (int j = 0; j < ind_i; j++) {
-				sub.flipBit(flip_bits[j]);
+			for (int j = 0; j < indI; j++) {
+				sub.flipBit(flippedBits[j]);
 			}
 
-			for (int e_ind : rballfio.subfns[sf]) {
-				Entry<RBallPBMove> e = mos[e_ind];
-				SetOfVars sov = e.v.flipVariables;
+			for (int entryIndex : rballfio.subfns[sf]) {
+				Entry<RBallPBMove> entry = mos[entryIndex];
+				SetOfVars sov = entry.v.flipVariables;
 
 				// Build the subsolutions
-				sub_sov.copyFrom(sub);
+				subSov.copyFrom(sub);
 
 				for (int j = 0; j < k; j++) {
-					int bit = problem.getMasks(sf, j); // masks[sf][j];
+					int bit = problem.getMasks(sf, j);
 					if (sov.contains(bit)) {
-						sub_sov.flipBit(j);
+						subSov.flipBit(j);
 					}
-
-					// if (bits.contains(bit))
-					// {
-					// flip_bits[ind_i++]=j;
-					// }
 				}
 
-				double v_sub_sov = problem.evaluateSubfunction(sf, sub_sov);
+				double vSubSov = problem.evaluateSubfunction(sf, subSov);
 
-				solution_move_evals++;
+				solutionMoveEvals++;
 
-				for (int j = 0; j < ind_i; j++) {
-					// sub.flipBit(flip_bits[j]);
-					sub_sov.flipBit(flip_bits[j]);
+				for (int j = 0; j < indI; j++) {
+					subSov.flipBit(flippedBits[j]);
 				}
 
-				double v_sub_sov_i = problem.evaluateSubfunction(sf, sub_sov);
-				// double v_sub_i = problem.evaluateSubfunction(sf, sub);
+				double vSubSovI = problem.evaluateSubfunction(sf, subSov);
 
-				solution_move_evals += 1;
+				solutionMoveEvals += 1;
 
-				// for (int j=0; j < ind_i; j++)
-				// {
-				// sub.flipBit(flip_bits[j]);
-				// }
+				double update = (vSubSovI - vSubI) - (vSubSov - vSub);
 
-				double update = (v_sub_sov_i - v_sub_i) - (v_sub_sov - v_sub);
+				double old = entry.v.improvement;
+				entry.v.improvement += update;
 
-				double old = e.v.improvement;
-				e.v.improvement += update;
+				int oldQualityIndex = rball.getQualityIndex(old);
+				int newQualityIndex = rball.getQualityIndex(old + update);
 
-				int old_q_ind = rball.getQualityIndex(old);
-				int new_q_ind = rball.getQualityIndex(old + update);
-
-				if (old_q_ind != new_q_ind) {
+				if (oldQualityIndex != newQualityIndex) {
 					int p = sov.size();
-					scores[p][old_q_ind].remove(e);
+					scores[p][oldQualityIndex].remove(entry);
 					if (rball.fifo) {
-						scores[p][new_q_ind].add(e);
+						scores[p][newQualityIndex].add(entry);
 					} else {
-						scores[p][new_q_ind].append(e);
+						scores[p][newQualityIndex].append(entry);
 					}
 
-					if (new_q_ind > maxNomEmptyScore[p]) {
+					if (newQualityIndex > maxNomEmptyScore[p]) {
 						// It is an improving move (necessarily, because
 						// maxNomEmptyScore is 0 at least
-						maxNomEmptyScore[p] = new_q_ind;
+						maxNomEmptyScore[p] = newQualityIndex;
 					}
 				}
 			}
 
-			subfns_evals[sf] = v_sub_i;
-			fireChange(sf, v_sub, v_sub_i);
+			subfnsEvals[sf] = vSubI;
+			fireChange(sf, vSub, vSubI);
 
-			// if (sf_values != null)
-			// {
-			// sf_values[sf] = v_sub_i;
-			// }
 
 		}
 
@@ -497,12 +456,12 @@ public class RBallEfficientHillClimberSnapshot implements
 		// Finally, flip the bit in the solution and we are done
 		for (int bit : bits) {
 			sol.flipBit(bit);
-			if (collect_flips) {
+			if (collectFlips) {
 				flips[bit]++;
 			}
 		}
 
-		total_moves++;
+		totalMoves++;
 	}
 
 	/* Sol method */
@@ -519,14 +478,14 @@ public class RBallEfficientHillClimberSnapshot implements
 	public void checkConsistency() {
 		for (Entry<RBallPBMove> e : mos) {
 			SetOfVars sov = e.v.flipVariables;
-			PBSolution sol_sov = new PBSolution(sol);
+			PBSolution solSov = new PBSolution(sol);
 
 			for (int var : sov) {
-				sol_sov.flipBit(var);
+				solSov.flipBit(var);
 			}
 
 			// Check the values of the scores
-			double diff = problem.evaluate(sol_sov) - problem.evaluate(sol);
+			double diff = problem.evaluate(solSov) - problem.evaluate(sol);
 			assert e.v.improvement == diff : new RuntimeException("Expected "
 					+ diff + " found " + e.v.improvement + " in " + sov);
 
@@ -538,16 +497,16 @@ public class RBallEfficientHillClimberSnapshot implements
 					assert move.flipVariables.size() == p;
 
 					if (q == 0) {
-						assert (move.improvement <= 0);
+						assert move.improvement <= 0;
 					} else if (q == 1) {
-						assert (move.improvement > 0);
+						assert move.improvement > 0;
 						if (rball.quality_limits != null) {
-							assert (move.improvement < rball.quality_limits[0]);
+							assert move.improvement < rball.quality_limits[0];
 						}
 					} else {
 						assert (move.improvement >= rball.quality_limits[q - 2]);
 						if (q <= rball.quality_limits.length) {
-							assert (move.improvement < rball.quality_limits[q - 1]);
+							assert move.improvement < rball.quality_limits[q - 1];
 						}
 					}
 				}
@@ -569,64 +528,64 @@ public class RBallEfficientHillClimberSnapshot implements
 	}
 
 	/* Sol method */
-	public void softRestart(int soft_restart) {
+	public void softRestart(int softRestart) {
 		int n = problem.getN();
-		boolean tmp = collect_flips;
-		collect_flips = false;
-		for (int i = 0; i < soft_restart; i++) {
+		boolean tmp = collectFlips;
+		collectFlips = false;
+		for (int i = 0; i < softRestart; i++) {
 			int var = rnd.nextInt(n);
-			sol_quality += mos[rballfio.oneFlipScores[var]].v.improvement;
+			solutionQuality += mos[rballfio.oneFlipScores[var]].v.improvement;
 			moveOneBit(var);
 		}
-		collect_flips = tmp;
+		collectFlips = tmp;
 	}
 
 	/* Sol method */
 	public int[] getMovesPerDinstance() {
-		return moves_per_distance;
+		return movesPerDistance;
 	}
 
 	/* Sol method */
 	public void resetMovesPerDistance() {
-		for (int i = 0; i < moves_per_distance.length; i++) {
-			moves_per_distance[i] = 0;
+		for (int i = 0; i < movesPerDistance.length; i++) {
+			movesPerDistance[i] = 0;
 		}
 	}
 
 	/* Sol method */
 	public long getSolutionInitTime() {
-		return solution_init_time;
+		return solutionInitializationTime;
 	}
 
 	/* Sol method */
 	public long getTotalMoves() {
-		return total_moves;
+		return totalMoves;
 	}
 
 	/* Sol method */
 	public long getTotalSolutionInits() {
-		return total_sol_inits;
+		return totalSolutionInitializations;
 	}
 
 	/* Sol method */
 	public long getSubfnsEvalsInMoves() {
-		return solution_move_evals;
+		return solutionMoveEvals;
 	}
 
 	/* Sol method */
 	public long getSubfnsEvalsInSolInits() {
-		return solution_init_evals;
+		return solutionInitializationEvals;
 	}
 
 	/* Sol method */
 	public double getSolutionQuality() {
-		return sol_quality;
+		return solutionQuality;
 	}
 
 	/* Sol method */
-	protected void fireChange(int sf, double old_val, double new_val) {
+	protected void fireChange(int sf, double oldVal, double newVal) {
 		if (scl != null) {
-			scl.valueChanged(sf, old_val, new_val);
+			scl.valueChanged(sf, oldVal, newVal);
 		}
 	}
 

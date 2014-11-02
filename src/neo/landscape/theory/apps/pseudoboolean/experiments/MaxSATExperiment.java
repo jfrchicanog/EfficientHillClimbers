@@ -108,33 +108,33 @@ public class MaxSATExperiment implements Process {
 			return;
 		}
 
-		long stop_descents = Long.MAX_VALUE;
-		long stop_time = Long.MAX_VALUE;
+		long stopDescents = Long.MAX_VALUE;
+		long stopTime = Long.MAX_VALUE;
 
 		if (options.containsKey("t")) {
 			if (!checkOneValue(options, "t", "stop time"))
 				return;
 			// else
-			stop_time = Long.parseLong(options.get("t").get(0)) * 1000;
+			stopTime = Long.parseLong(options.get("t").get(0)) * 1000;
 		} else {
 			if (!checkOneValue(options, "d", "max descents"))
 				return;
 			// else
-			stop_descents = Long.parseLong(options.get("d").get(0));
+			stopDescents = Long.parseLong(options.get("d").get(0));
 		}
 
 		// Check optional elements
 
 		// Check quality limits
-		double[] quality_limits = null;
+		double[] qualityLimits = null;
 		if (options.containsKey("l") && options.get("l").size() > 0) {
-			quality_limits = new double[options.get("l").size()];
+			qualityLimits = new double[options.get("l").size()];
 			int i = 0;
 			for (String val : options.get("l")) {
-				quality_limits[i++] = Double.parseDouble(val);
+				qualityLimits[i++] = Double.parseDouble(val);
 			}
 		}
-		checkQualityLimits(quality_limits);
+		checkQualityLimits(qualityLimits);
 
 		// Check seed
 		long seed;
@@ -154,7 +154,7 @@ public class MaxSATExperiment implements Process {
 		boolean trace = options.containsKey("tr");
 
 		// Check maxsat specific
-		boolean maxsat_spec = options.containsKey("ma");
+		boolean maxsatSpec = options.containsKey("ma");
 
 		// Check flips vs appearance plot
 		boolean flipvsapp = options.containsKey("fl");
@@ -173,17 +173,17 @@ public class MaxSATExperiment implements Process {
 		pbf.setConfiguration(prop);
 
 		// Check the soft restart
-		int soft_restart = -1;
+		int softRestart = -1;
 		if (options.containsKey("s")) {
 			if (!checkOneValue(options, "s", "soft restart fraction"))
 				return;
 			double sr = Double.parseDouble(options.get("s").get(0));
 			if (sr > 0) {
-				soft_restart = (int) (pbf.getN() * sr);
-				if (soft_restart <= 0) {
-					soft_restart = -1;
-				} else if (soft_restart > pbf.getN()) {
-					soft_restart = pbf.getN();
+				softRestart = (int) (pbf.getN() * sr);
+				if (softRestart <= 0) {
+					softRestart = -1;
+				} else if (softRestart > pbf.getN()) {
+					softRestart = pbf.getN();
 				}
 			}
 		}
@@ -199,28 +199,28 @@ public class MaxSATExperiment implements Process {
 
 		// Prepare the hill climber
 
-		Properties rball_prop = new Properties();
-		rball_prop.setProperty(RBallEfficientHillClimber.R_STRING,
+		Properties rballProperties = new Properties();
+		rballProperties.setProperty(RBallEfficientHillClimber.R_STRING,
 				String.valueOf(r));
-		rball_prop.setProperty(RBallEfficientHillClimber.SEED,
+		rballProperties.setProperty(RBallEfficientHillClimber.SEED,
 				String.valueOf(seed));
 		if (flipvsapp) {
-			rball_prop.setProperty(RBallEfficientHillClimber.FLIP_STAT, "");
+			rballProperties.setProperty(RBallEfficientHillClimber.FLIP_STAT, "");
 		}
-		if (quality_limits != null) {
-			String str = "" + quality_limits[0];
-			for (int i = 1; i < quality_limits.length; i++) {
-				str += " " + quality_limits[i];
+		if (qualityLimits != null) {
+			String str = "" + qualityLimits[0];
+			for (int i = 1; i < qualityLimits.length; i++) {
+				str += " " + qualityLimits[i];
 			}
-			rball_prop.setProperty(RBallEfficientHillClimber.QUALITY_LIMITS,
+			rballProperties.setProperty(RBallEfficientHillClimber.QUALITY_LIMITS,
 					str);
 		}
 
 		RBallEfficientHillClimber rball;
-		if (maxsat_spec) {
-			rball = new RBall4MAXSAT(rball_prop);
+		if (maxsatSpec) {
+			rball = new RBall4MAXSAT(rballProperties);
 		} else {
-			rball = new RBallEfficientHillClimber(rball_prop);
+			rball = new RBallEfficientHillClimber(rballProperties);
 		}
 
 		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) rball
@@ -228,24 +228,24 @@ public class MaxSATExperiment implements Process {
 		RBallEfficientHillClimberSnapshot rballs = null;
 
 		// Initialize data
-		long init_time = System.currentTimeMillis();
-		long elapsed_time = init_time;
-		double sol_q = -Double.MAX_VALUE;
-		boolean first_time = true;
-		PBSolution best_solution = null;
-		long best_sol_time = -1;
+		long initTime = System.currentTimeMillis();
+		long elapsedTime = initTime;
+		double solutionQuality = -Double.MAX_VALUE;
+		boolean firstTime = true;
+		PBSolution bestSolution = null;
+		long bestSolutionTime = -1;
 		long descents = 0;
 
-		while (elapsed_time - init_time < stop_time && descents < stop_descents) {
-			if (soft_restart < 0 || first_time) {
+		while (elapsedTime - initTime < stopTime && descents < stopDescents) {
+			if (softRestart < 0 || firstTime) {
 				PBSolution pbs = pbf.getRandomSolution();
 				rballs = rballfio.initialize(pbs);
-				first_time = false;
+				firstTime = false;
 			} else {
-				rballs.softRestart(soft_restart);
+				rballs.softRestart(softRestart);
 			}
 
-			double init_quality = rballs.getSolutionQuality();
+			double initialQuality = rballs.getSolutionQuality();
 			double imp;
 			long moves = 0;
 
@@ -259,24 +259,24 @@ public class MaxSATExperiment implements Process {
 			} while (imp > 0);
 			moves--;
 
-			double final_quality = rballs.getSolutionQuality();
+			double finalQuality = rballs.getSolutionQuality();
 
 			descents++;
-			elapsed_time = System.currentTimeMillis();
+			elapsedTime = System.currentTimeMillis();
 
-			if (final_quality > sol_q) {
-				sol_q = final_quality;
-				best_solution = new PBSolution(rballs.getSolution());
-				best_sol_time = elapsed_time;
+			if (finalQuality > solutionQuality) {
+				solutionQuality = finalQuality;
+				bestSolution = new PBSolution(rballs.getSolution());
+				bestSolutionTime = elapsedTime;
 			}
 
 			if (trace) {
 				ps.println("Moves: " + moves);
 				ps.println("Move histogram: "
 						+ Arrays.toString(rballs.getMovesPerDinstance()));
-				ps.println("Improvement: " + (final_quality - init_quality));
-				ps.println("Best solution quality: " + sol_q);
-				ps.println("Elapsed Time: " + (elapsed_time - init_time));
+				ps.println("Improvement: " + (finalQuality - initialQuality));
+				ps.println("Best solution quality: " + solutionQuality);
+				ps.println("Elapsed Time: " + (elapsedTime - initTime));
 			}
 
 		}
@@ -301,9 +301,9 @@ public class MaxSATExperiment implements Process {
 
 		}
 
-		ps.println("Solution: " + best_solution);
-		ps.println("Quality: " + (sol_q + pbf.getTopClauses()));
-		ps.println("Time: " + (best_sol_time - init_time));
+		ps.println("Solution: " + bestSolution);
+		ps.println("Quality: " + (solutionQuality + pbf.getTopClauses()));
+		ps.println("Time: " + (bestSolutionTime - initTime));
 		ps.println("Descents: " + descents);
 		ps.println("N: " + pbf.getN());
 		ps.println("M: " + pbf.getM());
@@ -333,14 +333,6 @@ public class MaxSATExperiment implements Process {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
 	}
 
 }

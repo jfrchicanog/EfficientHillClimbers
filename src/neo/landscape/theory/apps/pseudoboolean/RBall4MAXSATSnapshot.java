@@ -32,8 +32,8 @@ public class RBall4MAXSATSnapshot extends RBallEfficientHillClimberSnapshot
 
 	@Override
 	public void softRestart(int soft_restart) {
-		boolean tmp = collect_flips;
-		collect_flips = false;
+		boolean tmp = collectFlips;
+		collectFlips = false;
 
 		Set<Integer> vars = new HashSet<Integer>();
 
@@ -49,7 +49,7 @@ public class RBall4MAXSATSnapshot extends RBallEfficientHillClimberSnapshot
 		for (int v : vars) {
 			int r = rnd.nextInt(n);
 			if (r < soft_restart) {
-				sol_quality += mos[rballfio.oneFlipScores[v]].v.improvement;
+				solutionQuality += mos[rballfio.oneFlipScores[v]].v.improvement;
 				moveOneBit(v);
 
 				soft_restart--;
@@ -57,7 +57,7 @@ public class RBall4MAXSATSnapshot extends RBallEfficientHillClimberSnapshot
 			n--;
 		}
 
-		collect_flips = tmp;
+		collectFlips = tmp;
 	}
 
 }
