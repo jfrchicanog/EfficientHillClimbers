@@ -3,6 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean.parsers;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -17,13 +18,21 @@ import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod.SolutionQuality
 import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.NKLandscapesCircularDynProg;
 import neo.landscape.theory.apps.pseudoboolean.Process;
+import neo.landscape.theory.apps.pseudoboolean.util.AveragedSample;
 import neo.landscape.theory.apps.pseudoboolean.util.Sample;
 
 public class PartitionCrossoverParser implements Process {
 
 	private List<List<Sample>> traces;
+    private int n;
+    private int k;
+    private long seed;
+    private int q;
+    private boolean seedSet;
+    
+    private AveragedSample averagedSample = new AveragedSample();
 
-	@Override
+    @Override
 	public String getDescription() {
 		return "Analysis of partition crossover with Scores experiment";
 	}
@@ -47,7 +56,7 @@ public class PartitionCrossoverParser implements Process {
 
 		prepareAndClearStructures();
 		for (String file : args) {
-			processFile(file);
+			computeTrace(file);
 		}
 		printResults();
 
@@ -57,9 +66,9 @@ public class PartitionCrossoverParser implements Process {
 		traces = new ArrayList<List<Sample>>();
 	}
 
-	private void processFile(String fileName) {
+	private void computeTrace(String fileName) {
 		try {
-			processFileWithException(fileName);
+			computeTraceWithException(fileName);
 		} catch (CloneNotSupportedException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
@@ -67,23 +76,64 @@ public class PartitionCrossoverParser implements Process {
 		}
 	}
 
-	public void processFileWithException(String fileName)
+	public void computeTraceWithException(String fileName)
 			throws CloneNotSupportedException, IOException {
-		File file = new File(fileName);
-		List<Sample> aux = new ArrayList<Sample>();
+	    
+		List<Sample> trace = processFile(fileName);
+		computeInstanceParametersIfNecessary(fileName);
+		trace=adjustTrace(trace);
+		
+		traces.add(trace);
+	}
+	
+	private List<Sample> processFile(String fileName) throws IOException, FileNotFoundException,
+	CloneNotSupportedException {
+	    File file = new File(fileName);
+	    GZIPInputStream gis = new GZIPInputStream(new FileInputStream(file));
+	    BufferedReader brd = new BufferedReader(new InputStreamReader(gis));
 
-		Sample last = new Sample(0, -Double.MAX_VALUE);
-		boolean write_it = false;
+	    List<Sample> aux = parseReaderContent(brd);
 
-		String[] strs;
+	    brd.close();
+	    return aux;
+	}
+	
+	private void computeInstanceParametersIfNecessary(String fileName) {
+        if (!seedSet) {
+            throw new RuntimeException(
+                    "Seed not set, I cannot compute the optimum");
+        }
 
-		GZIPInputStream gis = new GZIPInputStream(new FileInputStream(file));
-		BufferedReader brd = new BufferedReader(new InputStreamReader(gis));
-		int n = -1;
-		int k = -1;
-		int q = -1;
-		long seed = -1;
-		boolean seedSet = false;
+        if (n < 0 || k < 0 || q < 0) {
+            int[] nkq = parseValuesFromFileName(fileName);
+            n = nkq[0];
+            k = nkq[1];
+            q = nkq[2];
+        }
+    }
+
+    private List<Sample> adjustTrace(List<Sample> aux) {
+        double optimumQuality = computeOptimum(n, k, q, seed);
+		for (Sample s : aux) {
+			s.quality = (optimumQuality - s.quality) / optimumQuality;
+		}
+		return aux;
+    }
+
+    
+    private List<Sample> parseReaderContent(BufferedReader brd)
+            throws IOException, CloneNotSupportedException {
+        List<Sample> aux = new ArrayList<Sample>();
+
+        boolean write_it=false;
+        Sample last = new Sample(0, -Double.MAX_VALUE);
+        
+        String[] strs;
+        n = -1;
+		k = -1;
+		q = -1;
+		seed = -1;
+		seedSet = false;
 
 		String line;
 
@@ -137,27 +187,9 @@ public class PartitionCrossoverParser implements Process {
 				seedSet = true;
 			}
 		}
-
-		brd.close();
-
-		if (!seedSet) {
-			throw new RuntimeException(
-					"Seed not set, I cannot compute the optimum");
-		}
-
-		if (n < 0 || k < 0 || q < 0) {
-			int[] nkq = parseValuesFromFileName(fileName);
-			n = nkq[0];
-			k = nkq[1];
-			q = nkq[2];
-		}
-
-		double optimumQuality = computeOptimum(n, k, q, seed);
-		for (Sample s : aux) {
-			s.quality = (optimumQuality - s.quality) / optimumQuality;
-		}
-		traces.add(aux);
-	}
+		
+		return aux;
+    }
 
 	private int[] parseValuesFromFileName(String fileName) {
 		String[] strings = fileName.split("-");
@@ -202,50 +234,48 @@ public class PartitionCrossoverParser implements Process {
 		List<Sample>[] trs = traces.toArray(new List[0]);
 
 		Sample[] past = new Sample[trs.length];
-		Set<Integer> indices = new HashSet<Integer>();
-		while (true) {
-			// Find the next sample to process
-			long min_time = Long.MAX_VALUE;
-			indices.clear();
-			for (int i = 0; i < trs.length; i++) {
-				if (trs[i].isEmpty()) {
-					continue;
-				}
-
-				Sample s = trs[i].get(0);
-				if (s.time < min_time) {
-					min_time = s.time;
-					indices.clear();
-					indices.add(i);
-				} else if (s.time == min_time) {
-					indices.add(i);
-				}
-			}
-
-			if (indices.isEmpty()) {
-				break;
-			}
-
-			for (int ind_min : indices) {
-				// Get the samples with the same time from the list
-				// update the Sample array
-				past[ind_min] = trs[ind_min].remove(0);
-			}
-
-			// Compute the statistics using the sample array
-			double error = 0;
-			int samples = 0;
-			for (Sample tmp : past) {
-				if (tmp != null) {
-					samples++;
-					error += tmp.quality;
-				}
-			}
-			error /= samples;
-			System.out.println(min_time + ", " + error + ", " + samples);
+		Set<Integer> indices;
+		while (!(indices = findIndicesOfNextSamplesToConsider(trs)).isEmpty()) {
+			past = computeAveragedSample(trs, past, indices);
+			System.out.println(averagedSample);
 		}
 
 		System.err.println("Total runs: " + trs.length);
 	}
+
+    private Sample[] computeAveragedSample(List<Sample>[] trs, Sample[] past, Set<Integer> indices) {
+        past = prepareNextSamples(trs, past, indices);
+        averagedSample.computeStatisticsForSelectedSamples(past);
+        return past;
+    }
+
+    private Sample[] prepareNextSamples(List<Sample>[] trs, Sample[] past, Set<Integer> indices) {
+        for (int ind_min : indices) {
+        	// Get the samples with the same time from the list
+        	// update the Sample array
+        	past[ind_min] = trs[ind_min].remove(0);
+        }
+        return past;
+    }
+
+    private Set<Integer> findIndicesOfNextSamplesToConsider(List<Sample>[] traces) {
+        averagedSample.setMinTime(Long.MAX_VALUE);
+        Set<Integer> indices = new HashSet<Integer>();
+        for (int i = 0; i < traces.length; i++) {
+        	if (traces[i].isEmpty()) {
+        		continue;
+        	}
+
+        	Sample s = traces[i].get(0);
+        	if (s.time < averagedSample.getMinTime()) {
+        		averagedSample.setMinTime(s.time);
+        		indices.clear();
+        		indices.add(i);
+        	} else if (s.time == averagedSample.getMinTime()) {
+        		indices.add(i);
+        	}
+        }
+        return indices;
+    }
 
 }
