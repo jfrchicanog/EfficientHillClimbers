@@ -120,7 +120,7 @@ public class LocalOptimaExperiment implements Process {
 		localOptima=findLocalOptima();
 		
 		localOptimaHistogram = createLocalOptimaHistogram(localOptima);
-		computePartitionCrossoverForAllPairsOfLocalOptima();
+		applyPartitionCrossoverToAllPairsOfLocalOptima();
 
 		writeHistogram(localOptimaHistogram);
 		writeGNUPlotProgram(file_name);
@@ -197,7 +197,7 @@ public class LocalOptimaExperiment implements Process {
 		System.out.println("Var interaction (max):" + max_interactions);
     }
 
-    private void computePartitionCrossoverForAllPairsOfLocalOptima() {
+    private void applyPartitionCrossoverToAllPairsOfLocalOptima() {
         PartitionCrossover px = new PartitionCrossover(pbf);
 		px.setSeed(seed);
 
@@ -292,15 +292,15 @@ public class LocalOptimaExperiment implements Process {
 		return "" + (i + 1);
 	}
 
-	private int edgeID(int i, int j) {
-		return localOptima.size() * i + j;
+	private int edgeID(int i, int j, int kind) {
+		return ((localOptima.size() * i + j)<< 1) + (kind-1);
 	}
 
-	private void notifyEdge(int i, int j) {
-		int eid = edgeID(i, j);
+	private void notifyEdge(int i, int j, int kind) {
+		int eid = edgeID(i, j, kind);
 		if (!appearedEdges.contains(eid)) {
 			appearedEdges.add(eid);
-			edgesFile.println(wI(i) + " " + wI(j) + " 1");
+			edgesFile.println(wI(i) + " " + wI(j) + " "+kind);
 		}
 	}
 
@@ -312,12 +312,14 @@ public class LocalOptimaExperiment implements Process {
 					+ localOptima.get(j) + "(" + wI(j) + ") -> " + res
 					+ (index < 0 ? "" : "(" + wI(index) + ")"));
 
+			int kind=1;
 			if (index < 0) {
 				res = climbToLocalOptima(res);
 				index = localOptima.indexOf(res);
-
+				kind=2;
 				if (index >= 0) {
 					System.out.print(" -> " + res + "(" + wI(index) + ")");
+					
 				} else {
 					System.out.print("Local Optima not found after climbing");
 				}
@@ -326,8 +328,8 @@ public class LocalOptimaExperiment implements Process {
 			System.out.println();
 
 			if (index >= 0) {
-				notifyEdge(i, index);
-				notifyEdge(j, index);
+				notifyEdge(i, index, kind);
+				notifyEdge(j, index, kind);
 
 				localOptimaHistogram[index]++;
 			}
