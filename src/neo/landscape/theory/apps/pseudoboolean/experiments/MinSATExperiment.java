@@ -72,14 +72,14 @@ public class MinSATExperiment implements Process {
 		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
 				r).initialize(pbf);
 
-		long init_time = System.currentTimeMillis();
-		long elapsed_time = init_time;
-		double sol_q = -Double.MAX_VALUE;
+		long initTime = System.currentTimeMillis();
+		long elapsedTime = initTime;
+		double solutionQuality = -Double.MAX_VALUE;
 
-		while (elapsed_time - init_time < time * 1000) {
+		while (elapsedTime - initTime < time * 1000) {
 			PBSolution pbs = pbf.getRandomSolution();
 			RBallEfficientHillClimberSnapshot rball = rballfio.initialize(pbs);
-			double init_quality = rball.getSolutionQuality();
+			double initialQuality = rball.getSolutionQuality();
 			double imp;
 			long moves = 0;
 
@@ -91,20 +91,20 @@ public class MinSATExperiment implements Process {
 			} while (imp > 0);
 			moves--;
 
-			double final_quality = rball.getSolutionQuality();
+			double finalQuality = rball.getSolutionQuality();
 
-			if (final_quality > sol_q) {
-				sol_q = final_quality;
+			if (finalQuality > solutionQuality) {
+				solutionQuality = finalQuality;
 			}
 
-			elapsed_time = System.currentTimeMillis();
+			elapsedTime = System.currentTimeMillis();
 
 			ps.println("Moves: " + moves);
 			ps.println("Move histogram: "
 					+ Arrays.toString(rball.getMovesPerDinstance()));
-			ps.println("Improvement: " + (final_quality - init_quality));
-			ps.println("Best solution quality: " + sol_q);
-			ps.println("Elapsed Time: " + (elapsed_time - init_time));
+			ps.println("Improvement: " + (finalQuality - initialQuality));
+			ps.println("Best solution quality: " + solutionQuality);
+			ps.println("Elapsed Time: " + (elapsedTime - initTime));
 
 		}
 
