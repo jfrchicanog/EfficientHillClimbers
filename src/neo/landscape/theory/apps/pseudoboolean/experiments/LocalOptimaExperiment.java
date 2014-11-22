@@ -44,10 +44,18 @@ public class LocalOptimaExperiment implements Process {
 	private PrintWriter gpProgram;
 	private Set<Integer> appearedEdges;
 
-	private int[] loHistogram;
+	private int[] localOptimaHistogram;
 
 	private NKLandscapes pbf;
 	private int r;
+    private RBallEfficientHillClimberSnapshot rball;
+    private long initTime;
+    private long finalTime;
+    private int max_app;
+    private int max_interactions;
+    private long timeAfterCrossover;
+    private RBallEfficientHillClimberForInstanceOf rballfio;
+    private long seed;
 
 	public LocalOptimaExperiment() {
 		localOptima = new ArrayList<PBSolution>();
@@ -93,14 +101,54 @@ public class LocalOptimaExperiment implements Process {
 		String q = args[2];
 		String circular = args[3];
 		r = Integer.parseInt(args[4]);
-		long seed = 0;
+		seed = 0;
 		if (args.length >= 6) {
 			seed = Long.parseLong(args[5]);
 		} else {
 			seed = Seeds.getSeed();
 		}
 
-		pbf = new NKLandscapes();
+		prepareEdgesList();
+		
+		createInstance(n, k, q, circular);
+        String file_name = computeFileName(n, k, q, circular);
+        
+		createAndOpenOutputFiles(file_name);
+
+		prepareRBallExplorationAlgorithm();
+
+		localOptima=findLocalOptima();
+		
+		localOptimaHistogram = createLocalOptimaHistogram(localOptima);
+		applyPartitionCrossoverToAllPairsOfLocalOptima();
+
+		writeHistogram(localOptimaHistogram);
+		writeGNUPlotProgram(file_name);
+
+		computeVariablesStatistics();
+
+		reportStatistics();
+		reportInstanceToStandardOutput();
+		closeOutputFiles();
+
+	}
+
+    private String computeFileName(String n, String k, String q, String circular) {
+        return "nkq-" + n + "-" + k + "-" + q + "-" + circular
+                + "-" + r + "-" + seed;
+    }
+
+    private void prepareEdgesList() {
+        appearedEdges = new HashSet<Integer>();
+    }
+
+    private int[] createLocalOptimaHistogram(List<PBSolution> localOptima) {
+        localOptimaHistogram = new int[localOptima.size()];
+        return localOptimaHistogram;
+    }
+
+    private void createInstance(String n, String k, String q, String circular) {
+        pbf = new NKLandscapes();
 		Properties prop = new Properties();
 		prop.setProperty(NKLandscapes.N_STRING, n);
 		prop.setProperty(NKLandscapes.K_STRING, k);
@@ -113,9 +161,73 @@ public class LocalOptimaExperiment implements Process {
 			prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
 		}
 
-		String file_name = "nkq-" + n + "-" + k + "-" + q + "-" + circular
-				+ "-" + r + "-" + seed;
-		try {
+		pbf.setSeed(seed);
+        pbf.setConfiguration(prop);
+    }
+
+    private void prepareRBallExplorationAlgorithm() {
+        rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
+				r).initialize(pbf);
+		PBSolution pbs = pbf.getRandomSolution();
+
+		rball = rballfio.initialize(pbs);
+		rball.setSeed(seed);
+    }
+
+    private void reportInstanceToStandardOutput() {
+        pbf.writeTo(new OutputStreamWriter(System.out));
+    }
+
+    private void closeOutputFiles() {
+        nodesFile.close();
+		edgesFile.close();
+		histogramFile.close();
+		gpProgram.close();
+    }
+
+    private void reportStatistics() {
+        System.out.println("Problem init time: "
+				+ rballfio.getProblemInitTime());
+		System.out
+				.println("Solution init time: " + rball.getSolutionInitTime());
+		System.out.println("Move time: " + (finalTime - initTime));
+		System.out.println("Move+crossover time: " + (timeAfterCrossover - initTime));
+		System.out.println("Stored scores:" + rballfio.getStoredScores());
+		System.out.println("Var appearance (max):" + max_app);
+		System.out.println("Var interaction (max):" + max_interactions);
+    }
+
+    private void applyPartitionCrossoverToAllPairsOfLocalOptima() {
+        PartitionCrossover px = new PartitionCrossover(pbf);
+		px.setSeed(seed);
+
+		PBSolution[] los = localOptima.toArray(new PBSolution[0]);
+		for (int i = 0; i < los.length; i++) {
+			for (int j = i + 1; j < los.length; j++) {
+				PBSolution res = px.recombine(los[i], los[j]);
+				notifyCrossover(i, j, res);
+			}
+		}
+
+		timeAfterCrossover = System.currentTimeMillis();
+    }
+
+    private void computeVariablesStatistics() {
+        max_app = 0;
+		max_interactions = 0;
+		for (int i = 0; i < pbf.getN(); i++) {
+			if (pbf.getAppearsIn()[i].length > max_app) {
+				max_app = pbf.getAppearsIn()[i].length;
+			}
+
+			if (pbf.getInteractions()[i].length > max_interactions) {
+				max_interactions = pbf.getInteractions()[i].length;
+			}
+		}
+    }
+
+    private void createAndOpenOutputFiles(String file_name) {
+        try {
 			nodesFile = new PrintWriter(new FileOutputStream(file_name
 					+ ".nodes"));
 			nodesFile.println("FITNESS");
@@ -127,85 +239,28 @@ public class LocalOptimaExperiment implements Process {
 		} catch (FileNotFoundException e) {
 			throw new RuntimeException("I cannot open the output files");
 		}
+    }
 
-		appearedEdges = new HashSet<Integer>();
-
-		pbf.setSeed(seed);
-		pbf.setConfiguration(prop);
-
-		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
-				r).initialize(pbf);
-		PBSolution pbs = pbf.getRandomSolution();
-
-		RBallEfficientHillClimberSnapshot rball = rballfio.initialize(pbs);
-		rball.setSeed(seed);
-
-		int n_int = pbf.getN();
-
-		long init_time = System.currentTimeMillis();
+    private List<PBSolution> findLocalOptima() {
+        initTime = System.currentTimeMillis();
 
 		notifyLocalOptima(rball, pbf);
-		for (int bit : new GrayCodeBitFlipIterable(n_int)) {
+		for (int bit : new GrayCodeBitFlipIterable(pbf.getN())) {
 			rball.moveOneBit(bit);
 			notifyLocalOptima(rball, pbf);
 		}
 
-		long final_time = System.currentTimeMillis();
+		finalTime = System.currentTimeMillis();
+		
+		return localOptima;
+    }
 
-		loHistogram = new int[localOptima.size()];
-		// Applying PX to all the pair of LO
-		PartitionCrossover px = new PartitionCrossover(pbf);
-		px.setSeed(seed);
-
-		PBSolution[] los = localOptima.toArray(new PBSolution[0]);
-		for (int i = 0; i < los.length; i++) {
-			for (int j = i + 1; j < los.length; j++) {
-				PBSolution res = px.recombine(los[i], los[j]);
-				notifyCrossover(i, j, res);
-			}
-		}
-
-		long crossover = System.currentTimeMillis();
-
-		writeHistogram();
-		writeGNUPlotProgram(file_name);
-
-		int max_app = 0;
-		int max_interactions = 0;
-		for (int i = 0; i < n_int; i++) {
-			if (pbf.getAppearsIn()[i].length > max_app) {
-				max_app = pbf.getAppearsIn()[i].length;
-			}
-
-			if (pbf.getInteractions()[i].length > max_interactions) {
-				max_interactions = pbf.getInteractions()[i].length;
-			}
-		}
-
-		System.out.println("Problem init time: "
-				+ rballfio.getProblemInitTime());
-		System.out
-				.println("Solution init time: " + rball.getSolutionInitTime());
-		System.out.println("Move time: " + (final_time - init_time));
-		System.out.println("Move+crossover time: " + (crossover - init_time));
-		System.out.println("Stored scores:" + rballfio.getStoredScores());
-		System.out.println("Var appearance (max):" + max_app);
-		System.out.println("Var interaction (max):" + max_interactions);
-
-		pbf.writeTo(new OutputStreamWriter(System.out));
-		nodesFile.close();
-		edgesFile.close();
-		histogramFile.close();
-		gpProgram.close();
-
-	}
-
-	private void writeHistogram() {
+	private void writeHistogram(int[] localOptimaHistogram) {
 
 		List<SolutionFrequency> aux = new ArrayList<SolutionFrequency>();
 		int index = 0;
 		for (PBSolution sol : localOptima) {
-			aux.add(new SolutionFrequency(sol, loHistogram[index++]));
+			aux.add(new SolutionFrequency(sol, localOptimaHistogram[index++]));
 		}
 
 		Collections.sort(aux, new Comparator<SolutionFrequency>() {
@@ -237,15 +292,15 @@ public class LocalOptimaExperiment implements Process {
 		return "" + (i + 1);
 	}
 
-	private int edgeID(int i, int j) {
-		return localOptima.size() * i + j;
+	private int edgeID(int i, int j, int kind) {
+		return ((localOptima.size() * i + j)<< 1) + (kind-1);
 	}
 
-	private void notifyEdge(int i, int j) {
-		int eid = edgeID(i, j);
+	private void notifyEdge(int i, int j, int kind) {
+		int eid = edgeID(i, j, kind);
 		if (!appearedEdges.contains(eid)) {
 			appearedEdges.add(eid);
-			edgesFile.println(wI(i) + " " + wI(j) + " 1");
+			edgesFile.println(wI(i) + " " + wI(j) + " "+kind);
 		}
 	}
 
@@ -257,12 +312,14 @@ public class LocalOptimaExperiment implements Process {
 					+ localOptima.get(j) + "(" + wI(j) + ") -> " + res
 					+ (index < 0 ? "" : "(" + wI(index) + ")"));
 
+			int kind=1;
 			if (index < 0) {
 				res = climbToLocalOptima(res);
 				index = localOptima.indexOf(res);
-
+				kind=2;
 				if (index >= 0) {
 					System.out.print(" -> " + res + "(" + wI(index) + ")");
+					
 				} else {
 					System.out.print("Local Optima not found after climbing");
 				}
@@ -271,10 +328,10 @@ public class LocalOptimaExperiment implements Process {
 			System.out.println();
 
 			if (index >= 0) {
-				notifyEdge(i, index);
-				notifyEdge(j, index);
+				notifyEdge(i, index, kind);
+				notifyEdge(j, index, kind);
 
-				loHistogram[index]++;
+				localOptimaHistogram[index]++;
 			}
 
 		}
