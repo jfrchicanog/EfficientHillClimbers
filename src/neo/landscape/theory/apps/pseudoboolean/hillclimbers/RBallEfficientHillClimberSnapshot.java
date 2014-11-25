@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Random;
 
 import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 import neo.landscape.theory.apps.util.DoubleLinkedList;
 import neo.landscape.theory.apps.util.DoubleLinkedList.Entry;

@@ -6,6 +6,8 @@ import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod.SolutionQuality;
+import neo.landscape.theory.apps.pseudoboolean.exactsolvers.NKLandscapesCircularDynProgBigDecimal;
+import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 
 import org.junit.Test;
 

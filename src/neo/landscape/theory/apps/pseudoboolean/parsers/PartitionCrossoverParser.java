@@ -15,11 +15,11 @@ import java.util.zip.GZIPInputStream;
 
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod.SolutionQuality;
-import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.NKLandscapesCircularDynProg;
-import neo.landscape.theory.apps.pseudoboolean.Process;
+import neo.landscape.theory.apps.pseudoboolean.exactsolvers.NKLandscapesCircularDynProg;
+import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.util.AveragedSample;
 import neo.landscape.theory.apps.pseudoboolean.util.Sample;
+import neo.landscape.theory.apps.util.Process;
 
 public class PartitionCrossoverParser implements Process {
 

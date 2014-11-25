@@ -2,11 +2,11 @@ package neo.landscape.theory.apps.pseudoboolean.experiments;
 
 import java.util.Properties;
 
-import neo.landscape.theory.apps.pseudoboolean.Process;
-import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
+import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class TimeExperiment implements Process {

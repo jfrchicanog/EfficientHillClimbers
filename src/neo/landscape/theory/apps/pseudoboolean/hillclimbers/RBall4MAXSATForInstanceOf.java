@@ -1,6 +1,8 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 
 public class RBall4MAXSATForInstanceOf extends
 		RBallEfficientHillClimberForInstanceOf {

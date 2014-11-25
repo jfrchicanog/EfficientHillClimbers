@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-import neo.landscape.theory.apps.pseudoboolean.Process;
+import neo.landscape.theory.apps.util.Process;
 
 public class RBallQualityResultsParser implements Process {
 

@@ -15,8 +15,6 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import neo.landscape.theory.apps.pseudoboolean.Process;
-
 public class ClassesDiscovery {
 
 	/**

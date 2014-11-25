@@ -1,6 +1,8 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.exactsolvers;
 
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.PseudoBooleanFunction;
 
 public class CompleteEnumeration<P extends PseudoBooleanFunction> implements
 		ExactSolutionMethod<PseudoBooleanFunction> {

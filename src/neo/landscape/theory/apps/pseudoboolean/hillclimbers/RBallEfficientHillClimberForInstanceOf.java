@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +13,8 @@ import neo.landscape.theory.apps.efficienthc.HillClimber;
 import neo.landscape.theory.apps.efficienthc.HillClimberForInstanceOf;
 import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
 import neo.landscape.theory.apps.efficienthc.Solution;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfSetOfVars;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 import neo.landscape.theory.apps.util.DoubleLinkedList;

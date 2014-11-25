@@ -3,6 +3,10 @@ package neo.landscape.theory.apps.pseudoboolean;
 import java.util.Arrays;
 import java.util.Properties;
 
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
+
 public class Driver {
 
 	/**

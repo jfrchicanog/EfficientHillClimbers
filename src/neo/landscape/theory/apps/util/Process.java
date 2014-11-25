@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.util;
 
 public interface Process {
 

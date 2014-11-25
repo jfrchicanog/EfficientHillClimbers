@@ -1,10 +1,11 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.Properties;
 import java.util.Random;
 
 import neo.landscape.theory.apps.efficienthc.HillClimber;
 import neo.landscape.theory.apps.efficienthc.HillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class RBallEfficientHillClimber implements

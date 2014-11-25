@@ -1,10 +1,11 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot.SubfunctionChangeListener;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot.SubfunctionChangeListener;
 
 public class RBall4MAXSATSnapshot extends RBallEfficientHillClimberSnapshot
 		implements SubfunctionChangeListener {

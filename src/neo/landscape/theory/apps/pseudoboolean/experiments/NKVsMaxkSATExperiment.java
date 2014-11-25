@@ -10,13 +10,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
 
-import neo.landscape.theory.apps.pseudoboolean.Process;
-import neo.landscape.theory.apps.pseudoboolean.MAXkSAT;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.RBall4MAXSAT;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInstanceOf;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBall4MAXSAT;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.problems.MAXkSAT;
+import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class NKVsMaxkSATExperiment implements Process {

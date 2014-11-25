@@ -1,6 +1,8 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.Properties;
+
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 
 public class RBall4MAXSAT extends RBallEfficientHillClimber {
 

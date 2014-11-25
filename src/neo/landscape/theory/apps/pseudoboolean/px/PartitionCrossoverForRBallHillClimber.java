@@ -1,8 +1,8 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
-import neo.landscape.theory.apps.pseudoboolean.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 
 public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover {
 

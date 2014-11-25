@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -13,6 +13,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 
 public class MAXSAT extends EmbeddedLandscape {
 

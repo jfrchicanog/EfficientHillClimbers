@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class NKLandscapes extends EmbeddedLandscape implements
@@ -21,7 +22,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 
 	private double[][] subfunctions;
 	private int q;
-	private boolean circular;
+	private boolean adjacent;
 	protected int k;
 
 	@Override
@@ -43,10 +44,10 @@ public class NKLandscapes extends EmbeddedLandscape implements
 			}
 		}
 
-		circular = false;
+		adjacent = false;
 		if (prop.getProperty(CIRCULAR_STRING) != null) {
 			if (prop.getProperty(CIRCULAR_STRING).equals("yes")) {
-				circular = true;
+				adjacent = true;
 			}
 		}
 
@@ -55,7 +56,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 
 		// Initialize masks and subfunctions
 
-		if (circular) {
+		if (adjacent) {
 			initializeMasksCircular();
 		} else {
 			initializaMasksNonCircular();
@@ -237,7 +238,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 	}
 
 	public boolean isCircular() {
-		return circular;
+		return adjacent;
 	}
 
 	public double[][] getSubFunctions() {

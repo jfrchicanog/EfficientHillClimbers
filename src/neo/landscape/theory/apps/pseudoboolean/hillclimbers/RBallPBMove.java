@@ -1,10 +1,12 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 import neo.landscape.theory.apps.efficienthc.Move;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.PseudoBooleanFunction;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
 public class RBallPBMove implements Move<PseudoBooleanFunction, PBSolution> {

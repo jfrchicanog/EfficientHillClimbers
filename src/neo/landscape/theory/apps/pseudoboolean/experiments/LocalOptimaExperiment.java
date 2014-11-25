@@ -12,14 +12,14 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-import neo.landscape.theory.apps.pseudoboolean.Process;
-import neo.landscape.theory.apps.pseudoboolean.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimber;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberForInstanceOf;
-import neo.landscape.theory.apps.pseudoboolean.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossover;
 import neo.landscape.theory.apps.util.GrayCodeBitFlipIterable;
+import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class LocalOptimaExperiment implements Process {

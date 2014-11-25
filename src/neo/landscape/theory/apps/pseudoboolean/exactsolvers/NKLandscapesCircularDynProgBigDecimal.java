@@ -1,8 +1,10 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.exactsolvers;
 
 import java.math.BigDecimal;
 
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 
 public class NKLandscapesCircularDynProgBigDecimal implements
 		ExactSolutionMethod<NKLandscapes> {

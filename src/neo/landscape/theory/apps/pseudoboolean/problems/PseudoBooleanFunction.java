@@ -1,10 +1,11 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import java.math.BigDecimal;
 import java.util.Random;
 
 import neo.landscape.theory.apps.efficienthc.Problem;
 import neo.landscape.theory.apps.efficienthc.Solution;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 
 public abstract class PseudoBooleanFunction implements Problem {
 

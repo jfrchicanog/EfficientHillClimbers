@@ -3,6 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean;
 import java.util.Arrays;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
+import neo.landscape.theory.apps.pseudoboolean.problems.PseudoBooleanFunction;
 
 public class PBSolution implements Solution<PseudoBooleanFunction> {
 

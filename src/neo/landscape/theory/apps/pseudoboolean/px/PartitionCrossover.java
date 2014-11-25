@@ -8,8 +8,8 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 
-import neo.landscape.theory.apps.pseudoboolean.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;

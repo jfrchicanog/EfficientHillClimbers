@@ -1,9 +1,11 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.exactsolvers;
 
 import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod.SolutionQuality;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class ExactSolutionNK {

@@ -1,12 +1,10 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.util;
 
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import neo.landscape.theory.apps.util.ClassesDiscovery;
 
 public class ProcessManager {
 

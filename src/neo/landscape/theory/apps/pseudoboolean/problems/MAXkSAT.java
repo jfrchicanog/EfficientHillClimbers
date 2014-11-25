@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.util.Properties;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 
 public class MAXkSAT extends MAXSAT implements KBoundedEpistasisPBF {
 

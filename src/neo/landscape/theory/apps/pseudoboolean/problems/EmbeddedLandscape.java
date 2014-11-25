@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean;
+package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -8,6 +8,7 @@ import java.util.Set;
 
 import neo.landscape.theory.apps.efficienthc.Problem;
 import neo.landscape.theory.apps.efficienthc.Solution;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 
 /**
  * This class represents a Pseudo-Boolean Function. It contains m subfunctions.

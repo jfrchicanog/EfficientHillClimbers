@@ -16,10 +16,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-import neo.landscape.theory.apps.pseudoboolean.Process;
 import neo.landscape.theory.apps.pseudoboolean.util.Sample;
 import neo.landscape.theory.apps.pseudoboolean.util.StringFilter;
 import neo.landscape.theory.apps.pseudoboolean.util.TabularData;
+import neo.landscape.theory.apps.util.Process;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
