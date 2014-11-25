@@ -1,1 +1,7 @@
 /target/
+/.DS_Store
+/results.aux
+/results.cvs
+/results.log
+/results.pdf
+/results.tex
