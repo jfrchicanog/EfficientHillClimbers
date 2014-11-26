@@ -20,9 +20,9 @@ public class NKLandscapes extends EmbeddedLandscape implements
 	public static final String CIRCULAR_STRING = "circular";
 	public static final String FORCE_NK = ".";
 
-	private double[][] subfunctions;
-	private int q;
-	private boolean adjacent;
+	protected double[][] subFunctions;
+    protected int q;
+	protected boolean adjacent;
 	protected int k;
 
 	@Override
@@ -51,7 +51,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 			}
 		}
 
-		subfunctions = new double[m][twoToK];
+		subFunctions = new double[m][twoToK];
 		masks = new int[m][k];
 
 		// Initialize masks and subfunctions
@@ -70,7 +70,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 		int twoToK = 1 << k;
 		for (int sf = 0; sf < m; sf++) {
 			for (int i = 0; i < twoToK; i++) {
-				subfunctions[sf][i] = ((q > 0) ? rnd.nextInt(q) : rnd
+				subFunctions[sf][i] = ((q > 0) ? rnd.nextInt(q) : rnd
 						.nextDouble());
 			}
 		}
@@ -128,7 +128,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 
 		PBSolution pbs = (PBSolution) sol;
 
-		if (subfunctions == null) {
+		if (subFunctions == null) {
 			throw new IllegalStateException(
 					"The NK-landscape has not been configured");
 		}
@@ -140,7 +140,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 			for (int i = k - 1; i >= 0; i--) {
 				index = (index << 1) + pbs.getBit(masks[sf][i]);
 			}
-			res += subfunctions[sf][index];
+			res += subFunctions[sf][index];
 		}
 
 		return res;
@@ -149,7 +149,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 	public BigDecimal evaluateArbitraryPrecision(Solution sol) {
 		PBSolution pbs = (PBSolution) sol;
 
-		if (subfunctions == null) {
+		if (subFunctions == null) {
 			throw new IllegalStateException(
 					"The NK-landscape has not been configured");
 		}
@@ -161,7 +161,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 			for (int i = k - 1; i >= 0; i--) {
 				index = (index << 1) + pbs.getBit(masks[sf][i]);
 			}
-			res = res.add(new BigDecimal(subfunctions[sf][index]));
+			res = res.add(new BigDecimal(subFunctions[sf][index]));
 		}
 
 		return res;
@@ -169,7 +169,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 
 	@Override
 	public double evaluateSubfunction(int sf, PBSolution pbs) {
-		if (subfunctions == null) {
+		if (subFunctions == null) {
 			throw new IllegalStateException(
 					"The NK-landscape has not been configured");
 		}
@@ -179,7 +179,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 			index = (index << 1) + pbs.getBit(i);
 		}
 
-		return subfunctions[sf][index];
+		return subFunctions[sf][index];
 	}
 
 	public static void showHelp() {
@@ -241,8 +241,8 @@ public class NKLandscapes extends EmbeddedLandscape implements
 		return adjacent;
 	}
 
-	public double[][] getSubFunctions() {
-		return subfunctions;
+    public double[][] getSubFunctions() {
+		return subFunctions;
 	}
 
 	public int getK() {
@@ -270,8 +270,8 @@ public class NKLandscapes extends EmbeddedLandscape implements
 			pw.println();
 
 			// Write the subfunction values
-			for (int j = 0; j < subfunctions[i].length; j++) {
-				pw.print(subfunctions[i][j] + " ");
+			for (int j = 0; j < subFunctions[i].length; j++) {
+				pw.print(subFunctions[i][j] + " ");
 			}
 			pw.println();
 		}

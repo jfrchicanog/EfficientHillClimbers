@@ -20,6 +20,10 @@ public class NKLandscapesCircularDynProgBigDecimal implements
 	@Override
 	public SolutionQuality<NKLandscapes> solveProblem(NKLandscapes problem) {
 
+	    if (!problem.isCircular()) {
+            throw new IllegalArgumentException("The instance is not circular");
+        }
+	    
 		this.problem = problem;
 		K = problem.getK() - 1;
 
@@ -176,7 +180,7 @@ public class NKLandscapesCircularDynProgBigDecimal implements
 		// Warning: potential lack of precision
 		sol.quality = max.doubleValue();
 		// Should be better to log the values, instead of writing it to stdout
-		// System.out.println("Arbitrary precision optimal value: "+max);
+		System.out.println("Arbitrary precision optimal value: "+max);
 		// Build the solution
 
 		int pos = 0;

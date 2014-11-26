@@ -18,6 +18,10 @@ public class NKLandscapesCircularDynProg implements
 	@Override
 	public SolutionQuality<NKLandscapes> solveProblem(NKLandscapes problem) {
 
+	    if (!problem.isCircular()) {
+	        throw new IllegalArgumentException("The instance is not circular");
+	    }
+	    
 		this.problem = problem;
 		K = problem.getK() - 1;
 
