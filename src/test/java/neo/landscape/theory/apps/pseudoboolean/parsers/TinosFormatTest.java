@@ -13,6 +13,7 @@ import neo.landscape.theory.apps.pseudoboolean.exactsolvers.NKLandscapesCircular
 import neo.landscape.theory.apps.pseudoboolean.exactsolvers.NKLandscapesCircularDynProgBigDecimal;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TinosFormatTest {
@@ -36,6 +37,7 @@ public class TinosFormatTest {
     }
     
     @Test
+    @Ignore
     public void testCompleteEnumerationBigDecimal() {
         testWithProvidedSolverMethod(new CompleteEnumerationBigDecimal<NKLandscapes>());
     }

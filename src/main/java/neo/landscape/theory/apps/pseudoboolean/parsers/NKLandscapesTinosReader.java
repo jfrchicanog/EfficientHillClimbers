@@ -78,6 +78,28 @@ public class NKLandscapesTinosReader extends NKLandscapesAbstractReader{
         }
     }
     
+    private void tryToFixAdjacency() {
+        if (instance.isCircular()) {
+            return;
+        }
+        
+        for (int subfunction=0; subfunction < instance.getM(); subfunction++) {
+            tryToFixAdjacency(subfunction);
+            if (!isAdjacentSubfunction(subfunction)) {
+                return;
+            }
+        }
+        instance.setCircular(isAdjacentModel());
+    }
+
+    private void tryToFixAdjacency(int subfunction) {
+        int rotation = findRotationOfMask(instance.getMasks()[subfunction]);
+        if (rotation > 0) {
+            rotateVariablesForSubfunction(subfunction, rotation); 
+        }
+        
+    }
+    
     private boolean isAdjacentModel() {
         // This is a very simple test that is not valid for all the cases, but it is
         // for the ones we are interested now (Renato's instances)
@@ -94,28 +116,6 @@ public class NKLandscapesTinosReader extends NKLandscapesAbstractReader{
     private boolean subfunctionPlusMaskIndexIsCongruentWithTheVariable(int subfunction,
             int maskIndex) {
         return ((subfunction+maskIndex)%instance.getN()) == instance.getMasks(subfunction,maskIndex);
-    }
-    
-    private void tryToFixAdjacency() {
-        if (instance.isCircular()) {
-            return;
-        }
-        
-        for (int subfunction=0; subfunction < instance.getM(); subfunction++) {
-            tryToFixAdjacency(subfunction);
-            if (!isAdjacentSubfunction(subfunction)) {
-                return;
-            }
-        }
-        instance.setCircular(true);
-    }
-
-    private void tryToFixAdjacency(int subfunction) {
-        int rotation = findRotationOfMask(instance.getMasks()[subfunction]);
-        if (rotation > 0) {
-            rotateVariablesForSubfunction(subfunction, rotation); 
-        }
-        
     }
 
     private boolean isAdjacentSubfunction(int subfunction) {

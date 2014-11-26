@@ -180,7 +180,7 @@ public class NKLandscapesCircularDynProgBigDecimal implements
 		// Warning: potential lack of precision
 		sol.quality = max.doubleValue();
 		// Should be better to log the values, instead of writing it to stdout
-		System.out.println("Arbitrary precision optimal value: "+max);
+		//System.out.println("Arbitrary precision optimal value: "+max);
 		// Build the solution
 
 		int pos = 0;

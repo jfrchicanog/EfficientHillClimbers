@@ -35,7 +35,7 @@ public class CompleteEnumerationBigDecimal<P extends PseudoBooleanFunction>
 		}
 		s.quality = max.doubleValue();
 
-		System.out.println("Arbitrary precision optimal value: " + max);
+		//System.out.println("Arbitrary precision optimal value: " + max);
 
 		return s;
 	}
