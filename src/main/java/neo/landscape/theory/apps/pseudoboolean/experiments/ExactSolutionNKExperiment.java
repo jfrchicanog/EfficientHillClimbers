@@ -31,7 +31,7 @@ public class ExactSolutionNKExperiment implements Process {
     @Override
     public String getInvocationInfo() {
         return "Arguments: " + getID() 
-                + " (enum|enumbd|dynp|dynpbd) (<n> <k> <q> [<seed>] | <file (in Tinos format)>) /* instances must follow the adjacent model */";
+                + " (enum|enumbd|dynp|dynpbd) (<n> <k> <q> <c> [<seed>] | <file (in Tinos format)>) /* instances must follow the adjacent model */";
     }
 
     @Override
@@ -97,18 +97,23 @@ public class ExactSolutionNKExperiment implements Process {
         String n = instanceParameters[0];
         String k = instanceParameters[1];
         String q = instanceParameters[2];
+        String circular = instanceParameters[3];
         long seed = 0;
-        if (instanceParameters.length >= 4) {
-            seed = Long.parseLong(instanceParameters[3]);
+        if (instanceParameters.length >= 5) {
+            seed = Long.parseLong(instanceParameters[4]);
         } else {
             seed = Seeds.getSeed();
+        }
+        
+        if (circular.equals("y")) {
+            circular = "yes";
         }
 
         NKLandscapes pbf = new NKLandscapes();
         Properties prop = new Properties();
         prop.setProperty(NKLandscapes.N_STRING, n);
         prop.setProperty(NKLandscapes.K_STRING, k);
-        prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
+        prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular);
         if (!q.equals("-")) {
             prop.setProperty(NKLandscapes.Q_STRING, q);
         }

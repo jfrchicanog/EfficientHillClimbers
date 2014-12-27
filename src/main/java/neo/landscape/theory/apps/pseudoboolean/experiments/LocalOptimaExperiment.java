@@ -25,14 +25,14 @@ import neo.landscape.theory.apps.util.Seeds;
 public class LocalOptimaExperiment implements Process {
 
 	private class SolutionFrequency {
-		public PBSolution sol;
-		public double val;
+		public PBSolution solution;
+		public double fitness;
 		public int frequency;
 
 		public SolutionFrequency(PBSolution s, int freq) {
-			this.sol = s;
+			this.solution = s;
 			this.frequency = freq;
-			val = pbf.evaluate(sol);
+			fitness = pbf.evaluate(solution);
 		}
 
 	}
@@ -266,12 +266,12 @@ public class LocalOptimaExperiment implements Process {
 		Collections.sort(aux, new Comparator<SolutionFrequency>() {
 			@Override
 			public int compare(SolutionFrequency o1, SolutionFrequency o2) {
-				return -Double.compare(o1.val, o2.val);
+				return -Double.compare(o1.fitness, o2.fitness);
 			}
 		});
 
 		for (SolutionFrequency sf : aux) {
-			histogramFile.println(sf.val + " " + sf.frequency);
+			histogramFile.println(sf.fitness + " " + sf.frequency);
 		}
 
 	}
