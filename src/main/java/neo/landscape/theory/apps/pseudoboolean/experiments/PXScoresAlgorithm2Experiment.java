@@ -22,6 +22,108 @@ import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class PXScoresAlgorithm2Experiment implements Process {
+    
+    private class ScatterSearchLikeStrategy implements SearchStrategy {
+
+        @Override
+        public void search() {
+
+            List<RBallEfficientHillClimberSnapshot> auxiliarPopulation = new ArrayList<RBallEfficientHillClimberSnapshot>();
+
+            while (timeAvailable()) {
+
+                do {
+                    auxiliarPopulation.clear();
+
+                    for (int i=0; i < population.size(); i++){
+                        for (int j=i+1; j < population.size(); j++) {
+                            RBallEfficientHillClimberSnapshot child = px.recombine(population.get(i), population.get(j));
+                            if (child != null) {
+                                hillClimb(child);
+                                notifyExploredSolution(child);
+                                auxiliarPopulation.add(child);
+                            }
+                            if (!timeAvailable()) break;
+                        }
+                    }
+
+                    population.addAll(auxiliarPopulation);
+                    population.sort(comparator);
+                    population.subList(populationSize, population.size()).clear();
+
+
+                } while (!auxiliarPopulation.isEmpty());
+
+                population.subList(populationSize/2, population.size()).clear();
+
+                ps.println("Re-initializing half of population");
+                
+                while (population.size() < populationSize) {
+                    RBallEfficientHillClimberSnapshot newSolution = createGenerationZeroSolution(rballfio);
+                    notifyExploredSolution(newSolution);
+
+                    if (!timeAvailable()) break;
+                }
+
+            }
+
+        }
+        
+        @Override
+        public String description() {
+            return "Scatter Search strategy";
+        }
+
+    }
+
+    private interface SearchStrategy {
+        public void search();
+        public String description();
+    }
+    
+    private class NewWithPopulationSearchStrategy implements SearchStrategy { 
+        /* (non-Javadoc)
+         * @see neo.landscape.theory.apps.pseudoboolean.experiments.SearchStrategy#search()
+         */
+        @Override
+        public void search() {
+            while (timeAvailable()) {
+
+                // Create a generation-0 solution
+                RBallEfficientHillClimberSnapshot newSolution = createGenerationZeroSolution(rballfio);
+                notifyExploredSolution(newSolution);
+
+                if (!timeAvailable()) break;
+                
+                // Apply PX over all the other solutions in the population
+                
+                List<RBallEfficientHillClimberSnapshot> auxiliarPopulation = new ArrayList<RBallEfficientHillClimberSnapshot>();
+                for (RBallEfficientHillClimberSnapshot solution: population) {
+                    RBallEfficientHillClimberSnapshot result = px.recombine(solution, newSolution);
+
+                    if (result != null) {
+                        hillClimb(result);
+                        notifyExploredSolution(result);
+                        auxiliarPopulation.add(result);
+                    }
+                    if (!timeAvailable()) break;
+                }
+                
+                population.addAll(auxiliarPopulation);
+                population.sort(comparator);        
+                population.subList(populationSize, population.size()).clear();
+                
+            }
+        }
+
+        @Override
+        public String description() {
+            return "New with Population Search Strategy";
+        }
+    
+    }
+    
+    
 
 	private long seed;
 	private long initTime;
@@ -35,6 +137,11 @@ public class PXScoresAlgorithm2Experiment implements Process {
     private String k;
     private String q;
     private String circular;
+    private RBallEfficientHillClimberForInstanceOf rballfio;
+    private PartitionCrossoverForRBallHillClimber px;
+    private List<RBallEfficientHillClimberSnapshot> population;
+    private Comparator<RBallEfficientHillClimberSnapshot> comparator;
+    private SearchStrategy searchStrategy;
 
 	@Override
 	public String getDescription() {
@@ -51,7 +158,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
 	public String getInvocationInfo() {
 		return "Arguments: "
 				+ getID()
-				+ " <n> <k> <q> <circular> <r> <population size> <time(s)> [<seed>]";
+				+ " <n> <k> <q> <circular> <r> (new (with population)|ss (scatter search)) <population size> <time(s)> [<seed>]";
 	}
 
 	@Override
@@ -66,20 +173,22 @@ public class PXScoresAlgorithm2Experiment implements Process {
 		initializeOutput();
 		writeHeader();
 		runAlgorithm();	
+		writeFooter();
+		
 		printOutput();
 
 	}
 
     private void runAlgorithm() {
         NKLandscapes pbf = getProblemInstance();
-		RBallEfficientHillClimberForInstanceOf rballfio = getHillClimber(pbf);
-		PartitionCrossoverForRBallHillClimber px = getCrossover(pbf);
+		rballfio = getHillClimber(pbf);
+		px = getCrossover(pbf);
 		
 	    bestSoFar = -Double.MAX_VALUE;
 		initTime = System.currentTimeMillis();
 
-		List<RBallEfficientHillClimberSnapshot> population = initializePopulation(rballfio);
-		Comparator<RBallEfficientHillClimberSnapshot> comparator = new Comparator<RBallEfficientHillClimberSnapshot>() {
+		population = initializePopulation(rballfio);
+		comparator = new Comparator<RBallEfficientHillClimberSnapshot>() {
             @Override
             public int compare(RBallEfficientHillClimberSnapshot o1,
                     RBallEfficientHillClimberSnapshot o2) {
@@ -88,34 +197,10 @@ public class PXScoresAlgorithm2Experiment implements Process {
     
         };
 				
-		while (timeAvailable()) {
-
-			// Create a generation-0 solution
-		    RBallEfficientHillClimberSnapshot newSolution = createGenerationZeroSolution(rballfio);
-			notifyExploredSolution(newSolution);
-
-			if (!timeAvailable()) break;
-			
-			// Apply PX over all the other solutions in the population
-			
-			List<RBallEfficientHillClimberSnapshot> auxiliarPopulation = new ArrayList<RBallEfficientHillClimberSnapshot>();
-			for (RBallEfficientHillClimberSnapshot solution: population) {
-			    RBallEfficientHillClimberSnapshot result = px.recombine(solution, newSolution);
-
-	            if (result != null) {
-	                hillClimb(result);
-	                notifyExploredSolution(result);
-	                auxiliarPopulation.add(result);
-	            }
-	            if (!timeAvailable()) break;
-			}
-			
-			population.addAll(auxiliarPopulation);
-            population.sort(comparator);        
-            population.subList(populationSize, population.size()).clear();
-			
-		}
+        searchStrategy.search();
     }
+
+    
 
     private boolean timeAvailable() {
         long currentTime = System.currentTimeMillis();
@@ -151,9 +236,15 @@ public class PXScoresAlgorithm2Experiment implements Process {
 		ps.println("Q: " + q);
 		ps.println("Adjacent model?: "
 				+ (circular.equals("y") ? "true" : "false"));
+		ps.println("Search Strategy: " + searchStrategy.description());
 		ps.println("Population size: " + populationSize);
 		ps.println("R: " + r);
 		ps.println("Seed: " + seed);
+    }
+    
+    private void writeFooter() {
+        ps.println("Best so far solution: " + bestSoFar);
+        
     }
 
     private NKLandscapes getProblemInstance() {
@@ -182,14 +273,25 @@ public class PXScoresAlgorithm2Experiment implements Process {
 		circular = args[3];
 
 		r = Integer.parseInt(args[4]);
-		populationSize = Integer.parseInt(args[5]);
-		time = Integer.parseInt(args[6]);
+		searchStrategy = parseSearchStrategy(args[5]);
+		populationSize = Integer.parseInt(args[6]);
+		time = Integer.parseInt(args[7]);
 		seed = 0;
 		if (args.length > 7) {
-			seed = Long.parseLong(args[7]);
+			seed = Long.parseLong(args[8]);
 		} else {
 			seed = Seeds.getSeed();
 		}
+    }
+
+    private SearchStrategy parseSearchStrategy(String strategy) {
+        SearchStrategy searchStrategy=null;
+        if (strategy.equals("new")) {
+		    searchStrategy = new NewWithPopulationSearchStrategy();
+		} else if (strategy.equals("ss")) {
+		    searchStrategy = new ScatterSearchLikeStrategy();
+		}
+        return searchStrategy;
     }
 
 	
