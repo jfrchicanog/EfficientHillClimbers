@@ -151,13 +151,13 @@ public class PartitionCrossoverParser implements Process {
 
 		while ((line = brd.readLine()) != null) {
 
-			if (line.startsWith("So")) {
+			if (line.startsWith("Solution")) {
 				strs = line.split(":");
 				double quality = Double.parseDouble(strs[1].trim());
 				if (write_it = (quality > last.quality)) {
 					last.quality = quality;
 				}
-			} else if (line.charAt(0) == 'E') {
+			} else if (line.startsWith("Elapsed")) {
 				strs = line.split(":");
 				long time = Long.parseLong(strs[1].trim());
 
@@ -169,7 +169,7 @@ public class PartitionCrossoverParser implements Process {
 			} else if (line.charAt(0) == 'N') {
 				strs = line.split(":");
 				n = Integer.parseInt(strs[1].trim());
-			} else if (line.charAt(0) == 'A') {
+			} else if (line.startsWith("Adjacent")) {
 				strs = line.split(":");
 				if (!strs[1].trim().equals("true")) {
 					throw new RuntimeException(
@@ -181,7 +181,7 @@ public class PartitionCrossoverParser implements Process {
 			} else if (line.charAt(0) == 'Q') {
 				strs = line.split(":");
 				q = Integer.parseInt(strs[1].trim());
-			} else if (line.startsWith("Se")) {
+			} else if (line.startsWith("Seed")) {
 				strs = line.split(":");
 				seed = Long.parseLong(strs[1].trim());
 				seedSet = true;

@@ -4,15 +4,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Stack;
+import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
@@ -35,15 +33,14 @@ public class PXScoresAlgorithm2Experiment implements Process {
                 do {
                     auxiliarPopulation.clear();
 
-                    for (int i=0; i < population.size(); i++){
-                        for (int j=i+1; j < population.size(); j++) {
+                    for (int i=0; i < population.size() && timeAvailable(); i++){
+                        for (int j=i+1; j < population.size() && timeAvailable(); j++) {
                             RBallEfficientHillClimberSnapshot child = px.recombine(population.get(i), population.get(j));
                             if (child != null) {
                                 hillClimb(child);
                                 notifyExploredSolution(child);
                                 auxiliarPopulation.add(child);
                             }
-                            if (!timeAvailable()) break;
                         }
                     }
 
@@ -52,8 +49,10 @@ public class PXScoresAlgorithm2Experiment implements Process {
                     population.subList(populationSize, population.size()).clear();
 
 
-                } while (!auxiliarPopulation.isEmpty());
+                } while (!auxiliarPopulation.isEmpty() && timeAvailable());
 
+                if (!timeAvailable()) break;
+                
                 population.subList(populationSize/2, population.size()).clear();
 
                 ps.println("Re-initializing half of population");
@@ -79,6 +78,67 @@ public class PXScoresAlgorithm2Experiment implements Process {
     private interface SearchStrategy {
         public void search();
         public String description();
+    }
+    
+    private class GALikeStrategy implements SearchStrategy {
+        
+        private Random rnd = new Random(seed);
+        private int randomWalkLength;
+
+        @Override
+        public void search() {
+            
+            randomWalkLength = rballfio.getProblem().getN()/4;
+            
+            int [] positions = new int [population.size()];
+            for (int i = 0; i < positions.length; i++) {
+                positions[i]=i;
+            }
+            
+            List<RBallEfficientHillClimberSnapshot> auxiliarPopulation = new ArrayList<RBallEfficientHillClimberSnapshot>();
+
+            while (timeAvailable()) {
+                
+                int indexFirstParent = rnd.nextInt(population.size());
+                int firstParent = positions[indexFirstParent];
+                
+                positions[indexFirstParent] = positions[0];
+                positions[0] = firstParent;
+                
+                int secondParent = positions[rnd.nextInt(population.size()-1)+1];
+
+                RBallEfficientHillClimberSnapshot parent = population.get(firstParent);
+                RBallEfficientHillClimberSnapshot child = px.recombine(parent, population.get(secondParent));
+                
+                if (!timeAvailable()) break;
+                
+                if (child == null) {
+                    PBSolution solution = new PBSolution(parent.getSolution());
+                    child = new RBallEfficientHillClimberSnapshot(parent.getHillClimberForInstanceOf(), solution);
+                    child.softRestart(randomWalkLength);
+                }
+                
+                if (!timeAvailable()) break;
+                
+                hillClimb(child);
+                notifyExploredSolution(child);
+                
+                if (!timeAvailable()) break;
+                
+                population.add(child);
+                population.sort(comparator);
+                population.subList(populationSize, population.size()).clear();
+
+            }
+
+            
+        }
+
+        @Override
+        public String description() {
+            return "GA-like Search Strategy";
+        }
+        
     }
     
     private class NewWithPopulationSearchStrategy implements SearchStrategy { 
@@ -158,7 +218,8 @@ public class PXScoresAlgorithm2Experiment implements Process {
 	public String getInvocationInfo() {
 		return "Arguments: "
 				+ getID()
-				+ " <n> <k> <q> <circular> <r> (new (with population)|ss (scatter search)) <population size> <time(s)> [<seed>]";
+				+ " <n> <k> <q> <circular> <r> (new (with population) | ss (scatter search) "
+				+ "| ga (like) ) <population size> <time(s)> [<seed>]";
 	}
 
 	@Override
@@ -168,6 +229,8 @@ public class PXScoresAlgorithm2Experiment implements Process {
 			return;
 		}
 
+		initializeStatistics();
+		
 		parseArguments(args);
 
 		initializeOutput();
@@ -179,14 +242,19 @@ public class PXScoresAlgorithm2Experiment implements Process {
 
 	}
 
+    private void initializeStatistics() {
+        bestSoFar = -Double.MAX_VALUE;
+        initTime = System.currentTimeMillis();
+    }
+
     private void runAlgorithm() {
         NKLandscapes pbf = getProblemInstance();
 		rballfio = getHillClimber(pbf);
 		px = getCrossover(pbf);
-		
-	    bestSoFar = -Double.MAX_VALUE;
-		initTime = System.currentTimeMillis();
 
+		ps.println("Search starts: "+(System.currentTimeMillis()-initTime));
+		
+		
 		population = initializePopulation(rballfio);
 		comparator = new Comparator<RBallEfficientHillClimberSnapshot>() {
             @Override
@@ -277,7 +345,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
 		populationSize = Integer.parseInt(args[6]);
 		time = Integer.parseInt(args[7]);
 		seed = 0;
-		if (args.length > 7) {
+		if (args.length > 8) {
 			seed = Long.parseLong(args[8]);
 		} else {
 			seed = Seeds.getSeed();
@@ -290,6 +358,8 @@ public class PXScoresAlgorithm2Experiment implements Process {
 		    searchStrategy = new NewWithPopulationSearchStrategy();
 		} else if (strategy.equals("ss")) {
 		    searchStrategy = new ScatterSearchLikeStrategy();
+		} else if (strategy.equals("ga")) {
+		    searchStrategy = new GALikeStrategy();
 		}
         return searchStrategy;
     }
@@ -333,7 +403,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
 		return rball;
 	}
 
-	private void hillClimb(RBallEfficientHillClimberSnapshot rball) {
+	private static void hillClimb(RBallEfficientHillClimberSnapshot rball) {
 		double imp;
 		do {
 			imp = rball.move();
