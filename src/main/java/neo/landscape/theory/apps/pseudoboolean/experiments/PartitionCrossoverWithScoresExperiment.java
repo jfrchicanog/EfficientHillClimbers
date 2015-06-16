@@ -69,6 +69,8 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 			return;
 		}
 
+		initializeStatistics();
+		
 		String n = args[0];
 		String k = args[1];
 		String q = args[2];
@@ -117,11 +119,14 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 				pbf);
 		px.setSeed(seed);
 
-		bestSoFar = -Double.MAX_VALUE;
+		
+		
+		
 		crossoverFailsInGeneration = new HashMap<Integer, Integer>();
 
-		initTime = System.currentTimeMillis();
+		
 		currentTime = System.currentTimeMillis();
+		ps.println("Search starts: "+(currentTime-initTime));
 
 		while ((currentTime - initTime) < time * 1000) {
 			// Create a generation-0 solution
@@ -171,6 +176,11 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 		printOutput();
 
 	}
+
+    private void initializeStatistics() {
+        bestSoFar = -Double.MAX_VALUE;
+		initTime = System.currentTimeMillis();
+    }
 
 	private void writeCrossoverFails() {
 		List<Integer> generations = new ArrayList<Integer>();
