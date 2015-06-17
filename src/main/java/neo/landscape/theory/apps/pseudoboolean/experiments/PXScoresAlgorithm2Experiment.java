@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
@@ -45,7 +46,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
                     }
 
                     population.addAll(auxiliarPopulation);
-                    population.sort(comparator);
+                    Collections.sort(population, comparator);
                     population.subList(populationSize, population.size()).clear();
 
 
@@ -126,7 +127,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
                 if (!timeAvailable()) break;
                 
                 population.add(child);
-                population.sort(comparator);
+                Collections.sort(population,comparator);
                 population.subList(populationSize, population.size()).clear();
 
             }
@@ -170,7 +171,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
                 }
                 
                 population.addAll(auxiliarPopulation);
-                population.sort(comparator);        
+                Collections.sort(population,comparator);
                 population.subList(populationSize, population.size()).clear();
                 
             }
