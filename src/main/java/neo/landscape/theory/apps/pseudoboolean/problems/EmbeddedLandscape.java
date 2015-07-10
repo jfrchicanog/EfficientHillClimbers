@@ -57,6 +57,7 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 	}
 
 	public double evaluateSubFunctionFromCompleteSolution(int sf, PBSolution pbs) {
+	    checkSubSolution();
 		for (int j = 0; j < masks[sf].length; j++) {
 			sub.setBit(j, pbs.getBit(masks[sf][j]));
 		}
@@ -64,7 +65,13 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 		return evaluateSubfunction(sf, sub);
 	}
 
-	protected void prepareStructures() {
+	private void checkSubSolution() {
+        if (sub == null) {
+            sub = new PBSolution(getN());
+        }
+    }
+
+    protected void prepareStructures() {
 		List<Integer>[] aux = new List[n];
 		int max_length = 0;
 
@@ -111,7 +118,7 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 			}
 		}
 
-		sub = new PBSolution(max_length);
+		checkSubSolution();
 	}
 
 	/**
