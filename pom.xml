@@ -56,7 +56,7 @@
 
 		</plugins>
 
-		<finalName>${project.artifactId}-${project.version}-r${timestamp}</finalName>
+		
 
 
 	</build>
