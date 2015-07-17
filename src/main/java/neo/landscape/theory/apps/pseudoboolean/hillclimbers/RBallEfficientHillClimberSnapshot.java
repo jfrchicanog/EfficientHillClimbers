@@ -1,6 +1,7 @@
 package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -599,6 +600,29 @@ public class RBallEfficientHillClimberSnapshot implements
 	@Override
 	public RBallEfficientHillClimberForInstanceOf getHillClimberForInstanceOf() {
 		return rballfio;
+	}
+	
+	public Iterable<RBallPBMove> iterateOverMoves() {
+	    final Iterator<RBallPBMove> iterator = new Iterator<RBallPBMove> () {
+	        int index = 0;
+            @Override
+            public boolean hasNext() {
+                return index < mos.length;
+            }
+
+            @Override
+            public RBallPBMove next() {
+                return mos[index++].v;
+            }
+	        
+	    };
+	    return new Iterable<RBallPBMove> () {
+            @Override
+            public Iterator<RBallPBMove> iterator() {
+                return iterator;
+            }
+	    };
+	    
 	}
 
 }

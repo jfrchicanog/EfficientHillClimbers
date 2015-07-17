@@ -37,7 +37,7 @@ public class LocalOptimaExperiment implements Process {
 
 	}
 
-	private List<PBSolution> localOptima;
+	protected List<PBSolution> localOptima;
 	private PrintWriter nodesFile;
 	private PrintWriter edgesFile;
 	private PrintWriter histogramFile;
@@ -46,16 +46,16 @@ public class LocalOptimaExperiment implements Process {
 
 	private int[] localOptimaHistogram;
 
-	private NKLandscapes pbf;
-	private int r;
-    private RBallEfficientHillClimberSnapshot rball;
+	protected NKLandscapes pbf;
+	protected int r;
+    protected RBallEfficientHillClimberSnapshot rball;
     private long initTime;
     private long finalTime;
     private int max_app;
     private int max_interactions;
     private long timeAfterCrossover;
-    private RBallEfficientHillClimberForInstanceOf rballfio;
-    private long seed;
+    protected RBallEfficientHillClimberForInstanceOf rballfio;
+    protected long seed;
 
 	public LocalOptimaExperiment() {
 		localOptima = new ArrayList<PBSolution>();
@@ -79,15 +79,22 @@ public class LocalOptimaExperiment implements Process {
 
 	private void notifyLocalOptima(RBallEfficientHillClimberSnapshot rball,
 			NKLandscapes pbf) {
-		double imp = rball.getMovement().getImprovement();
-		if (imp <= 0.0) {
-			PBSolution lo = new PBSolution(rball.getSolution());
-			double val = pbf.evaluate(lo);
-			System.out.println(wI(localOptima.size()) + ": " + lo + ": " + val);
-			localOptima.add(lo);
-			nodesFile.println(val);
+		if (checkLocalOptima(rball)) {
+			addLocalOptima(rball, pbf);
 		}
 	}
+
+    protected void addLocalOptima(RBallEfficientHillClimberSnapshot rball, NKLandscapes pbf) {
+        PBSolution lo = new PBSolution(rball.getSolution());
+        double val = pbf.evaluate(lo);
+        System.out.println(wI(localOptima.size()) + ": " + lo + ": " + val);
+        localOptima.add(lo);
+        nodesFile.println(val);
+    }
+
+    private boolean checkLocalOptima(RBallEfficientHillClimberSnapshot rball) {
+        return rball.getMovement().getImprovement() <= 0.0;
+    }
 
 	@Override
 	public void execute(String[] args) {
@@ -117,8 +124,8 @@ public class LocalOptimaExperiment implements Process {
 
 		prepareRBallExplorationAlgorithm();
 
-		localOptima=findLocalOptima();
-		
+		localOptima = findLocalOptima();
+
 		localOptimaHistogram = createLocalOptimaHistogram(localOptima);
 		applyPartitionCrossoverToAllPairsOfLocalOptima();
 
@@ -165,7 +172,7 @@ public class LocalOptimaExperiment implements Process {
         pbf.setConfiguration(prop);
     }
 
-    private void prepareRBallExplorationAlgorithm() {
+    protected void prepareRBallExplorationAlgorithm() {
         rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
 				r).initialize(pbf);
 		PBSolution pbs = pbf.getRandomSolution();
@@ -241,7 +248,7 @@ public class LocalOptimaExperiment implements Process {
 		}
     }
 
-    private List<PBSolution> findLocalOptima() {
+    protected List<PBSolution> findLocalOptima() {
         initTime = System.currentTimeMillis();
 
 		notifyLocalOptima(rball, pbf);

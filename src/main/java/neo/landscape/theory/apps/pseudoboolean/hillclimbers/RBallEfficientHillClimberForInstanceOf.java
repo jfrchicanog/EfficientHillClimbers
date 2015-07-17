@@ -179,7 +179,7 @@ public class RBallEfficientHillClimberForInstanceOf implements
 	}
 
 	/* Problem method */
-	protected Iterable<Integer> subFunctionsAffected(SetOfVars bits) {
+	public Iterable<Integer> subFunctionsAffected(SetOfVars bits) {
 		// Identify which which subfunctions will be afffected
 		Iterable<Integer> sfs;
 
