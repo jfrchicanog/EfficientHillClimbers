@@ -4,11 +4,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.ListResourceBundle;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Stack;
 import java.util.zip.GZIPOutputStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
@@ -26,7 +29,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
 
         @Override
         public void search() {
-
+            population = initializePopulation(rballfio);
             List<RBallEfficientHillClimberSnapshot> auxiliarPopulation = new ArrayList<RBallEfficientHillClimberSnapshot>();
 
             while (timeAvailable()) {
@@ -85,28 +88,20 @@ public class PXScoresAlgorithm2Experiment implements Process {
         
         private Random rnd = new Random(seed);
         private int randomWalkLength;
+        private int [] positions;
 
         @Override
         public void search() {
-            
+            population = initializePopulation(rballfio);
             randomWalkLength = rballfio.getProblem().getN()/4;
+            int tournamentQ=5;
             
-            int [] positions = new int [population.size()];
-            for (int i = 0; i < positions.length; i++) {
-                positions[i]=i;
-            }
-            
-            List<RBallEfficientHillClimberSnapshot> auxiliarPopulation = new ArrayList<RBallEfficientHillClimberSnapshot>();
+            initializePositions();
 
             while (timeAvailable()) {
                 
-                int indexFirstParent = rnd.nextInt(population.size());
-                int firstParent = positions[indexFirstParent];
-                
-                positions[indexFirstParent] = positions[0];
-                positions[0] = firstParent;
-                
-                int secondParent = positions[rnd.nextInt(population.size()-1)+1];
+                int firstParent = selectTournament(tournamentQ);                
+                int secondParent = getSecondParentByDistance(firstParent);
 
                 RBallEfficientHillClimberSnapshot parent = population.get(firstParent);
                 RBallEfficientHillClimberSnapshot child = px.recombine(parent, population.get(secondParent));
@@ -135,6 +130,65 @@ public class PXScoresAlgorithm2Experiment implements Process {
             
         }
 
+        private int getSecondParentByDistance(int firstParent) {
+            int minDistance = Integer.MAX_VALUE;
+            RBallEfficientHillClimberSnapshot first = population.get(firstParent);
+            int secondParent = -1;
+            
+            for(int i=0; i < population.size(); i++) {
+                if (i != firstParent) {
+                    RBallEfficientHillClimberSnapshot solution = population.get(i);
+                    int distance = solution.getSolution().hammingDistance(first.getSolution());
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        secondParent = i;
+                    }
+                    
+                }
+            }
+            
+            return secondParent;
+        }
+
+        private int selectTournament(int tournamentQ) {
+            int [] individuals = selectSeveralDifferentIndices(tournamentQ);
+            int best = individuals[0];
+            double quality = population.get(best).getSolutionQuality();
+            
+            for (int i = 1; i < individuals.length; i++) {
+                int ind = individuals[i];
+                double thisQuality = population.get(ind).getSolutionQuality();
+                if (thisQuality > quality) {
+                    best = ind;
+                    quality= thisQuality;
+                }
+            }
+            return best;
+        }
+
+        private int [] selectSeveralDifferentIndices(int size) {
+            int [] result = new int[size];
+            
+            for (int element=0; element < size; element++) {
+                int indexOfElement = rnd.nextInt(population.size()-element)+element;
+                result[element] = positions[indexOfElement];
+                
+                positions[indexOfElement] = positions[element];
+                positions[element] = result[element];
+            }
+            
+            return result;
+        }
+        
+        
+
+        private void initializePositions() {
+            positions = new int [population.size()];
+            for (int i = 0; i < positions.length; i++) {
+                positions[i]=i;
+            }
+        }
+
         @Override
         public String description() {
             return "GA-like Search Strategy";
@@ -148,6 +202,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
          */
         @Override
         public void search() {
+            population = initializePopulation(rballfio);
             while (timeAvailable()) {
 
                 // Create a generation-0 solution
@@ -184,6 +239,107 @@ public class PXScoresAlgorithm2Experiment implements Process {
     
     }
     
+
+    
+    private class UnlimitedDynastySearchStrategy implements SearchStrategy { 
+        private List<Boolean> crossed;
+        private Stack<RBallEfficientHillClimberSnapshot> lru;
+
+        /* (non-Javadoc)
+         * @see neo.landscape.theory.apps.pseudoboolean.experiments.SearchStrategy#search()
+         */
+        @Override
+        public void search() {
+            
+            // The population will be sorted in quality of solutions, from best to worst 
+            population = new ArrayList<RBallEfficientHillClimberSnapshot>();
+            lru = new Stack<RBallEfficientHillClimberSnapshot>();
+            crossed = new ArrayList<Boolean>();
+            
+            while (timeAvailable()) {
+                 
+                int solutionToCross = findSolutionToCross();
+                
+                if (solutionToCross < 0) {
+                    // There is no solution cross, so create a new one
+                    // Create a generation-0 solution
+                    RBallEfficientHillClimberSnapshot newSolution = createGenerationZeroSolution(rballfio);
+                    notifyExploredSolution(newSolution);
+                    // and add it to the population, removing the least recently used
+                    addSolutionToPoluationUsingLRU(newSolution);
+                } else {
+                    RBallEfficientHillClimberSnapshot parent1 = population.get(solutionToCross);
+                    RBallEfficientHillClimberSnapshot parent2 = population.get(solutionToCross+1);
+                    RBallEfficientHillClimberSnapshot result = px.recombine(parent1, parent2);
+                    crossed.set(solutionToCross, true);
+                    if (result != null) {
+                        hillClimb(result);
+                        notifyExploredSolution(result);
+
+                        touch(parent1);
+                        touch(parent2);
+                        addSolutionToPoluationUsingLRU(result);
+                        
+                    }
+                }
+                
+            }
+        }
+
+        private void touch(RBallEfficientHillClimberSnapshot solution) {
+            lru.remove(solution);
+            lru.push(solution);
+        }
+
+        private void addSolutionToPoluationUsingLRU(RBallEfficientHillClimberSnapshot newSolution) {
+            if (population.size() >= populationSize) {
+                // We have to remove one
+                removeFromPopulation(lru.lastElement());
+            } 
+            insertSolutionInPopulationSorted(newSolution);
+        }
+
+        private void removeFromPopulation(RBallEfficientHillClimberSnapshot toRemove) {
+            int index = population.indexOf(toRemove);
+            population.remove(index);
+            crossed.remove(index);
+            if (index > 0) {
+                crossed.set(index-1, false);
+            }
+        }
+
+        private void insertSolutionInPopulationSorted(RBallEfficientHillClimberSnapshot newSolution) {
+            int i;
+            for (i=0; i < population.size(); i++) {
+                RBallEfficientHillClimberSnapshot ithSolution = population.get(i);
+                if (ithSolution.getSolutionQuality() <= newSolution.getSolutionQuality()) {
+                    break;
+                }
+            }
+            population.add(i, newSolution);
+            crossed.add(i, false);
+            if (i > 0) {
+                crossed.set(i-1, false);
+            }
+            lru.push(newSolution);
+        }
+
+        private int findSolutionToCross() {
+            for (int i=0; i < population.size()-1; i++) {
+                if (!crossed.get(i)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        @Override
+        public String description() {
+            return "Unlimited Dynasty Search Strategy";
+        }
+    
+    }
+
     
 
 	private long seed;
@@ -220,7 +376,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
 		return "Arguments: "
 				+ getID()
 				+ " <n> <k> <q> <circular> <r> (new (with population) | ss (scatter search) "
-				+ "| ga (like) ) <population size> <time(s)> [<seed>]";
+				+ "| ga (like) | ul (Unlimited Dynasty) ) <population size> <time(s)> [<seed>]";
 	}
 
 	@Override
@@ -255,8 +411,6 @@ public class PXScoresAlgorithm2Experiment implements Process {
 
 		ps.println("Search starts: "+(System.currentTimeMillis()-initTime));
 		
-		
-		population = initializePopulation(rballfio);
 		comparator = new Comparator<RBallEfficientHillClimberSnapshot>() {
             @Override
             public int compare(RBallEfficientHillClimberSnapshot o1,
@@ -361,6 +515,8 @@ public class PXScoresAlgorithm2Experiment implements Process {
 		    searchStrategy = new ScatterSearchLikeStrategy();
 		} else if (strategy.equals("ga")) {
 		    searchStrategy = new GALikeStrategy();
+		} else if (strategy.equals("ul")) {
+		    searchStrategy = new UnlimitedDynastySearchStrategy();
 		}
         return searchStrategy;
     }

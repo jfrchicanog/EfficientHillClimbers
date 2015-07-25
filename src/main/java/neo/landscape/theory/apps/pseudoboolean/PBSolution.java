@@ -45,8 +45,29 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 	public void flipBit(int i) {
 		data[i >>> 5] ^= (1 << (i & 0x1f));
 	}
+	
+	public int hammingDistance(PBSolution other) {
+	    if (other.n!=n) {
+	        throw new IllegalArgumentException("The size of the two solutions is not the same");
+	    }
+	    int hamming=0;
+	    for (int i = 0; i < data.length; i++) {
+            int diff = (data[i] ^ other.data[i]);
+            hamming += numberOfOnes(diff);
+        }
+	    return hamming;
+	}
 
-	public int getN() {
+	private int numberOfOnes(int diff) {
+	    int ones=0;
+	    for(int i=0; i < 32; i++) {
+	        ones += (diff &0x1);
+	        diff >>>= 1;
+	    }
+        return ones;
+    }
+
+    public int getN() {
 		return n;
 	}
 

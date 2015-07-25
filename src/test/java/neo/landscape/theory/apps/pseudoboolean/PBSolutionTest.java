@@ -80,12 +80,7 @@ public class PBSolutionTest {
 		Random rnd = new Random(0);
 
 		for (int n : new int[] { 1, 5, 31, 32, 63, 64, 2000 }) {
-			PBSolution pbs = new PBSolution(n);
-
-			for (int i = 0; i < n; i++) {
-				int v = rnd.nextInt(2);
-				pbs.setBit(i, v);
-			}
+			PBSolution pbs = generateRandomSolution(rnd, n);
 
 			PBSolution pos = new PBSolution(n);
 			pos.parse(pbs.toString());
@@ -121,16 +116,44 @@ public class PBSolutionTest {
 		Random rnd = new Random(0);
 
 		for (int n : new int[] { 1, 5, 31, 32, 63, 64, 2000 }) {
-			PBSolution pbs = new PBSolution(n);
-			for (int i = 0; i < n; i++) {
-				int v = rnd.nextInt(2);
-
-				pbs.setBit(i, v);
-
-			}
+			PBSolution pbs = generateRandomSolution(rnd, n);
 			PBSolution pbs2 = new PBSolution(pbs);
 			assertEquals("equals not working", pbs, pbs2);
 		}
 	}
+	
+	@Test
+	public void testHamming() {
+	    Random rnd = new Random(0);
+
+        for (int n : new int[] { 1, 5, 31, 32, 63, 64, 2000, 10000 }) {
+            PBSolution pbs = generateRandomSolution(rnd, n);
+            PBSolution pbs2 = generateRandomSolution(rnd, n);
+            
+            int distance = pbs.hammingDistance(pbs2);
+            int distance2 = computeHammingDistanceByEnumeration(pbs, pbs2);
+            
+            assertEquals("hamming distance not working", distance2, distance);
+        }
+	}
+
+    private int computeHammingDistanceByEnumeration(PBSolution pbs, PBSolution pbs2) {
+        int dis=0;
+        for (int i=0; i < pbs.getN(); i++) {
+            if (pbs.getBit(i) != pbs2.getBit(i)) {
+                dis++;
+            }
+        }
+        return dis;
+    }
+
+    private PBSolution generateRandomSolution(Random rnd, int n) {
+        PBSolution pbs = new PBSolution(n);
+        for (int i = 0; i < n; i++) {
+            int v = rnd.nextInt(2);
+            pbs.setBit(i, v);
+        }
+        return pbs;
+    }
 
 }
