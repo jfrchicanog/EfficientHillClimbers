@@ -53,6 +53,10 @@ public class SingleThreadCPUTimer {
         return elapsedTime() >= stopTime;
     }
     
+    public long elapsedTimeInMilliseconds() {
+        return elapsedTime()/1000000;
+    }
+    
     
 
 }
