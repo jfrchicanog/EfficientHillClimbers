@@ -3,6 +3,8 @@ package neo.landscape.theory.apps.pseudoboolean.experiments;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,6 +21,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverForRBallHillClimber;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
+import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
 
 public class PartitionCrossoverWithScoresExperiment implements Process {
 
@@ -37,12 +40,12 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 	}
 
 	private long seed;
-	private long initTime;
-	private long currentTime;
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
 	private double bestSoFar;
 	private Map<Integer, Integer> crossoverFailsInGeneration;
+	private SingleThreadCPUTimer timer;
+	
 
 	@Override
 	public String getDescription() {
@@ -69,6 +72,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 			return;
 		}
 
+		timer.startTimer();
 		initializeStatistics();
 		
 		String n = args[0];
@@ -119,21 +123,18 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 				pbf);
 		px.setSeed(seed);
 
-		
-		
+		timer = new SingleThreadCPUTimer();
+		timer.setStopTimeMilliseconds(time * 1000);
 		
 		crossoverFailsInGeneration = new HashMap<Integer, Integer>();
 
-		
-		currentTime = System.currentTimeMillis();
-		ps.println("Search starts: "+(currentTime-initTime));
+		ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
 
-		while ((currentTime - initTime) < time * 1000) {
+		while (!timer.shouldStop()) {
 			// Create a generation-0 solution
 			ExploredSolution currentSolution = createGenerationZeroSolution(rballfio);
 			notifyExploredSolution(currentSolution);
-			currentTime = System.currentTimeMillis();
-
+			
 			if (explored.empty()
 					|| explored.peek().generation > currentSolution.generation) {
 				if (currentSolution.generation < generationLimit) {
@@ -144,7 +145,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 				while ((!explored.empty())
 						&& currentSolution != null
 						&& explored.peek().generation == currentSolution.generation
-						&& (currentTime - initTime) < time * 1000) {
+						&& !timer.shouldStop()) {
 					ExploredSolution popedSolution = explored.pop();
 					RBallEfficientHillClimberSnapshot result = px.recombine(
 							popedSolution.solution, currentSolution.solution);
@@ -159,8 +160,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 										currentSolution.generation + 1);
 						notifyExploredSolution(currentSolution);
 					}
-					currentTime = System.currentTimeMillis();
-
+					
 				}
 
 				if (currentSolution != null) {
@@ -179,7 +179,6 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 
     private void initializeStatistics() {
         bestSoFar = -Double.MAX_VALUE;
-		initTime = System.currentTimeMillis();
     }
 
 	private void writeCrossoverFails() {
@@ -224,7 +223,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 		double quality = exploredSolution.solution.getSolutionQuality();
 		ps.println("Generation level:" + exploredSolution.generation);
 		ps.println("Solution quality: " + quality);
-		ps.println("Elapsed Time: " + (System.currentTimeMillis() - initTime));
+		ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
 		if (quality > bestSoFar) {
 			bestSoFar = quality;
 			ps.println("* Best so far solution");
