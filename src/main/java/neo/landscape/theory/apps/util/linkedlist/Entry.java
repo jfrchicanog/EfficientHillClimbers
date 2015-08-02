@@ -8,6 +8,5 @@ public interface Entry<T> {
     public abstract Entry<T> getNext();
     public abstract void setNext(Entry<T> next);
     public abstract T getV();
-    public abstract void setV(T v);
 
 }

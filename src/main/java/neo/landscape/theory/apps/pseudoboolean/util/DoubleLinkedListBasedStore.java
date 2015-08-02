@@ -10,6 +10,7 @@ import neo.landscape.theory.apps.util.linkedlist.Entry;
 import neo.landscape.theory.apps.util.linkedlist.EntryFactory;
 
 public class DoubleLinkedListBasedStore {
+    
     private Entry<RBallPBMove>[] mos;
     private DoubleLinkedList<RBallPBMove>[][] scores;
     private EntryFactory<RBallPBMove> entryFactory;

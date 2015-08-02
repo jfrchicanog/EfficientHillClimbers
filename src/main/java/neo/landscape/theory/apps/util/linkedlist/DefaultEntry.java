@@ -6,7 +6,7 @@ public class DefaultEntry<T> implements Entry<T> {
     private T v;
     
 	public DefaultEntry(T v) {
-		this.setV(v);
+		this.v=v;
 	}
 
 	/* (non-Javadoc)
@@ -46,14 +46,6 @@ public class DefaultEntry<T> implements Entry<T> {
     @Override
     public T getV() {
         return v;
-    }
-
-    /* (non-Javadoc)
-     * @see neo.landscape.theory.apps.util.Entry#setV(T)
-     */
-    @Override
-    public void setV(T v) {
-        this.v = v;
     }
 
     
