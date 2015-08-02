@@ -18,7 +18,7 @@ public class DeterministicQualityBasedNonNeutralSelector extends AbstractMovesSe
         randomMoves = rBallSnapshot.rball.randomMoves;
         Map<SetOfVars, Integer> map = rBallSnapshot.rballfio.minimalPerfectHash;
         radius = rBallSnapshot.rball.radius;
-        quality_limits = rBallSnapshot.rball.quality_limits;
+        quality_limits = rBallSnapshot.rball.qualityLimits;
         int buckets = 2 + ((quality_limits == null) ? 0 : quality_limits.length);
         
         movesStore = createMovesStore(radius, buckets, map, rBallSnapshot.rnd);

@@ -247,7 +247,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 	    try {
 	        do {
 	            imp = rball.move();
-	        } while (imp > 0);
+	        } while (true);
 	    } catch (NoImprovingMoveException e) {
 
 	    }

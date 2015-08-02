@@ -87,7 +87,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		this.rball = rballfio.getHillClimber();
 		radius = rball.radius;
 		problem = rballfio.problem;
-		collectFlips = rball.collect_flips;
+		collectFlips = rball.collectFlips;
 		long seed = rball.rnd.nextLong();
 		rnd = new Random(seed);
 		//System.out.println("Padre: "+seed);
@@ -261,7 +261,6 @@ public class RBallEfficientHillClimberSnapshot implements
     /* Sol method */
 	@Override
 	public double move() {
-	    
 	    RBallPBMove move;
 	    if (nextMove == null) {
             move = movesSelector.getMovement();;

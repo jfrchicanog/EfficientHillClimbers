@@ -17,18 +17,20 @@ public class RBallEfficientHillClimber implements
 	public static final String SEED = "seed";
 	public static final String LIFO = "lifo";
 	public static final String RANDOM_MOVES = "random";
+	public static final String NEUTRAL_MOVES = "neutral_moves";
 
 	/* Operator dependent structures */
 
 	// Main configuration parameters and variables
 	/* Operator info */
-	protected double[] quality_limits;
+	protected double[] qualityLimits;
 	/* Operator info */
 	protected boolean lifo;
 	protected boolean randomMoves;
 	/* Operator info */
 	protected int radius;
-	protected boolean collect_flips;
+	protected boolean collectFlips;
+	protected boolean neutralMoves=true;
 	protected Properties configuration;
 	protected Random rnd;
 	
@@ -52,13 +54,15 @@ public class RBallEfficientHillClimber implements
 			seed = Seeds.getSeed();
 		}
 
-		collect_flips = prop.containsKey(FLIP_STAT);
+		collectFlips = prop.containsKey(FLIP_STAT);
 		lifo = prop.containsKey(LIFO);
 		if (prop.containsKey(RANDOM_MOVES)) {
 		    randomMoves = prop.getProperty(RANDOM_MOVES).equals("yes");
 		}
+		collectFlips = prop.containsKey(FLIP_STAT);
+		neutralMoves = prop.containsKey(NEUTRAL_MOVES);
 
-		quality_limits = quality_l;
+		qualityLimits = quality_l;
 		this.radius = r;
 		rnd = new Random(seed);
     }
@@ -105,7 +109,6 @@ public class RBallEfficientHillClimber implements
         }
         
         initializeOperator(configuration);
-
 	}
 
 	@Override
@@ -113,5 +116,9 @@ public class RBallEfficientHillClimber implements
 			EmbeddedLandscape prob) {
 		return new RBallEfficientHillClimberForInstanceOf(this, prob);
 	}
+
+    public boolean isNeutralMoves() {
+        return neutralMoves;
+    }
 
 }
