@@ -49,7 +49,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	// Main configuration parameters and variables
 
-	public DoubleLinkedListBasedStore movesStore = new DoubleLinkedListBasedStore();
+	public DoubleLinkedListBasedStore movesStore;
     /* Solution info */
 	private int[] maxNomEmptyScore;
 	/* Solution info */
@@ -110,11 +110,7 @@ public class RBallEfficientHillClimberSnapshot implements
 	/* Operator / problem /sol method */
 	private void initializeOperatorDependentStructures() {
 		/* Sol */
-		int buckets = 2 + ((rball.quality_limits == null) ? 0
-				: rball.quality_limits.length);
-        
-		movesStore.initializeScores(radius, buckets);
-		initializeMaxScores(radius);
+		
 
 		minImpRadius = radius + 1;
 		movesPerDistance = new int[radius + 1];
@@ -134,15 +130,6 @@ public class RBallEfficientHillClimberSnapshot implements
 		}
     }
 
-    /* Problem method / Sol method */
-	private void initializeProblemDependentStructures() {
-		movesStore.initializeMovesArray(rballfio.minimalPerfectHash);
-
-		sub = new PBSolution(rballfio.max_k);
-		subSov = new PBSolution(rballfio.max_k);
-		sol = null;
-		subfnsEvals = new Double[problem.getM()];
-	}
 
     /* Problem method /Sol method */
 	private void initializeProblemDependentStructuresDarrell() {
@@ -151,16 +138,21 @@ public class RBallEfficientHillClimberSnapshot implements
 		if (collectFlips) {
 			flips = new int[problem.getN()];
 		}
-
-		movesStore.initializeMovesArray(rballfio.minimalPerfectHash);
-
+		
+		int buckets = 2 + ((rball.quality_limits == null) ? 0
+                : rball.quality_limits.length);
+        
+		movesStore = new DoubleLinkedListBasedStore(radius, buckets, rballfio.minimalPerfectHash);
+		
+		initializeMaxScores(radius);
+		
 		sub = new PBSolution(rballfio.max_k);
 		subSov = new PBSolution(rballfio.max_k);
 		sol = null;
 		subfnsEvals = new Double[problem.getM()];
 	}
 
-	/* Sol method */
+    /* Sol method */
 	private void initializeSolutionDependentStructuresFromScratch() {
 		long init = System.currentTimeMillis();
 		// Compute the scores for all the values of the map
