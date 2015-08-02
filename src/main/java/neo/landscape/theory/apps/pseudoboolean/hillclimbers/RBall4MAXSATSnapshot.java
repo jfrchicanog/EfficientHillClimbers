@@ -50,7 +50,7 @@ public class RBall4MAXSATSnapshot extends RBallEfficientHillClimberSnapshot
 		for (int v : vars) {
 			int r = rnd.nextInt(n);
 			if (r < soft_restart) {
-				RBallPBMove move = movesStore.getMoveByID(rballfio.oneFlipScores[v]).v;
+				RBallPBMove move = movesStore.getMoveByID(rballfio.oneFlipScores[v]).getV();
                 solutionQuality += move.improvement;
 				moveOneBit(v);
 

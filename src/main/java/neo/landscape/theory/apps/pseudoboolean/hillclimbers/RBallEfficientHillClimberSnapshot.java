@@ -9,7 +9,7 @@ import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.DoubleLinkedListBasedStore;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
-import neo.landscape.theory.apps.util.DoubleLinkedList.Entry;
+import neo.landscape.theory.apps.util.linkedlist.Entry;
 
 public class RBallEfficientHillClimberSnapshot implements
 		HillClimberSnapshot<EmbeddedLandscape> {
@@ -176,7 +176,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		}
 
 		for (Entry<RBallPBMove> e : movesStore.iterableOverMoves()) {
-			RBallPBMove move = e.v;
+			RBallPBMove move = e.getV();
             SetOfVars sov = move.flipVariables;
 
 			update = 0;
@@ -275,7 +275,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		if (minImpRadius > radius) {
 			return new RBallPBMove(0, problem.getN());
 		} else {
-			return movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).v;
+			return movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).getV();
 		}
 	}
 
@@ -288,7 +288,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 		// else
 
-		RBallPBMove move = movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).v;
+		RBallPBMove move = movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).getV();
 		double imp = move.improvement;
 
 		solutionQuality += imp;
@@ -365,7 +365,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 			for (int entryIndex : rballfio.subfns[sf]) {
 				Entry<RBallPBMove> entry = movesStore.getMoveByID(entryIndex);
-				RBallPBMove move = entry.v;
+				RBallPBMove move = entry.getV();
                 SetOfVars sov = move.flipVariables;
 
 				// Build the subsolutions
@@ -461,7 +461,7 @@ public class RBallEfficientHillClimberSnapshot implements
 	/* Sol method */
 	public void checkConsistency() {
 		for (Entry<RBallPBMove> e : movesStore.iterableOverMoves()) {
-			RBallPBMove move = e.v;
+			RBallPBMove move = e.getV();
             SetOfVars sov = move.flipVariables;
 			PBSolution solSov = new PBSolution(sol);
 
@@ -519,7 +519,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		collectFlips = false;
 		for (int i = 0; i < softRestart; i++) {
 			int var = rnd.nextInt(n);
-			RBallPBMove move = movesStore.getMoveByID(rballfio.oneFlipScores[var]).v;
+			RBallPBMove move = movesStore.getMoveByID(rballfio.oneFlipScores[var]).getV();
             solutionQuality += move.improvement;
 			moveOneBit(var);
 		}

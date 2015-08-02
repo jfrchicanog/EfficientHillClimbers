@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.util;
+package neo.landscape.theory.apps.util.linkedlist;
 
 import java.util.Iterator;
 
@@ -11,43 +11,39 @@ import java.util.Iterator;
  */
 public class DoubleLinkedList<T> implements Iterable<T> {
 
-	public static class Entry<T> {
-
-		public Entry(T v) {
-			this.v = v;
-		}
-
-		private Entry<T> prev, next;
-		public T v;
-	}
-
 	private Entry<T> first;
 	private Entry<T> last;
+	private EntryFactory<T> factory;
 
 	public DoubleLinkedList() {
-		first = null;
-		last = null;
+		this(new DefaultEntryFactory<T>());
 	}
+	
+	public DoubleLinkedList(EntryFactory<T> factory) {
+	    this.factory = factory;
+        first = null;
+        last = null;
+    }
 
 	public void remove(Entry<T> e) {
-		if (e.prev != null) {
-			e.prev.next = e.next;
+		if (e.getPrev() != null) {
+			e.getPrev().setNext(e.getNext());
 		} else {
-			first = e.next;
+			first = e.getNext();
 		}
 
-		if (e.next != null) {
-			e.next.prev = e.prev;
+		if (e.getNext() != null) {
+			e.getNext().setPrev(e.getPrev());
 		} else {
-			last = e.prev;
+			last = e.getPrev();
 		}
 	}
 
 	public void add(Entry<T> e) {
-		e.prev = null;
-		e.next = first;
+		e.setPrev(null);
+		e.setNext(first);
 		if (first != null) {
-			first.prev = e;
+			first.setPrev(e);
 		}
 		first = e;
 
@@ -62,10 +58,10 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 	 * @param e
 	 */
 	public void append(Entry<T> e) {
-		e.next = null;
-		e.prev = last;
+		e.setNext(null);
+		e.setPrev(last);
 		if (last != null) {
-			last.next = e;
+			last.setNext(e);
 		}
 		last = e;
 
@@ -75,7 +71,7 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 	}
 
 	public void add(T t) {
-		add(new Entry(t));
+		add(factory.getEntry(t));
 	}
 
 	public Entry<T> getFirst() {
@@ -100,8 +96,8 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 			@Override
 			public T next() {
 				last = current;
-				current = current.next;
-				return last.v;
+				current = current.getNext();
+				return last.getV();
 			}
 
 			@Override
@@ -121,10 +117,9 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 
 		Entry<T> e = first;
 		while (e != null) {
-			str += e.v.toString() + ", ";
-			e = e.next;
+			str += e.getV().toString() + ", ";
+			e = e.getNext();
 		}
-
 		return str + "]";
 	}
 

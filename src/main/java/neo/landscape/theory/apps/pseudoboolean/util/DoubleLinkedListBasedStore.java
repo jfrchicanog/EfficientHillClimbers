@@ -4,28 +4,29 @@ import java.util.Arrays;
 import java.util.Map;
 
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove;
-import neo.landscape.theory.apps.util.DoubleLinkedList;
-import neo.landscape.theory.apps.util.DoubleLinkedList.Entry;
+import neo.landscape.theory.apps.util.linkedlist.DefaultEntry;
+import neo.landscape.theory.apps.util.linkedlist.DoubleLinkedList;
+import neo.landscape.theory.apps.util.linkedlist.Entry;
 
 public class DoubleLinkedListBasedStore {
-    private Entry<RBallPBMove>[] mos;
+    private DefaultEntry<RBallPBMove>[] mos;
     private DoubleLinkedList<RBallPBMove>[][] scores;
 
     public DoubleLinkedListBasedStore() {
     }
 
-    public Iterable<Entry<RBallPBMove>> iterableOverMoves() {
+    public Iterable<DefaultEntry<RBallPBMove>> iterableOverMoves() {
         return Arrays.asList(mos);
     }
     
     public void initializeMovesArray(Map<SetOfVars, Integer> minimalPerfectHash) {
-        mos = new Entry[minimalPerfectHash.size()];
+        mos = new DefaultEntry[minimalPerfectHash.size()];
     
     	for (Map.Entry<SetOfVars, Integer> entry : minimalPerfectHash
     			.entrySet()) {
     		SetOfVars sov = entry.getKey();
     		RBallPBMove rmove = new RBallPBMove(0, sov);
-    		Entry<RBallPBMove> e = new Entry<RBallPBMove>(rmove);
+    		DefaultEntry<RBallPBMove> e = new DefaultEntry<RBallPBMove>(rmove);
     		mos[entry.getValue()] = e;
     		scores[sov.size()][0].add(e);
     	}
@@ -54,7 +55,7 @@ public class DoubleLinkedListBasedStore {
         return mos[entryIndex];
     }
 
-    public DoubleLinkedList<RBallPBMove> iterableOverBucket(int radius, int bucket) {
+    public Iterable<RBallPBMove> iterableOverBucket(int radius, int bucket) {
         return scores[radius][bucket];
     }
 
@@ -67,7 +68,7 @@ public class DoubleLinkedListBasedStore {
     }
 
     public Entry<RBallPBMove> getDeterministicMoveInBucket(int radius, int bucket) {
-        return iterableOverBucket(radius, bucket).getFirst();
+        return scores[radius][bucket].getFirst();
     }
 }
 

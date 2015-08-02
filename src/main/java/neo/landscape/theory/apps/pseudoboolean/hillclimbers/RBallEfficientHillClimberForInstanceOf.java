@@ -17,11 +17,10 @@ import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfSetOfVars;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
-import neo.landscape.theory.apps.util.DoubleLinkedList;
-import neo.landscape.theory.apps.util.DoubleLinkedList.Entry;
 import neo.landscape.theory.apps.util.IteratorFromArray;
 import neo.landscape.theory.apps.util.RootedTreeGenerator;
 import neo.landscape.theory.apps.util.RootedTreeGenerator.RootedTreeCallback;
+import neo.landscape.theory.apps.util.linkedlist.DoubleLinkedList;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class RBallEfficientHillClimberForInstanceOf implements

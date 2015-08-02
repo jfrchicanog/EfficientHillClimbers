@@ -5,8 +5,9 @@ import neo.landscape.theory.apps.efficienthc.HillClimberForInstanceOf;
 import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
 import neo.landscape.theory.apps.efficienthc.Move;
 import neo.landscape.theory.apps.efficienthc.Solution;
-import neo.landscape.theory.apps.util.DoubleLinkedList;
-import neo.landscape.theory.apps.util.DoubleLinkedList.Entry;
+import neo.landscape.theory.apps.util.linkedlist.DefaultEntry;
+import neo.landscape.theory.apps.util.linkedlist.DoubleLinkedList;
+import neo.landscape.theory.apps.util.linkedlist.Entry;
 
 public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> {
 
@@ -47,7 +48,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 				}
 
 				private void addToList(Entry<WGCMove> m) {
-					int list = computeIndex(m.v.improvement);
+					int list = computeIndex(m.getV().improvement);
 
 					if (moves[list] == null) {
 						moves[list] = new DoubleLinkedList<WGCMove>();
@@ -78,8 +79,8 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 						}
 
 						for (int c = 0; c < colors; c++) {
-							Entry<WGCMove> m = new Entry(new WGCMove(u, c));
-							m.v.improvement = histogram[c]
+							Entry<WGCMove> m = new DefaultEntry(new WGCMove(u, c));
+							m.getV().improvement = histogram[c]
 									- histogram[sol.colors[u]];
 							s[u][c] = m;
 
@@ -89,7 +90,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 				}
 
 				private void removeFromList(Entry<WGCMove> m) {
-					int list = computeIndex(m.v.improvement);
+					int list = computeIndex(m.getV().improvement);
 					moves[list].remove(m);
 				}
 
@@ -110,7 +111,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 					for (int c = 0; c < colors; c++) {
 						Entry<WGCMove> aux = s[m.vertex][c];
 						removeFromList(aux);
-						aux.v.improvement -= sud;
+						aux.getV().improvement -= sud;
 						addToList(aux);
 
 					}
@@ -126,7 +127,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 								if (c != new_color && c != old_color) {
 									Entry<WGCMove> aux = s[t][c];
 									removeFromList(aux);
-									aux.v.improvement -= prob.getWeight(
+									aux.getV().improvement -= prob.getWeight(
 											m.vertex, t);
 									addToList(aux);
 								}
@@ -137,7 +138,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 								if (c != new_color && c != old_color) {
 									Entry<WGCMove> aux = s[t][c];
 									removeFromList(aux);
-									aux.v.improvement += prob.getWeight(
+									aux.getV().improvement += prob.getWeight(
 											m.vertex, t);
 									addToList(aux);
 								}
@@ -148,7 +149,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 							// There will be a conflict
 							Entry<WGCMove> aux = s[t][old_color];
 							removeFromList(aux);
-							aux.v.improvement -= 2 * prob
+							aux.getV().improvement -= 2 * prob
 									.getWeight(m.vertex, t);
 							addToList(aux);
 						}
@@ -157,19 +158,19 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 							// There was a conflict
 							Entry<WGCMove> aux = s[t][new_color];
 							removeFromList(aux);
-							aux.v.improvement += 2 * prob
+							aux.getV().improvement += 2 * prob
 									.getWeight(m.vertex, t);
 							addToList(aux);
 						} else {
 							Entry<WGCMove> aux = s[t][new_color];
 							removeFromList(aux);
-							aux.v.improvement += prob.getWeight(m.vertex, t);
+							aux.getV().improvement += prob.getWeight(m.vertex, t);
 							;
 							addToList(aux);
 
 							aux = s[t][old_color];
 							removeFromList(aux);
-							aux.v.improvement -= prob.getWeight(m.vertex, t);
+							aux.getV().improvement -= prob.getWeight(m.vertex, t);
 							;
 							addToList(aux);
 
@@ -198,7 +199,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 					} else {
 						// Select the movement
 
-						WGCMove m = moves[maxImprovement].getFirst().v;
+						WGCMove m = moves[maxImprovement].getFirst().getV();
 						double imp = m.improvement;
 
 						// Update the S matrix
@@ -224,7 +225,7 @@ public class EfficientHillClimber implements HillClimber<WeightedGraphColoring> 
 
 				@Override
 				public WGCMove getMovement() {
-					WGCMove m = moves[maxImprovement].getFirst().v;
+					WGCMove m = moves[maxImprovement].getFirst().getV();
 					WGCMove move = new WGCMove(m.vertex, m.color,
 							-maxImprovement);
 					return move;
