@@ -40,16 +40,21 @@ public class DoubleLinkedListBasedStore {
     	}
     }
 
-    public void changeMoveBucket(int p, int oldQualityIndex, int newQualityIndex, Entry<RBallPBMove> e) {
+    public void changeMoveBucketLIFO(int p, int oldQualityIndex, int newQualityIndex, Entry<RBallPBMove> e) {
         scores[p][oldQualityIndex].remove(e);
         scores[p][newQualityIndex].add(e);
+    }
+    
+    public void changeMoveBucketFIFO(int p, int oldQualityIndex, int newQualityIndex, Entry<RBallPBMove> e) {
+        scores[p][oldQualityIndex].remove(e);
+        scores[p][newQualityIndex].append(e);
     }
 
     public Entry<RBallPBMove> getMoveByID(int entryIndex) {
         return mos[entryIndex];
     }
 
-    public DoubleLinkedList<RBallPBMove> getBucket(int radius, int bucket) {
+    public DoubleLinkedList<RBallPBMove> iterableOverBucket(int radius, int bucket) {
         return scores[radius][bucket];
     }
 
@@ -59,6 +64,10 @@ public class DoubleLinkedListBasedStore {
 
     public int getNumberOfBuckets(int p) {
         return scores[p].length;
+    }
+
+    public Entry<RBallPBMove> getDeterministicMoveInBucket(int radius, int bucket) {
+        return iterableOverBucket(radius, bucket).getFirst();
     }
 }
 

@@ -23,7 +23,7 @@ public class RBallEfficientHillClimber implements
 	/* Operator info */
 	protected double[] quality_limits;
 	/* Operator info */
-	protected boolean fifo;
+	protected boolean lifo;
 	/* Operator info */
 	protected int radius;
 	protected boolean collect_flips;
@@ -47,7 +47,7 @@ public class RBallEfficientHillClimber implements
 		}
 
 		collect_flips = prop.containsKey(FLIP_STAT);
-		fifo = prop.containsKey(FIFO);
+		lifo = prop.containsKey(FIFO);
 
 		quality_limits = quality_l;
 		this.radius = r;
@@ -79,7 +79,7 @@ public class RBallEfficientHillClimber implements
 		this.radius = r;
 		rnd = new Random(Seeds.getSeed());
 		collect_flips = false;
-		fifo = false;
+		lifo = false;
 		configuration = new Properties();
 		configuration.setProperty(R_STRING, "" + radius);
 	}

@@ -220,7 +220,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 			if (oldQualityIndex != newQualityIndex) {
 				int p = sov.size();
-				movesStore.changeMoveBucket(p, oldQualityIndex, newQualityIndex, e);
+				movesStore.changeMoveBucketLIFO(p, oldQualityIndex, newQualityIndex, e);
 
 				if (newQualityIndex > maxNomEmptyScore[p]) {
 					// It is an improving move (necessarily, because
@@ -275,11 +275,11 @@ public class RBallEfficientHillClimberSnapshot implements
 		if (minImpRadius > radius) {
 			return new RBallPBMove(0, problem.getN());
 		} else {
-			return movesStore.getBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).getFirst().v;
+			return movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).v;
 		}
 	}
 
-	/* Sol method */
+    /* Sol method */
 	@Override
 	public double move() {
 		if (minImpRadius > radius) {
@@ -288,7 +288,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 		// else
 
-		RBallPBMove move = movesStore.getBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).getFirst().v;
+		RBallPBMove move = movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).v;
 		double imp = move.improvement;
 
 		solutionQuality += imp;
@@ -400,11 +400,14 @@ public class RBallEfficientHillClimberSnapshot implements
 
 				if (oldQualityIndex != newQualityIndex) {
 					int p = sov.size();
-					movesStore.getBucket(p, oldQualityIndex).remove(entry);
-					if (rball.fifo) {
-						movesStore.getBucket(p, newQualityIndex).add(entry);
+					
+					if (rball.lifo) {
+					    movesStore.changeMoveBucketLIFO(p, oldQualityIndex, newQualityIndex, entry);
+					    
 					} else {
-						movesStore.getBucket(p, newQualityIndex).append(entry);
+					    movesStore.changeMoveBucketFIFO(p, oldQualityIndex, newQualityIndex, entry);
+					    //movesStore.iterableOverBucket(p, oldQualityIndex).remove(entry);
+						//movesStore.iterableOverBucket(p, newQualityIndex).append(entry);
 					}
 
 					if (newQualityIndex > maxNomEmptyScore[p]) {
@@ -475,7 +478,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		// Check if they are in the correct list
 		for (int p = 1; p <= radius; p++) {
 			for (int q = 0; q < movesStore.getNumberOfBuckets(p); q++) {
-				for (RBallPBMove move : movesStore.getBucket(p, q)) {
+				for (RBallPBMove move : movesStore.iterableOverBucket(p, q)) {
 					assert move.flipVariables.size() == p;
 
 					if (q == 0) {
