@@ -15,7 +15,7 @@ public class RBallEfficientHillClimber implements
 	public static final String FLIP_STAT = "flip_stat";
 	public static final String QUALITY_LIMITS = "ql";
 	public static final String SEED = "seed";
-	public static final String FIFO = "fifo";
+	public static final String LIFO = "lifo";
 
 	/* Operator dependent structures */
 
@@ -47,7 +47,7 @@ public class RBallEfficientHillClimber implements
 		}
 
 		collect_flips = prop.containsKey(FLIP_STAT);
-		lifo = prop.containsKey(FIFO);
+		lifo = prop.containsKey(LIFO);
 
 		quality_limits = quality_l;
 		this.radius = r;
