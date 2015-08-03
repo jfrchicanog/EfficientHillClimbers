@@ -167,8 +167,7 @@ public class RBallEfficientHillClimberSnapshot implements
 			subfnsEvals[sf] = null;
 		}
 
-		for (Entry<RBallPBMove> e : movesStore.iterableOverMoves()) {
-			RBallPBMove move = e.getV();
+		for (RBallPBMove move : movesStore.iterableOverMoves()) {
             SetOfVars sov = move.flipVariables;
 
 			update = 0;
@@ -212,7 +211,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 			if (oldQualityIndex != newQualityIndex) {
 				int p = sov.size();
-				movesStore.changeMoveBucketLIFO(p, oldQualityIndex, newQualityIndex, e);
+				movesStore.changeMoveBucketLIFO(p, oldQualityIndex, newQualityIndex, move);
 
 				if (newQualityIndex > maxNomEmptyScore[p]) {
 					// It is an improving move (necessarily, because
@@ -267,7 +266,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		if (minImpRadius > radius) {
 			return new RBallPBMove(0, problem.getN());
 		} else {
-			return movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).getV();
+			return movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]);
 		}
 	}
 
@@ -280,7 +279,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 		// else
 
-		RBallPBMove move = movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]).getV();
+		RBallPBMove move = movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]);
 		double imp = move.improvement;
 
 		solutionQuality += imp;
@@ -356,8 +355,7 @@ public class RBallEfficientHillClimberSnapshot implements
 			}
 
 			for (int entryIndex : rballfio.subfns[sf]) {
-				Entry<RBallPBMove> entry = movesStore.getMoveByID(entryIndex);
-				RBallPBMove move = entry.getV();
+				RBallPBMove move = movesStore.getMoveByID(entryIndex);
                 SetOfVars sov = move.flipVariables;
 
 				// Build the subsolutions
@@ -394,10 +392,10 @@ public class RBallEfficientHillClimberSnapshot implements
 					int p = sov.size();
 					
 					if (rball.lifo) {
-					    movesStore.changeMoveBucketLIFO(p, oldQualityIndex, newQualityIndex, entry);
+					    movesStore.changeMoveBucketLIFO(p, oldQualityIndex, newQualityIndex, move);
 					    
 					} else {
-					    movesStore.changeMoveBucketFIFO(p, oldQualityIndex, newQualityIndex, entry);
+					    movesStore.changeMoveBucketFIFO(p, oldQualityIndex, newQualityIndex, move);
 					    //movesStore.iterableOverBucket(p, oldQualityIndex).remove(entry);
 						//movesStore.iterableOverBucket(p, newQualityIndex).append(entry);
 					}
@@ -452,8 +450,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	/* Sol method */
 	public void checkConsistency() {
-		for (Entry<RBallPBMove> e : movesStore.iterableOverMoves()) {
-			RBallPBMove move = e.getV();
+		for (RBallPBMove move : movesStore.iterableOverMoves()) {
             SetOfVars sov = move.flipVariables;
 			PBSolution solSov = new PBSolution(sol);
 
@@ -511,7 +508,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		collectFlips = false;
 		for (int i = 0; i < softRestart; i++) {
 			int var = rnd.nextInt(n);
-			RBallPBMove move = movesStore.getMoveByID(rballfio.oneFlipScores[var]).getV();
+			RBallPBMove move = movesStore.getMoveByID(rballfio.oneFlipScores[var]);
             solutionQuality += move.improvement;
 			moveOneBit(var);
 		}

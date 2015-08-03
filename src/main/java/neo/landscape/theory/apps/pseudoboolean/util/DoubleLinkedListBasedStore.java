@@ -1,17 +1,16 @@
 package neo.landscape.theory.apps.pseudoboolean.util;
 
-import java.util.Arrays;
 import java.util.Map;
 
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove;
-import neo.landscape.theory.apps.util.linkedlist.DefaultEntryFactory;
+import neo.landscape.theory.apps.util.IteratorFromArray;
 import neo.landscape.theory.apps.util.linkedlist.DoubleLinkedList;
 import neo.landscape.theory.apps.util.linkedlist.Entry;
 import neo.landscape.theory.apps.util.linkedlist.EntryFactory;
 
 public class DoubleLinkedListBasedStore {
     
-    private Entry<RBallPBMove>[] mos;
+    private MemoryEfficientEntryRBallPBMove [] mos;
     private DoubleLinkedList<RBallPBMove>[][] scores;
     private EntryFactory<RBallPBMove> entryFactory;
 
@@ -25,20 +24,28 @@ public class DoubleLinkedListBasedStore {
         entryFactory = new MemoryEfficientEntryFactoryRBallPBMove();
     }
 
-    public Iterable<Entry<RBallPBMove>> iterableOverMoves() {
-        return Arrays.asList(mos);
+    public Iterable<RBallPBMove> iterableOverMoves() {
+        return IteratorFromArray.iterable(mos);
+    }
+    
+    public void initializeScores(int radius, int buckets) {
+        scores = new DoubleLinkedList[radius + 1][buckets];
+        for (int i = 1; i <= radius; i++) {
+            for (int j = 0; j < buckets; j++) {
+                scores[i][j] = new DoubleLinkedList<RBallPBMove>(entryFactory);
+            }
+        }
     }
     
     public void initializeMovesArray(Map<SetOfVars, Integer> minimalPerfectHash) {
-        mos = new Entry[minimalPerfectHash.size()];
+        mos = new MemoryEfficientEntryRBallPBMove[minimalPerfectHash.size()];
     
     	for (Map.Entry<SetOfVars, Integer> entry : minimalPerfectHash
     			.entrySet()) {
     		SetOfVars sov = entry.getKey();
-    		RBallPBMove rmove = createMove(0, sov);
-    		Entry<RBallPBMove> e = entryFactory.getEntry(rmove);
+    		MemoryEfficientEntryRBallPBMove e = createMove(0, sov);
     		mos[entry.getValue()] = e;
-    		scores[sov.size()][0].add(e);
+    		scores[sov.size()][0].add((Entry<RBallPBMove>) e);
     	}
     }
 
@@ -46,26 +53,17 @@ public class DoubleLinkedListBasedStore {
         return new MemoryEfficientEntryRBallPBMove(improvement, sov);
     }
 
-    public void initializeScores(int radius, int buckets) {
-        scores = new DoubleLinkedList[radius + 1][buckets];
-        for (int i = 1; i <= radius; i++) {
-    		for (int j = 0; j < buckets; j++) {
-    			scores[i][j] = new DoubleLinkedList<RBallPBMove>(entryFactory);
-    		}
-    	}
-    }
-
-    public void changeMoveBucketLIFO(int p, int oldQualityIndex, int newQualityIndex, Entry<RBallPBMove> e) {
-        scores[p][oldQualityIndex].remove(e);
-        scores[p][newQualityIndex].add(e);
+    public void changeMoveBucketLIFO(int p, int oldQualityIndex, int newQualityIndex, RBallPBMove e) {
+        scores[p][oldQualityIndex].remove((MemoryEfficientEntryRBallPBMove)e);
+        scores[p][newQualityIndex].add((Entry<RBallPBMove>)e);
     }
     
-    public void changeMoveBucketFIFO(int p, int oldQualityIndex, int newQualityIndex, Entry<RBallPBMove> e) {
-        scores[p][oldQualityIndex].remove(e);
-        scores[p][newQualityIndex].append(e);
+    public void changeMoveBucketFIFO(int p, int oldQualityIndex, int newQualityIndex, RBallPBMove e) {
+        scores[p][oldQualityIndex].remove((MemoryEfficientEntryRBallPBMove)e);
+        scores[p][newQualityIndex].append((MemoryEfficientEntryRBallPBMove)e);
     }
 
-    public Entry<RBallPBMove> getMoveByID(int entryIndex) {
+    public RBallPBMove getMoveByID(int entryIndex) {
         return mos[entryIndex];
     }
 
@@ -81,8 +79,8 @@ public class DoubleLinkedListBasedStore {
         return scores[p].length;
     }
 
-    public Entry<RBallPBMove> getDeterministicMoveInBucket(int radius, int bucket) {
-        return scores[radius][bucket].getFirst();
+    public RBallPBMove getDeterministicMoveInBucket(int radius, int bucket) {
+        return (RBallPBMove)scores[radius][bucket].getFirst();
     }
 
 }

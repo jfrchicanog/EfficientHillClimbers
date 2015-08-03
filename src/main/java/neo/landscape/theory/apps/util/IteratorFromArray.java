@@ -36,16 +36,16 @@ public class IteratorFromArray {
 		};
 	}
 
-	public static <T> Iterable<T> iterable(final T[] var) {
-		return new Iterable<T>() {
-			public Iterator<T> iterator() {
+	public static <S, T extends S> Iterable<S> iterable(final T[] var) {
+		return new Iterable<S>() {
+			public Iterator<S> iterator() {
 				return IteratorFromArray.iterator(var);
 			}
 		};
 	}
 
-	public static <T> Iterator<T> iterator(final T[] var) {
-		return new Iterator<T>() {
+	public static <S, T extends S> Iterator<S> iterator(final T[] var) {
+		return new Iterator<S>() {
 			int ind = 0;
 
 			@Override
@@ -54,7 +54,7 @@ public class IteratorFromArray {
 			}
 
 			@Override
-			public T next() {
+			public S next() {
 				return var[ind++];
 			}
 
