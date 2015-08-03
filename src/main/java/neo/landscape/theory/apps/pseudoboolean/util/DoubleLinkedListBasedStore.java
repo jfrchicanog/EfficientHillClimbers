@@ -16,8 +16,13 @@ public class DoubleLinkedListBasedStore {
     private EntryFactory<RBallPBMove> entryFactory;
 
     public DoubleLinkedListBasedStore(int radius, int buckets, Map<SetOfVars, Integer> minimalPerfectHash) {
-        entryFactory = new DefaultEntryFactory<RBallPBMove>();
-        initializeMovesStore(buckets, radius, minimalPerfectHash);
+        createEntryFactory();
+        initializeScores(radius, buckets);
+        initializeMovesArray(minimalPerfectHash);
+    }
+
+    public void createEntryFactory() {
+        entryFactory = new MemoryEfficientEntryFactoryRBallPBMove();
     }
 
     public Iterable<Entry<RBallPBMove>> iterableOverMoves() {
@@ -30,11 +35,15 @@ public class DoubleLinkedListBasedStore {
     	for (Map.Entry<SetOfVars, Integer> entry : minimalPerfectHash
     			.entrySet()) {
     		SetOfVars sov = entry.getKey();
-    		RBallPBMove rmove = new RBallPBMove(0, sov);
+    		RBallPBMove rmove = createMove(0, sov);
     		Entry<RBallPBMove> e = entryFactory.getEntry(rmove);
     		mos[entry.getValue()] = e;
     		scores[sov.size()][0].add(e);
     	}
+    }
+
+    public MemoryEfficientEntryRBallPBMove createMove(int improvement, SetOfVars sov) {
+        return new MemoryEfficientEntryRBallPBMove(improvement, sov);
     }
 
     public void initializeScores(int radius, int buckets) {
@@ -76,10 +85,6 @@ public class DoubleLinkedListBasedStore {
         return scores[radius][bucket].getFirst();
     }
 
-    public void initializeMovesStore(int buckets, int radius, Map<SetOfVars, Integer> minimalPerfectHash) {
-        initializeScores(radius, buckets);
-    	initializeMovesArray(minimalPerfectHash);
-    }
 }
 
 
