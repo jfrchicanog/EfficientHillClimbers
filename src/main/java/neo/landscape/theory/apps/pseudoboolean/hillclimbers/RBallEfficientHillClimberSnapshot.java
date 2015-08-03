@@ -2,14 +2,15 @@ package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.DoubleLinkedListBasedStore;
+import neo.landscape.theory.apps.pseudoboolean.util.MovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
-import neo.landscape.theory.apps.util.linkedlist.Entry;
 
 public class RBallEfficientHillClimberSnapshot implements
 		HillClimberSnapshot<EmbeddedLandscape> {
@@ -49,7 +50,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	// Main configuration parameters and variables
 
-	public DoubleLinkedListBasedStore movesStore;
+	public MovesStore movesStore;
     /* Solution info */
 	private int[] maxNomEmptyScore;
 	/* Solution info */
@@ -142,7 +143,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		int buckets = 2 + ((rball.quality_limits == null) ? 0
                 : rball.quality_limits.length);
         
-		movesStore = new DoubleLinkedListBasedStore(radius, buckets, rballfio.minimalPerfectHash);
+		movesStore = createMovesStore(radius, buckets, rballfio.minimalPerfectHash);
 		
 		initializeMaxScores(radius);
 		
@@ -151,6 +152,10 @@ public class RBallEfficientHillClimberSnapshot implements
 		sol = null;
 		subfnsEvals = new Double[problem.getM()];
 	}
+
+    private MovesStore createMovesStore(int radius, int buckets, Map<SetOfVars, Integer> minimalPerfectHash) {
+        return new DoubleLinkedListBasedStore(radius, buckets, minimalPerfectHash);
+    }
 
     /* Sol method */
 	private void initializeSolutionDependentStructuresFromScratch() {

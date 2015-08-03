@@ -8,7 +8,7 @@ import neo.landscape.theory.apps.util.linkedlist.DoubleLinkedList;
 import neo.landscape.theory.apps.util.linkedlist.Entry;
 import neo.landscape.theory.apps.util.linkedlist.EntryFactory;
 
-public class DoubleLinkedListBasedStore {
+public class DoubleLinkedListBasedStore implements MovesStore {
     
     private MemoryEfficientEntryRBallPBMove [] mos;
     private DoubleLinkedList<RBallPBMove>[][] scores;
@@ -20,15 +20,19 @@ public class DoubleLinkedListBasedStore {
         initializeMovesArray(minimalPerfectHash);
     }
 
-    public void createEntryFactory() {
+    private void createEntryFactory() {
         entryFactory = new MemoryEfficientEntryFactoryRBallPBMove();
     }
 
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#iterableOverMoves()
+     */
+    @Override
     public Iterable<RBallPBMove> iterableOverMoves() {
         return IteratorFromArray.iterable(mos);
     }
     
-    public void initializeScores(int radius, int buckets) {
+    private void initializeScores(int radius, int buckets) {
         scores = new DoubleLinkedList[radius + 1][buckets];
         for (int i = 1; i <= radius; i++) {
             for (int j = 0; j < buckets; j++) {
@@ -37,7 +41,7 @@ public class DoubleLinkedListBasedStore {
         }
     }
     
-    public void initializeMovesArray(Map<SetOfVars, Integer> minimalPerfectHash) {
+    private void initializeMovesArray(Map<SetOfVars, Integer> minimalPerfectHash) {
         mos = new MemoryEfficientEntryRBallPBMove[minimalPerfectHash.size()];
     
     	for (Map.Entry<SetOfVars, Integer> entry : minimalPerfectHash
@@ -49,38 +53,71 @@ public class DoubleLinkedListBasedStore {
     	}
     }
 
-    public MemoryEfficientEntryRBallPBMove createMove(int improvement, SetOfVars sov) {
+    private MemoryEfficientEntryRBallPBMove createMove(int improvement, SetOfVars sov) {
         return new MemoryEfficientEntryRBallPBMove(improvement, sov);
     }
 
-    public void changeMoveBucketLIFO(int p, int oldQualityIndex, int newQualityIndex, RBallPBMove e) {
-        scores[p][oldQualityIndex].remove((MemoryEfficientEntryRBallPBMove)e);
-        scores[p][newQualityIndex].add((Entry<RBallPBMove>)e);
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#changeMoveBucketLIFO(int, int, int, neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove)
+     */
+    @Override
+    public void changeMoveBucketLIFO(int radius, int oldBucket, int newBucket, RBallPBMove move) {
+        scores[radius][oldBucket].remove((MemoryEfficientEntryRBallPBMove)move);
+        scores[radius][newBucket].add((Entry<RBallPBMove>)move);
     }
     
-    public void changeMoveBucketFIFO(int p, int oldQualityIndex, int newQualityIndex, RBallPBMove e) {
-        scores[p][oldQualityIndex].remove((MemoryEfficientEntryRBallPBMove)e);
-        scores[p][newQualityIndex].append((MemoryEfficientEntryRBallPBMove)e);
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#changeMoveBucketFIFO(int, int, int, neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove)
+     */
+    @Override
+    public void changeMoveBucketFIFO(int radius, int oldBucket, int newBucket, RBallPBMove move) {
+        scores[radius][oldBucket].remove((MemoryEfficientEntryRBallPBMove)move);
+        scores[radius][newBucket].append((MemoryEfficientEntryRBallPBMove)move);
     }
 
-    public RBallPBMove getMoveByID(int entryIndex) {
-        return mos[entryIndex];
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#getMoveByID(int)
+     */
+    @Override
+    public RBallPBMove getMoveByID(int id) {
+        return mos[id];
     }
 
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#iterableOverBucket(int, int)
+     */
+    @Override
     public Iterable<RBallPBMove> iterableOverBucket(int radius, int bucket) {
         return scores[radius][bucket];
     }
 
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#isBucketEmpty(int, int)
+     */
+    @Override
     public boolean isBucketEmpty(int radius, int bucket) {
         return scores[radius][bucket].isEmpty();
     }
 
-    public int getNumberOfBuckets(int p) {
-        return scores[p].length;
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#getNumberOfBuckets(int)
+     */
+    @Override
+    public int getNumberOfBuckets(int radius) {
+        return scores[radius].length;
     }
 
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#getDeterministicMoveInBucket(int, int)
+     */
+    @Override
     public RBallPBMove getDeterministicMoveInBucket(int radius, int bucket) {
         return (RBallPBMove)scores[radius][bucket].getFirst();
+    }
+
+    @Override
+    public RBallPBMove getRandomMove(int radius, int bucket) {
+        throw new UnsupportedOperationException();
     }
 
 }
