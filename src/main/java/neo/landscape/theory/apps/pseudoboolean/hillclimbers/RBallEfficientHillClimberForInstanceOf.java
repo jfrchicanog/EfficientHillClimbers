@@ -1,17 +1,12 @@
 package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
 import java.util.Set;
 
-import neo.landscape.theory.apps.efficienthc.HillClimber;
 import neo.landscape.theory.apps.efficienthc.HillClimberForInstanceOf;
-import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
 import neo.landscape.theory.apps.efficienthc.Solution;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
@@ -20,8 +15,6 @@ import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 import neo.landscape.theory.apps.util.IteratorFromArray;
 import neo.landscape.theory.apps.util.RootedTreeGenerator;
 import neo.landscape.theory.apps.util.RootedTreeGenerator.RootedTreeCallback;
-import neo.landscape.theory.apps.util.linkedlist.DoubleLinkedList;
-import neo.landscape.theory.apps.util.Seeds;
 
 public class RBallEfficientHillClimberForInstanceOf implements
 		HillClimberForInstanceOf<EmbeddedLandscape> {

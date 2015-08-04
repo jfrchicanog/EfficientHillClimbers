@@ -450,7 +450,7 @@ public class PXScoresAlgorithm2Experiment implements Process {
 
     private RBallEfficientHillClimberForInstanceOf getHillClimber(NKLandscapes pbf) {
         return (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
-				r).initialize(pbf);
+				r, seed).initialize(pbf);
     }
 
     private void writeHeader() {

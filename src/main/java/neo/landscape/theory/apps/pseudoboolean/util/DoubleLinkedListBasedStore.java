@@ -111,7 +111,7 @@ public class DoubleLinkedListBasedStore implements MovesStore {
      * @see neo.landscape.theory.apps.pseudoboolean.util.MovesStoredIface#getDeterministicMoveInBucket(int, int)
      */
     @Override
-    public RBallPBMove getDeterministicMoveInBucket(int radius, int bucket) {
+    public RBallPBMove getDeterministicMove(int radius, int bucket) {
         return (RBallPBMove)scores[radius][bucket].getFirst();
     }
 

@@ -70,7 +70,7 @@ public class MinSATExperiment implements Process {
 		pbf.setConfiguration(prop);
 
 		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
-				r).initialize(pbf);
+				r, seed).initialize(pbf);
 
 		long initTime = System.currentTimeMillis();
 		long elapsedTime = initTime;

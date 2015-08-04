@@ -15,7 +15,7 @@ public interface MovesStore {
     
     public boolean isBucketEmpty(int radius, int bucket);
     
-    public RBallPBMove getDeterministicMoveInBucket(int radius, int bucket);
+    public RBallPBMove getDeterministicMove(int radius, int bucket);
     public RBallPBMove getRandomMove(int radius, int bucket);
 
 }

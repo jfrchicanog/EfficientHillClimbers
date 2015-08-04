@@ -119,7 +119,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 		pbf.setConfiguration(prop);
 
 		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
-				r).initialize(pbf);
+				r, seed).initialize(pbf);
 		Stack<ExploredSolution> explored = new Stack<ExploredSolution>();
 		PartitionCrossoverForRBallHillClimber px = new PartitionCrossoverForRBallHillClimber(
 				pbf);

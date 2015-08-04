@@ -64,7 +64,7 @@ public class TimeExperiment implements Process {
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 
-		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
+		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, seed);
 		PBSolution pbs = pbf.getRandomSolution();
 
 		/*

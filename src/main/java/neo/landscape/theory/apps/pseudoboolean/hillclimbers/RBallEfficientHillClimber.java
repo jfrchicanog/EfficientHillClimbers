@@ -32,8 +32,11 @@ public class RBallEfficientHillClimber implements
 
 	public RBallEfficientHillClimber(Properties prop) {
 		configuration = (Properties) prop.clone();
+		initializeOperator(configuration);
+	}
 
-		if (!prop.containsKey(R_STRING)) {
+    private void initializeOperator(Properties prop) {
+        if (!prop.containsKey(R_STRING)) {
 			throw new IllegalArgumentException(
 					"Radius of explorarion not found (r)");
 		}
@@ -52,7 +55,7 @@ public class RBallEfficientHillClimber implements
 		quality_limits = quality_l;
 		this.radius = r;
 		rnd = new Random(seed);
-	}
+    }
 
 	/* Operator method */
 	private double[] parseQL(String s) {
@@ -67,21 +70,36 @@ public class RBallEfficientHillClimber implements
 		return res;
 
 	}
+	
+	private String writeQL(double [] ql) {
+	    if (ql == null) {
+	        return null;
+	    }
+	    String result = ""+ql[0];
 
-	public RBallEfficientHillClimber(int r) {
-		// Kept for backward compatibility
-		this(r, null);
+	    for (int i=1; i < ql.length; i++) {
+	        result += " "+ql[i];
+	    }
+	    return result;
 	}
 
-	public RBallEfficientHillClimber(int r, double[] quality_l) {
+	public RBallEfficientHillClimber(int r, long seed) {
 		// Kept for backward compatibility
-		quality_limits = quality_l;
-		this.radius = r;
-		rnd = new Random(Seeds.getSeed());
-		collect_flips = false;
-		lifo = false;
-		configuration = new Properties();
-		configuration.setProperty(R_STRING, "" + radius);
+		this(r, null, seed);
+	}
+
+	public RBallEfficientHillClimber(int r, double[] quality_l, long seed) {
+		// Kept for backward compatibility
+	    configuration = new Properties();
+        configuration.setProperty(R_STRING, "" + r);
+        configuration.setProperty(SEED, ""+seed);
+        String ql = writeQL(quality_l);
+        if (ql!=null) {
+            configuration.setProperty(QUALITY_LIMITS, ql);
+        }
+        
+        initializeOperator(configuration);
+
 	}
 
 	protected int getQualityIndex(double val) {

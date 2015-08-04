@@ -8,7 +8,7 @@ import java.util.Random;
 import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
-import neo.landscape.theory.apps.pseudoboolean.util.DoubleLinkedListBasedStore;
+import neo.landscape.theory.apps.pseudoboolean.util.ArrayBasedMovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.MovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
@@ -93,7 +93,9 @@ public class RBallEfficientHillClimberSnapshot implements
 		radius = rball.radius;
 		problem = rballfio.problem;
 		collectFlips = rball.collect_flips;
-		rnd = new Random(rball.rnd.nextLong());
+		long seed = rball.rnd.nextLong();
+		rnd = new Random(seed);
+		//System.out.println("Padre: "+seed);
 		if (rball.configuration.containsKey(PROFILE)) {
 			profile = new ArrayList<ProfileData>();
 		}
@@ -154,10 +156,10 @@ public class RBallEfficientHillClimberSnapshot implements
 	}
 
     private MovesStore createMovesStore(int radius, int buckets, Map<SetOfVars, Integer> minimalPerfectHash) {
-        return new DoubleLinkedListBasedStore(radius, buckets, minimalPerfectHash);
-        /*long seed = rnd.nextLong();
-        System.out.println(seed);
-        return new ArrayBasedMovesStore(radius, buckets, minimalPerfectHash, seed);*/
+        //return new DoubleLinkedListBasedStore(radius, buckets, minimalPerfectHash);
+        long seed = rnd.nextLong();
+        //System.out.println("Otra: "+seed);
+        return new ArrayBasedMovesStore(radius, buckets, minimalPerfectHash, seed);
     }
 
     /* Sol method */
@@ -265,6 +267,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	/* Solution method */
 	public void setSeed(long seed) {
+	    //System.out.println(seed);
 		rnd = new Random(seed);
 	}
 
@@ -274,7 +277,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		if (minImpRadius > radius) {
 			return new RBallPBMove(0, problem.getN());
 		} else {
-			return movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]);
+			return movesStore.getDeterministicMove(minImpRadius, maxNomEmptyScore[minImpRadius]);
 		}
 	}
 
@@ -287,7 +290,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 		// else
 
-		RBallPBMove move = movesStore.getDeterministicMoveInBucket(minImpRadius, maxNomEmptyScore[minImpRadius]);
+		RBallPBMove move = movesStore.getDeterministicMove(minImpRadius, maxNomEmptyScore[minImpRadius]);
 		double imp = move.improvement;
 
 		solutionQuality += imp;

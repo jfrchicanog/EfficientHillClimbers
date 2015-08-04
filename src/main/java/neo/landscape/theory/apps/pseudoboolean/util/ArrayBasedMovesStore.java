@@ -129,7 +129,7 @@ public class ArrayBasedMovesStore implements MovesStore {
     }
 
     @Override
-    public RBallPBMove getDeterministicMoveInBucket(int radius, int bucket) {
+    public RBallPBMove getDeterministicMove(int radius, int bucket) {
         if (isBucketEmpty(radius, bucket)) {
             throw new NoImprovingMoveException();
         }

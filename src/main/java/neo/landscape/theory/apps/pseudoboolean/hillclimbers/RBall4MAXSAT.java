@@ -3,6 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 import java.util.Properties;
 
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.util.Seeds;
 
 public class RBall4MAXSAT extends RBallEfficientHillClimber {
 
@@ -10,12 +11,12 @@ public class RBall4MAXSAT extends RBallEfficientHillClimber {
 		super(prop);
 	}
 
-	public RBall4MAXSAT(int r) {
-		this(r, null);
+	public RBall4MAXSAT(int r, long seed) {
+		this(r, null, seed);
 	}
 
-	public RBall4MAXSAT(int r, double[] quality_l) {
-		super(r, quality_l);
+	public RBall4MAXSAT(int r, double[] quality_l, long seed) {
+		super(r, quality_l, seed);
 	}
 
 	@Override

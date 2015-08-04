@@ -80,7 +80,7 @@ public class QualityExperiment implements Process {
 		pbf.setSeed(seed);
 		pbf.setConfiguration(prop);
 
-		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
+		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, seed);
 		RBallEfficientHillClimberForInstanceOf rballf = (RBallEfficientHillClimberForInstanceOf) rball
 				.initialize(pbf);
 

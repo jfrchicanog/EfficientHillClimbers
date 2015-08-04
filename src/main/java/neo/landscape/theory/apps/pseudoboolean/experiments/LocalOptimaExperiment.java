@@ -167,7 +167,7 @@ public class LocalOptimaExperiment implements Process {
 
     private void prepareRBallExplorationAlgorithm() {
         rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
-				r).initialize(pbf);
+				r, seed).initialize(pbf);
 		PBSolution pbs = pbf.getRandomSolution();
 
 		rball = rballfio.initialize(pbs);
@@ -339,7 +339,7 @@ public class LocalOptimaExperiment implements Process {
 
 	private PBSolution climbToLocalOptima(PBSolution res) {
 		RBallEfficientHillClimberSnapshot rball = (RBallEfficientHillClimberSnapshot) new RBallEfficientHillClimber(
-				r).initialize(pbf).initialize(res);
+				r, seed).initialize(pbf).initialize(res);
 
 		double imp;
 		do {

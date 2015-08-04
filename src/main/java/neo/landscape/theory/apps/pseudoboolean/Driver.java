@@ -22,14 +22,15 @@ public class Driver {
 		prop.setProperty(NKLandscapes.K_STRING, "3");
 		// prop.setProperty(NKLandscapes.Q_STRING, "100");
 		prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
-		pbf.setSeed(1);
+		int seed = 1;
+        pbf.setSeed(seed);
 
 		pbf.setConfiguration(prop);
 
 		int r = 4;
 		int limit_moves = 100;
 
-		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r);
+		RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, seed);
 		PBSolution pbs = pbf.getRandomSolution();
 
 		long init_time = System.currentTimeMillis();
