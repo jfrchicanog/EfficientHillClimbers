@@ -155,6 +155,9 @@ public class RBallEfficientHillClimberSnapshot implements
 
     private MovesStore createMovesStore(int radius, int buckets, Map<SetOfVars, Integer> minimalPerfectHash) {
         return new DoubleLinkedListBasedStore(radius, buckets, minimalPerfectHash);
+        /*long seed = rnd.nextLong();
+        System.out.println(seed);
+        return new ArrayBasedMovesStore(radius, buckets, minimalPerfectHash, seed);*/
     }
 
     /* Sol method */
