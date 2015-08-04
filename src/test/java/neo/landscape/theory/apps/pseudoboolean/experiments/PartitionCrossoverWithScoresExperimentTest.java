@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
+package neo.landscape.theory.apps.pseudoboolean.experiments;
 
 import neo.landscape.theory.apps.pseudoboolean.Experiments;
 

@@ -24,7 +24,7 @@ public class ArrayBasedMovesStore implements MovesStore {
             SetOfVars sov = entry.getKey();
             ArrayBasedStoreRBallPBMove e = createMove(0, sov);
             mos[entry.getValue()] = e;
-            bucketIndices[sov.cardinality()][1]++;
+            bucketIndices[sov.size()][1]++;
         }
         
         scores = new ArrayBasedStoreRBallPBMove[radius + 1][];
@@ -39,7 +39,7 @@ public class ArrayBasedMovesStore implements MovesStore {
         
         for (Map.Entry<SetOfVars, Integer> entry : minimalPerfectHash
                 .entrySet()) {
-            int r = entry.getKey().cardinality();
+            int r = entry.getKey().size();
             ArrayBasedStoreRBallPBMove move = mos[entry.getValue()];
             move.index = bucketIndices[r][1];
             scores[r][move.index] = move;
@@ -80,7 +80,7 @@ public class ArrayBasedMovesStore implements MovesStore {
         swapMoves(radius, myMove, bucketIndices[radius][newBucket]);
     }
 
-    public void moveToNewBucket(int radius, int oldBucket, int newBucket,
+    private void moveToNewBucket(int radius, int oldBucket, int newBucket,
             ArrayBasedStoreRBallPBMove myMove) {
         while (oldBucket < newBucket) {
             moveUpInBucketList(radius, oldBucket, myMove);
@@ -105,7 +105,7 @@ public class ArrayBasedMovesStore implements MovesStore {
         bucketIndices[radius][oldBucket]++;
     }
 
-    public void swapMoves(int radius, ArrayBasedStoreRBallPBMove move, int target) {
+    private void swapMoves(int radius, ArrayBasedStoreRBallPBMove move, int target) {
         int source = move.index;
         if (source != target) {
             scores[radius][source] = scores[radius][target];
