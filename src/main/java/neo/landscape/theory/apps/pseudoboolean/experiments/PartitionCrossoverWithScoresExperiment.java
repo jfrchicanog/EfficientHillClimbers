@@ -71,8 +71,10 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 			System.out.println(getInvocationInfo());
 			return;
 		}
-
+		
+		timer = new SingleThreadCPUTimer();
 		timer.startTimer();
+		
 		initializeStatistics();
 		
 		String n = args[0];
@@ -123,7 +125,6 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 				pbf);
 		px.setSeed(seed);
 
-		timer = new SingleThreadCPUTimer();
 		timer.setStopTimeMilliseconds(time * 1000);
 		
 		crossoverFailsInGeneration = new HashMap<Integer, Integer>();
