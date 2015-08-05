@@ -103,19 +103,6 @@ public class RBallEfficientHillClimber implements
 
 	}
 
-	protected int getQualityIndex(double val) {
-		if (val <= 0) {
-			return 0;
-		} else if (quality_limits == null) {
-			return 1;
-		} else {
-			int i = 0;
-			for (i = 0; i < quality_limits.length && quality_limits[i] <= val; i++)
-				;
-			return i + 1;
-		}
-	}
-
 	@Override
 	public HillClimberForInstanceOf<EmbeddedLandscape> initialize(
 			EmbeddedLandscape prob) {

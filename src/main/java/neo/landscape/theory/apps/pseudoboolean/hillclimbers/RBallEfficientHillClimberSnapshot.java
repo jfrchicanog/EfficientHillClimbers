@@ -1,7 +1,5 @@
 package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
@@ -69,10 +67,6 @@ public class RBallEfficientHillClimberSnapshot implements
 	/* Solution info */
 	private SubfunctionChangeListener scl;
 
-	// Statistics of the operator
-	/* Solution info */
-	private int[] movesPerDistance;
-
 	/* Solution info */
 	private long solutionInitializationTime;
 	private long solutionInitializationEvals;
@@ -80,9 +74,9 @@ public class RBallEfficientHillClimberSnapshot implements
 	private long totalMoves;
 	private long totalSolutionInitializations;
 	private int[] flips;
-	private List<ProfileData> profile;
+	private RBallHillClimberStatistics statistics;
 
-	public RBallEfficientHillClimberSnapshot(
+    public RBallEfficientHillClimberSnapshot(
 			RBallEfficientHillClimberForInstanceOf rballfio, PBSolution sol) {
 		this.rballfio = rballfio;
 		this.rball = rballfio.getHillClimber();
@@ -92,9 +86,9 @@ public class RBallEfficientHillClimberSnapshot implements
 		long seed = rball.rnd.nextLong();
 		rnd = new Random(seed);
 		//System.out.println("Padre: "+seed);
-		if (rball.configuration.containsKey(PROFILE)) {
-			profile = new ArrayList<ProfileData>();
-		}
+		
+		statistics =  new RBallHillClimberStatistics(radius, rball.configuration.containsKey(RBallEfficientHillClimberSnapshot.PROFILE));
+		
 		movesSelector = new DeterministicQualityBasedNonNeutralSelector(this);
 		initializeOperatorDependentStructures();
 		initializeProblemDependentStructuresDarrell();
@@ -107,11 +101,11 @@ public class RBallEfficientHillClimberSnapshot implements
 		}
 	}
 
-	/* Operator / problem /sol method */
+    /* Operator / problem /sol method */
 	private void initializeOperatorDependentStructures() {
 		/* Sol */
 		
-		movesPerDistance = new int[radius + 1];
+		
 		flippedBits = new int[radius];
 
 		solutionInitializationEvals = 0;
@@ -187,10 +181,8 @@ public class RBallEfficientHillClimberSnapshot implements
 			double oldValue = move.improvement;
 			move.improvement = update;
 
-			movesSelector.changeScoreBucket(this, move, sov, oldValue, update);			
+			movesSelector.changeScoreBucket(move, oldValue, update);			
 		}
-
-		movesSelector.updateInternalDataStructures();
 
 		totalSolutionInitializations++;
 
@@ -248,32 +240,10 @@ public class RBallEfficientHillClimberSnapshot implements
 
 		solutionQuality += imp;
 
-		reportMovement(movesSelector.getMinImpRadius());
+		statistics.reportMovement(move);
 		moveSeveralBitsEff(move.flipVariables);
 
 		return imp;
-	}
-
-	/* Sol method */
-	private void reportMovement(int r) {
-		movesPerDistance[r]++;
-		if (profile != null) {
-			ProfileData pd;
-			if (!profile.isEmpty()) {
-				pd = profile.get(profile.size() - 1);
-			} else {
-				pd = new ProfileData(r, 0);
-				profile.add(pd);
-			}
-
-			if (pd.radius == r) {
-				pd.moves++;
-			} else {
-				pd = new ProfileData(r, 1);
-				profile.add(pd);
-			}
-		}
-
 	}
 
 	/* Sol method */
@@ -349,7 +319,7 @@ public class RBallEfficientHillClimberSnapshot implements
 				double old = move.improvement;
 				move.improvement += update;
 
-				movesSelector.changeScoreBucket(this, move, sov, old, move.improvement);
+				movesSelector.changeScoreBucket(move, old, move.improvement);
 			}
 
 			subfnsEvals[sf] = vSubI;
@@ -357,8 +327,6 @@ public class RBallEfficientHillClimberSnapshot implements
 
 
 		}
-
-		movesSelector.updateInternalDataStructures();
 
 		// Finally, flip the bit in the solution and we are done
 		for (int bit : bits) {
@@ -421,19 +389,6 @@ public class RBallEfficientHillClimberSnapshot implements
 		}
 	}
 
-    /* SOl method */
-	public List<ProfileData> getProfile() {
-		return profile;
-	}
-
-	// TODO: I have to test the profile implementation and make it accessible
-	// from the experiments classes
-
-	/* Sol method */
-	public void resetProfile() {
-		profile = new ArrayList<ProfileData>();
-	}
-
 	/* Sol method */
 	public void softRestart(int softRestart) {
 		int n = problem.getN();
@@ -446,18 +401,6 @@ public class RBallEfficientHillClimberSnapshot implements
 			moveOneBit(var);
 		}
 		collectFlips = tmp;
-	}
-
-	/* Sol method */
-	public int[] getMovesPerDinstance() {
-		return movesPerDistance;
-	}
-
-	/* Sol method */
-	public void resetMovesPerDistance() {
-		for (int i = 0; i < movesPerDistance.length; i++) {
-			movesPerDistance[i] = 0;
-		}
 	}
 
 	/* Sol method */
@@ -506,5 +449,9 @@ public class RBallEfficientHillClimberSnapshot implements
 	public RBallEfficientHillClimberForInstanceOf getHillClimberForInstanceOf() {
 		return rballfio;
 	}
+
+    public RBallHillClimberStatistics getStatistics() {
+        return statistics;
+    }
 
 }

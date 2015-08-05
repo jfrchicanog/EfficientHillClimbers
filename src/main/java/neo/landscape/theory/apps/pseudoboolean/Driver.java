@@ -83,7 +83,7 @@ public class Driver {
 		System.out.println("Stored scores:"
 				+ rballs.getHillClimberForInstanceOf().getStoredScores());
 		System.out.println("Moves perdistance:"
-				+ Arrays.toString(rballs.getMovesPerDinstance()));
+				+ Arrays.toString(rballs.getStatistics().getMovesPerDistance()));
 
 		if (sum != final_fitness - init_fitness) {
 			System.out.println("Something wrong");

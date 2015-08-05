@@ -478,7 +478,7 @@ public class EfficientHillClimberTest {
         double imp;
         long moves = 0;
 
-        rballs.resetMovesPerDistance();
+        rballs.getStatistics().resetMovesPerDistance();
 
         try {
             do {
@@ -495,13 +495,13 @@ public class EfficientHillClimberTest {
         if (out != null) {
 
             Assert.assertEquals("Discrepancy in moves (N="+N+", r="+r+", seed="+seed+")", out.moves,  moves);
-            Assert.assertArrayEquals("Discrepancy in move histogram (N="+N+", r="+r+", seed="+seed+")", out.histogram, rballs.getMovesPerDinstance());
+            Assert.assertArrayEquals("Discrepancy in move histogram (N="+N+", r="+r+", seed="+seed+")", out.histogram, rballs.getStatistics().getMovesPerDistance());
             Assert.assertEquals("Discrepancy in final quality (N="+N+", r="+r+", seed="+seed+")", out.quality,  final_quality, 0.0001);
         }
         else {
             System.out.println("o.moves="+moves+";");
             System.out.println("o.quality="+final_quality+";");
-            String histogram = Arrays.toString(rballs.getMovesPerDinstance());
+            String histogram = Arrays.toString(rballs.getStatistics().getMovesPerDistance());
             histogram = histogram.replace('[', '{').replace(']', '}');
             System.out.println("o.histogram= new int [] "+histogram+";");
         }

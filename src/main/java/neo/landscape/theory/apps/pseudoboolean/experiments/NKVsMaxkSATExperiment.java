@@ -242,7 +242,7 @@ public class NKVsMaxkSATExperiment implements Process {
 			double imp;
 			long moves = 0;
 
-			rballs.resetMovesPerDistance();
+			rballs.getStatistics().resetMovesPerDistance();
 
 			do {
 				imp = rballs.move();
@@ -266,7 +266,7 @@ public class NKVsMaxkSATExperiment implements Process {
 			if (trace) {
 				ps.println("Moves: " + moves);
 				ps.println("Move histogram: "
-						+ Arrays.toString(rballs.getMovesPerDinstance()));
+						+ Arrays.toString(rballs.getStatistics().getMovesPerDistance()));
 				ps.println("Improvement: " + (finalQuality - initialQuality));
 				ps.println("Best solution quality: " + solQuality);
 				ps.println("Elapsed Time: " + (elapsedTime - initTime));

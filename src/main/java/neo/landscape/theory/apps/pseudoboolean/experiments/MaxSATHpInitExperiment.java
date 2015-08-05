@@ -180,7 +180,7 @@ public class MaxSATHpInitExperiment implements Process {
 			double imp;
 			long moves = 0;
 
-			rballs.resetMovesPerDistance();
+			rballs.getStatistics().resetMovesPerDistance();
 
 			do {
 				imp = rballs.move();
@@ -198,7 +198,7 @@ public class MaxSATHpInitExperiment implements Process {
 			ps.println("Initial quality: " + init_quality);
 			ps.println("Moves: " + moves);
 			ps.println("Move histogram: "
-					+ Arrays.toString(rballs.getMovesPerDinstance()));
+					+ Arrays.toString(rballs.getStatistics().getMovesPerDistance()));
 			ps.println("Final quality: " + final_quality);
 			ps.println("Elapsed Time: " + (elapsed_time - init_time));
 

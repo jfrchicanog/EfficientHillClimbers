@@ -83,7 +83,7 @@ public class MinSATExperiment implements Process {
 			double imp;
 			long moves = 0;
 
-			rball.resetMovesPerDistance();
+			rball.getStatistics().resetMovesPerDistance();
 
 			do {
 				imp = rball.move();
@@ -101,7 +101,7 @@ public class MinSATExperiment implements Process {
 
 			ps.println("Moves: " + moves);
 			ps.println("Move histogram: "
-					+ Arrays.toString(rball.getMovesPerDinstance()));
+					+ Arrays.toString(rball.getStatistics().getMovesPerDistance()));
 			ps.println("Improvement: " + (finalQuality - initialQuality));
 			ps.println("Best solution quality: " + solutionQuality);
 			ps.println("Elapsed Time: " + (elapsedTime - initTime));

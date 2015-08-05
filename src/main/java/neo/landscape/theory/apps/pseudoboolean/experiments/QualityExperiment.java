@@ -96,7 +96,7 @@ public class QualityExperiment implements Process {
 			double imp;
 			long moves = 0;
 
-			rballs.resetMovesPerDistance();
+			rballs.getStatistics().resetMovesPerDistance();
 
 			do {
 				imp = rballs.move();
@@ -114,7 +114,7 @@ public class QualityExperiment implements Process {
 
 			ps.println("Moves: " + moves);
 			ps.println("Move histogram: "
-					+ Arrays.toString(rballs.getMovesPerDinstance()));
+					+ Arrays.toString(rballs.getStatistics().getMovesPerDistance()));
 			ps.println("Improvement: " + (final_quality - init_quality));
 			ps.println("Best solution quality: " + sol_q);
 			ps.println("Elapsed Time: " + (elapsed_time - init_time));

@@ -249,7 +249,7 @@ public class MaxSATExperiment implements Process {
 			double imp;
 			long moves = 0;
 
-			rballs.resetMovesPerDistance();
+			rballs.getStatistics().resetMovesPerDistance();
 
 			do {
 				imp = rballs.move();
@@ -273,7 +273,7 @@ public class MaxSATExperiment implements Process {
 			if (trace) {
 				ps.println("Moves: " + moves);
 				ps.println("Move histogram: "
-						+ Arrays.toString(rballs.getMovesPerDinstance()));
+						+ Arrays.toString(rballs.getStatistics().getMovesPerDistance()));
 				ps.println("Improvement: " + (finalQuality - initialQuality));
 				ps.println("Best solution quality: " + solutionQuality);
 				ps.println("Elapsed Time: " + (elapsedTime - initTime));
