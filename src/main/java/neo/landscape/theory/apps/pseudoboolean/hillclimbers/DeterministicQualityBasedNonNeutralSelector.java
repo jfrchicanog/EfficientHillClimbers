@@ -7,15 +7,15 @@ import neo.landscape.theory.apps.pseudoboolean.util.ArrayBasedMovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.MovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
-public class DeterministicQualityBasedNonNeutralSelector {
-    private MovesStore movesStore;
+public class DeterministicQualityBasedNonNeutralSelector extends AbstractMovesSelector implements MovesSelector {
+    
     private int minImpRadius;
     private int minImpBucket;
     private int radius;
     private boolean lifo;
     private double[] quality_limits;
-
     public DeterministicQualityBasedNonNeutralSelector(RBallEfficientHillClimberSnapshot rBallSnapshot) {
+        randomMoves = rBallSnapshot.rball.randomMoves;
         Map<SetOfVars, Integer> map = rBallSnapshot.rballfio.minimalPerfectHash;
         radius = rBallSnapshot.rball.radius;
         quality_limits = rBallSnapshot.rball.quality_limits;
@@ -46,15 +46,23 @@ public class DeterministicQualityBasedNonNeutralSelector {
         }
     }
 
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesSelector#getMoveByID(int)
+     */
+    @Override
     public RBallPBMove getMoveByID(int id) {
         return movesStore.getMoveByID(id);
     }
 
-    public RBallPBMove getMovementFromSelector() {
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesSelector#getMovement()
+     */
+    @Override
+    public RBallPBMove getMovement() {
         if (!searchRadiusAndBucket()) {
             throw new NoImprovingMoveException();
     	} else {
-    		return movesStore.getDeterministicMove(minImpRadius, minImpBucket);
+    		return determineMovement(minImpRadius, minImpBucket);
     	}
     }
 
@@ -77,10 +85,18 @@ public class DeterministicQualityBasedNonNeutralSelector {
         return -1;
     }
 
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesSelector#allMoves()
+     */
+    @Override
     public Iterable<RBallPBMove> allMoves() {
         return movesStore.iterableOverMoves();
     }
 
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesSelector#changeScoreBucket(neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove, double, double)
+     */
+    @Override
     public void changeScoreBucket(RBallPBMove move, double oldValue, double newValue) {
         int oldQualityIndex = getQualityIndex(oldValue);
         int newQualityIndex = getQualityIndex(newValue);
@@ -95,6 +111,10 @@ public class DeterministicQualityBasedNonNeutralSelector {
         }
     }
 
+    /* (non-Javadoc)
+     * @see neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesSelector#checkCorrectPositionOfMovesInSelector()
+     */
+    @Override
     public void checkCorrectPositionOfMovesInSelector() {
         for (int p = 1; p <= radius; p++) {
     		for (int q = 0; q < movesStore.getNumberOfBuckets(p); q++) {

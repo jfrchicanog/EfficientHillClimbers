@@ -45,7 +45,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	// Main configuration parameters and variables
 
-	public DeterministicQualityBasedNonNeutralSelector movesSelector;
+	public MovesSelector movesSelector;
     /* Solution info */
 	protected boolean collectFlips;
 
@@ -216,7 +216,7 @@ public class RBallEfficientHillClimberSnapshot implements
 	public RBallPBMove getMovement() {
 	    try {
 	        if (nextMove == null) {
-	            nextMove=movesSelector.getMovementFromSelector();
+	            nextMove=movesSelector.getMovement();
 	        }
 	    } catch (NoImprovingMoveException e) {
 	    }
@@ -230,7 +230,7 @@ public class RBallEfficientHillClimberSnapshot implements
 	    
 	    RBallPBMove move;
 	    if (nextMove == null) {
-            move = movesSelector.getMovementFromSelector();;
+            move = movesSelector.getMovement();;
         } else {
             move = nextMove;
             nextMove=null;

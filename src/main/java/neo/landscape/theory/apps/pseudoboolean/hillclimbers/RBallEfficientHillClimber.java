@@ -16,6 +16,7 @@ public class RBallEfficientHillClimber implements
 	public static final String QUALITY_LIMITS = "ql";
 	public static final String SEED = "seed";
 	public static final String LIFO = "lifo";
+	public static final String RANDOM_MOVES = "random";
 
 	/* Operator dependent structures */
 
@@ -24,6 +25,7 @@ public class RBallEfficientHillClimber implements
 	protected double[] quality_limits;
 	/* Operator info */
 	protected boolean lifo;
+	protected boolean randomMoves;
 	/* Operator info */
 	protected int radius;
 	protected boolean collect_flips;
@@ -52,6 +54,9 @@ public class RBallEfficientHillClimber implements
 
 		collect_flips = prop.containsKey(FLIP_STAT);
 		lifo = prop.containsKey(LIFO);
+		if (prop.containsKey(RANDOM_MOVES)) {
+		    randomMoves = prop.getProperty(RANDOM_MOVES).equals("yes");
+		}
 
 		quality_limits = quality_l;
 		this.radius = r;

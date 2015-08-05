@@ -12,22 +12,23 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class EfficientHillClimberTest {
-    
+
     public static class Output {
         public int moves;
         public int [] histogram;
         public double quality;
     };
-    
-    private Map<Integer, Map<Long, Output>> randomN, randomR, adjacentN, adjacentR;
+
+    private Map<Integer, Map<Long, Output>> randomN, randomR, adjacentN, adjacentR, randomMoves;
     private Output o;
     private Map<Long, Output> mapSeed;
-    
+
     public EfficientHillClimberTest() {
         loadAdjacentRValues();
         loadAdjacentNValues();
         loadRandomRValues();
         loadRandomNValues();
+        loadRandomMovesValues();
     }
 
 
@@ -251,7 +252,62 @@ public class EfficientHillClimberTest {
         randomN.put(5000,mapSeed);
     }
 
-    
+    private void loadRandomMovesValues() {
+        randomMoves = new HashMap<Integer, Map<Long, Output>>();
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=612;
+        o.quality=72419.0;
+        o.histogram= new int [] {0, 569, 43};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=599;
+        o.quality=73631.0;
+        o.histogram= new int [] {0, 550, 49};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=604;
+        o.quality=73414.0;
+        o.histogram= new int [] {0, 557, 47};
+        mapSeed.put(20L,o);
+        randomMoves.put(1000,mapSeed);
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=1199;
+        o.quality=146655.0;
+        o.histogram= new int [] {0, 1085, 114};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=1162;
+        o.quality=144920.0;
+        o.histogram= new int [] {0, 1058, 104};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=1192;
+        o.quality=145295.0;
+        o.histogram= new int [] {0, 1084, 108};
+        mapSeed.put(20L,o);
+        randomMoves.put(2000,mapSeed);
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=2927;
+        o.quality=363125.0;
+        o.histogram= new int [] {0, 2633, 294};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=2907;
+        o.quality=360829.0;
+        o.histogram= new int [] {0, 2631, 276};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=3096;
+        o.quality=365361.0;
+        o.histogram= new int [] {0, 2803, 293};
+        mapSeed.put(20L,o);
+        randomMoves.put(5000,mapSeed);
+    }
+
+
     @Test
     public void testAdjacentChangingR() {
         int N=10000;
@@ -376,6 +432,27 @@ public class EfficientHillClimberTest {
             putInMapIfNecessary(variable, N, randomN);
         }
         printEpilogueIfNecessary(variable, randomN);
+    }
+    
+    @Test
+    public void testRandomChangingNWithRandomMoves() {
+        int K=2;
+        int Q=100;
+        int r=2;
+        boolean circular = false;
+        String variable = "randomMoves";
+        
+        printPreambleIfNecessary(variable, randomMoves);
+        for (int N: new int [] {1000, 2000, 5000}) {
+            creaMapSeedIfNecessary(randomMoves);
+            for (long seed: new long [] {0, 10, 20} ) {
+                createOutputIfNecessary(randomMoves);
+                runAndCheckConfigurationWithRandomMoves(seed, r, N, K, Q, circular, (randomMoves==null)?null:randomMoves.get(N).get(seed));
+                putInMapSeedIfNecessary(seed, randomMoves);
+            }
+            putInMapIfNecessary(variable, N, randomMoves);
+        }
+        printEpilogueIfNecessary(variable, randomMoves);
     }
     
     @Test
@@ -515,5 +592,72 @@ public class EfficientHillClimberTest {
 //        System.out.println("Move histogram: " + Arrays.toString(rballs.getMovesPerDinstance()));
 //        System.out.println("Final quality: " + final_quality);
     }
+    
+    private void runAndCheckConfigurationWithRandomMoves(long seed, int r, int N, int K, int Q, boolean circular, Output out) {
+        NKLandscapes pbf = new NKLandscapes();
+        Properties prop = new Properties();
+        prop.setProperty(NKLandscapes.N_STRING, ""+N);
+        prop.setProperty(NKLandscapes.K_STRING, ""+K);
+        prop.setProperty(NKLandscapes.Q_STRING, ""+Q);
+        prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular?"yes":"no");
+
+        pbf.setSeed(seed);
+        pbf.setConfiguration(prop);
+
+        Properties configuration = new Properties();
+        configuration.setProperty(RBallEfficientHillClimber.R_STRING, "" + r);
+        configuration.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
+        configuration.setProperty(RBallEfficientHillClimber.RANDOM_MOVES, "yes");
+        
+        
+        RBallEfficientHillClimber rball = new RBallEfficientHillClimber(configuration);
+        RBallEfficientHillClimberForInstanceOf rballf = (RBallEfficientHillClimberForInstanceOf) rball
+                .initialize(pbf);
+
+        PBSolution pbs = pbf.getRandomSolution();
+        RBallEfficientHillClimberSnapshot rballs = (RBallEfficientHillClimberSnapshot) rballf
+                .initialize(pbs);
+
+        double imp;
+        long moves = 0;
+
+        rballs.getStatistics().resetMovesPerDistance();
+
+        try {
+            do {
+                imp = rballs.move();
+                moves++;
+            } while (imp > 0);
+            moves--;
+        } catch (NoImprovingMoveException e) {
+
+        }
+
+        double final_quality = rballs.getSolutionQuality();
+
+        if (out != null) {
+
+            Assert.assertEquals("Discrepancy in moves (N="+N+", r="+r+", seed="+seed+")", out.moves,  moves);
+            Assert.assertArrayEquals("Discrepancy in move histogram (N="+N+", r="+r+", seed="+seed+")", out.histogram, rballs.getStatistics().getMovesPerDistance());
+            Assert.assertEquals("Discrepancy in final quality (N="+N+", r="+r+", seed="+seed+")", out.quality,  final_quality, 0.0001);
+        }
+        else {
+            System.out.println("o.moves="+moves+";");
+            System.out.println("o.quality="+final_quality+";");
+            String histogram = Arrays.toString(rballs.getStatistics().getMovesPerDistance());
+            histogram = histogram.replace('[', '{').replace(']', '}');
+            System.out.println("o.histogram= new int [] "+histogram+";");
+        }
+//        System.out.println("N: "+N);
+//        System.out.println("K: "+K);
+//        System.out.println("Q: "+Q);
+//        System.out.println("Seed: "+seed);
+//        System.out.println("r: "+r);
+//        System.out.println("Circular: "+circular);
+//        System.out.println("Moves: " + moves);
+//        System.out.println("Move histogram: " + Arrays.toString(rballs.getMovesPerDinstance()));
+//        System.out.println("Final quality: " + final_quality);
+    }
+
 
 }
