@@ -31,229 +31,225 @@ public class EfficientHillClimberTest {
     }
 
 
-    private void loadRandomNValues() {
-        randomN = new HashMap<Integer, Map<Long, Output>>();
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=649;
-        o.quality=73183.0;
-        o.histogram= new int [] {0, 590, 59};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=537;
-        o.quality=72781.0;
-        o.histogram= new int [] {0, 481, 56};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=588;
-        o.quality=73229.0;
-        o.histogram= new int [] {0, 544, 44};
-        mapSeed.put(20L,o);
-        randomN.put(1000,mapSeed);
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=1152;
-        o.quality=145641.0;
-        o.histogram= new int [] {0, 1048, 104};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=1110;
-        o.quality=144739.0;
-        o.histogram= new int [] {0, 996, 114};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=1192;
-        o.quality=145153.0;
-        o.histogram= new int [] {0, 1072, 120};
-        mapSeed.put(20L,o);
-        randomN.put(2000,mapSeed);
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=2888;
-        o.quality=363700.0;
-        o.histogram= new int [] {0, 2606, 282};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=2827;
-        o.quality=361468.0;
-        o.histogram= new int [] {0, 2600, 227};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=2873;
-        o.quality=364617.0;
-        o.histogram= new int [] {0, 2635, 238};
-        mapSeed.put(20L,o);
-        randomN.put(5000,mapSeed);
-    }
-
-
-    private void loadRandomRValues() {
-        randomR = new HashMap<Integer, Map<Long, Output>>();
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=4637;
-        o.quality=703592.0;
-        o.histogram= new int [] {0, 4637};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=4704;
-        o.quality=702118.0;
-        o.histogram= new int [] {0, 4704};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=4842;
-        o.quality=706623.0;
-        o.histogram= new int [] {0, 4842};
-        mapSeed.put(20L,o);
-        randomR.put(1,mapSeed);
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=5609;
-        o.quality=725546.0;
-        o.histogram= new int [] {0, 5089, 520};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=5684;
-        o.quality=724208.0;
-        o.histogram= new int [] {0, 5165, 519};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=5783;
-        o.quality=727537.0;
-        o.histogram= new int [] {0, 5276, 507};
-        mapSeed.put(20L,o);
-        randomR.put(2,mapSeed);
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=6066;
-        o.quality=734023.0;
-        o.histogram= new int [] {0, 5271, 617, 178};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=6183;
-        o.quality=732755.0;
-        o.histogram= new int [] {0, 5363, 646, 174};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=6265;
-        o.quality=734907.0;
-        o.histogram= new int [] {0, 5469, 595, 201};
-        mapSeed.put(20L,o);
-        randomR.put(3,mapSeed);
-    }
-
-
-    private void loadAdjacentNValues() {
-        adjacentN = new HashMap<Integer, Map<Long, Output>>();
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=582;
-        o.quality=72904.0;
-        o.histogram= new int [] {0, 511, 71};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=562;
-        o.quality=73377.0;
-        o.histogram= new int [] {0, 499, 63};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=569;
-        o.quality=73309.0;
-        o.histogram= new int [] {0, 500, 69};
-        mapSeed.put(20L,o);
-        adjacentN.put(1000,mapSeed);
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=1139;
-        o.quality=145611.0;
-        o.histogram= new int [] {0, 997, 142};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=1200;
-        o.quality=147489.0;
-        o.histogram= new int [] {0, 1056, 144};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=1110;
-        o.quality=146353.0;
-        o.histogram= new int [] {0, 974, 136};
-        mapSeed.put(20L,o);
-        adjacentN.put(2000,mapSeed);
-        mapSeed = new HashMap<Long, Output>();
-        o = new Output();
-        o.moves=2806;
-        o.quality=365571.0;
-        o.histogram= new int [] {0, 2473, 333};
-        mapSeed.put(0L,o);
-        o = new Output();
-        o.moves=2890;
-        o.quality=363273.0;
-        o.histogram= new int [] {0, 2502, 388};
-        mapSeed.put(10L,o);
-        o = new Output();
-        o.moves=2781;
-        o.quality=366490.0;
-        o.histogram= new int [] {0, 2414, 367};
-        mapSeed.put(20L,o);
-        adjacentN.put(5000,mapSeed);
-    }
-
-
     private void loadAdjacentRValues() {
         adjacentR = new HashMap<Integer, Map<Long, Output>>();
         mapSeed = new HashMap<Long, Output>();
         o = new Output();
-        o.moves=4691;
-        o.quality=706563.0;
-        o.histogram= new int [] {0, 4691};
+        o.moves=4680;
+        o.quality=703666.0;
+        o.histogram= new int [] {0, 4680};
         mapSeed.put(0L,o);
         o = new Output();
-        o.moves=4640;
-        o.quality=701974.0;
-        o.histogram= new int [] {0, 4640};
+        o.moves=4579;
+        o.quality=699278.0;
+        o.histogram= new int [] {0, 4579};
         mapSeed.put(10L,o);
         o = new Output();
-        o.moves=4833;
-        o.quality=703620.0;
-        o.histogram= new int [] {0, 4833};
+        o.moves=4776;
+        o.quality=701325.0;
+        o.histogram= new int [] {0, 4776};
         mapSeed.put(20L,o);
         adjacentR.put(1,mapSeed);
         mapSeed = new HashMap<Long, Output>();
         o = new Output();
-        o.moves=5674;
-        o.quality=733388.0;
-        o.histogram= new int [] {0, 5003, 671};
+        o.moves=5729;
+        o.quality=732370.0;
+        o.histogram= new int [] {0, 4993, 736};
         mapSeed.put(0L,o);
         o = new Output();
-        o.moves=5666;
-        o.quality=727642.0;
-        o.histogram= new int [] {0, 4983, 683};
+        o.moves=5701;
+        o.quality=727236.0;
+        o.histogram= new int [] {0, 4969, 732};
         mapSeed.put(10L,o);
         o = new Output();
-        o.moves=5898;
-        o.quality=730969.0;
-        o.histogram= new int [] {0, 5124, 774};
+        o.moves=5932;
+        o.quality=730997.0;
+        o.histogram= new int [] {0, 5156, 776};
         mapSeed.put(20L,o);
         adjacentR.put(2,mapSeed);
         mapSeed = new HashMap<Long, Output>();
         o = new Output();
-        o.moves=6086;
-        o.quality=741117.0;
-        o.histogram= new int [] {0, 5104, 741, 241};
+        o.moves=6162;
+        o.quality=740463.0;
+        o.histogram= new int [] {0, 5119, 795, 248};
         mapSeed.put(0L,o);
         o = new Output();
-        o.moves=6051;
-        o.quality=735734.0;
-        o.histogram= new int [] {0, 5072, 735, 244};
+        o.moves=6065;
+        o.quality=735681.0;
+        o.histogram= new int [] {0, 5044, 769, 252};
         mapSeed.put(10L,o);
         o = new Output();
-        o.moves=6243;
-        o.quality=738325.0;
-        o.histogram= new int [] {0, 5220, 803, 220};
+        o.moves=6306;
+        o.quality=738230.0;
+        o.histogram= new int [] {0, 5251, 834, 221};
         mapSeed.put(20L,o);
         adjacentR.put(3,mapSeed);
-        
-    }
+        }
+
+        private void loadAdjacentNValues() {
+        adjacentN = new HashMap<Integer, Map<Long, Output>>();
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=560;
+        o.quality=72949.0;
+        o.histogram= new int [] {0, 492, 68};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=588;
+        o.quality=73098.0;
+        o.histogram= new int [] {0, 514, 74};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=565;
+        o.quality=73411.0;
+        o.histogram= new int [] {0, 497, 68};
+        mapSeed.put(20L,o);
+        adjacentN.put(1000,mapSeed);
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=1159;
+        o.quality=145690.0;
+        o.histogram= new int [] {0, 1015, 144};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=1191;
+        o.quality=147069.0;
+        o.histogram= new int [] {0, 1037, 154};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=1114;
+        o.quality=146234.0;
+        o.histogram= new int [] {0, 988, 126};
+        mapSeed.put(20L,o);
+        adjacentN.put(2000,mapSeed);
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=2826;
+        o.quality=365131.0;
+        o.histogram= new int [] {0, 2460, 366};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=2881;
+        o.quality=362351.0;
+        o.histogram= new int [] {0, 2480, 401};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=2813;
+        o.quality=366014.0;
+        o.histogram= new int [] {0, 2417, 396};
+        mapSeed.put(20L,o);
+        adjacentN.put(5000,mapSeed);
+        }
+
+        private void loadRandomRValues() {
+        randomR = new HashMap<Integer, Map<Long, Output>>();
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=5047;
+        o.quality=702456.0;
+        o.histogram= new int [] {0, 5047};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=5197;
+        o.quality=702105.0;
+        o.histogram= new int [] {0, 5197};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=5174;
+        o.quality=702606.0;
+        o.histogram= new int [] {0, 5174};
+        mapSeed.put(20L,o);
+        randomR.put(1,mapSeed);
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=6113;
+        o.quality=725829.0;
+        o.histogram= new int [] {0, 5595, 518};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=6232;
+        o.quality=726146.0;
+        o.histogram= new int [] {0, 5684, 548};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=6300;
+        o.quality=726876.0;
+        o.histogram= new int [] {0, 5745, 555};
+        mapSeed.put(20L,o);
+        randomR.put(2,mapSeed);
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=6620;
+        o.quality=734192.0;
+        o.histogram= new int [] {0, 5806, 631, 183};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=6736;
+        o.quality=733692.0;
+        o.histogram= new int [] {0, 5912, 649, 175};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=6726;
+        o.quality=735082.0;
+        o.histogram= new int [] {0, 5906, 650, 170};
+        mapSeed.put(20L,o);
+        randomR.put(3,mapSeed);
+        }
+
+        private void loadRandomNValues() {
+        randomN = new HashMap<Integer, Map<Long, Output>>();
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=665;
+        o.quality=73048.0;
+        o.histogram= new int [] {0, 605, 60};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=585;
+        o.quality=72865.0;
+        o.histogram= new int [] {0, 537, 48};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=621;
+        o.quality=73342.0;
+        o.histogram= new int [] {0, 573, 48};
+        mapSeed.put(20L,o);
+        randomN.put(1000,mapSeed);
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=1202;
+        o.quality=144963.0;
+        o.histogram= new int [] {0, 1097, 105};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=1195;
+        o.quality=145062.0;
+        o.histogram= new int [] {0, 1079, 116};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=1229;
+        o.quality=144655.0;
+        o.histogram= new int [] {0, 1141, 88};
+        mapSeed.put(20L,o);
+        randomN.put(2000,mapSeed);
+        mapSeed = new HashMap<Long, Output>();
+        o = new Output();
+        o.moves=3126;
+        o.quality=363579.0;
+        o.histogram= new int [] {0, 2837, 289};
+        mapSeed.put(0L,o);
+        o = new Output();
+        o.moves=3038;
+        o.quality=362901.0;
+        o.histogram= new int [] {0, 2768, 270};
+        mapSeed.put(10L,o);
+        o = new Output();
+        o.moves=3155;
+        o.quality=364150.0;
+        o.histogram= new int [] {0, 2877, 278};
+        mapSeed.put(20L,o);
+        randomN.put(5000,mapSeed);
+        }
 
     
     @Test
@@ -274,6 +270,7 @@ public class EfficientHillClimberTest {
             }
             putInMapIfNecessary(variable, r, adjacentR);
         }
+        printEpilogueIfNecessary(variable, adjacentR);
 
     }
     
@@ -295,6 +292,7 @@ public class EfficientHillClimberTest {
             }
             putInMapIfNecessary(variable, N, adjacentN);
         }
+        printEpilogueIfNecessary(variable, adjacentN);
 
     }
 
@@ -324,7 +322,16 @@ public class EfficientHillClimberTest {
 
     private void printPreambleIfNecessary(String variable, Map<Integer, Map<Long, Output>> map) {
         if (map == null) {
+            String methodName = "load"+Character.toUpperCase(variable.charAt(0))+variable.substring(1)+"Values";
+            ;
+            System.out.println("private void "+methodName+"() {");
             System.out.println(variable+" = new HashMap<Integer, Map<Long, Output>>();");
+        }
+    }
+    
+    private void printEpilogueIfNecessary(String variable, Map<Integer, Map<Long, Output>> map) {
+        if (map == null) {
+            System.out.println("}\n");
         }
     }
 
@@ -346,6 +353,7 @@ public class EfficientHillClimberTest {
             }
             putInMapIfNecessary(variable, r, randomR);
         }
+        printEpilogueIfNecessary(variable, randomR);
 
     }
     
@@ -367,6 +375,7 @@ public class EfficientHillClimberTest {
             }
             putInMapIfNecessary(variable, N, randomN);
         }
+        printEpilogueIfNecessary(variable, randomN);
     }
 
 

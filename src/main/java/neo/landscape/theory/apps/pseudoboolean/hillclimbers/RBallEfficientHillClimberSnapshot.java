@@ -184,9 +184,7 @@ public class RBallEfficientHillClimberSnapshot implements
 			double oldValue = move.improvement;
 			move.improvement = update;
 
-			rball.lifo=true;
-			movesSelector.changeScoreBucket(this, move, sov, oldValue, update);
-			rball.lifo=false;
+			movesSelector.changeScoreBucket(this, move, sov, oldValue, update);			
 		}
 
 		movesSelector.updateInternalDataStructures();

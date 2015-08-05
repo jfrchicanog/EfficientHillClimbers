@@ -1,8 +1,9 @@
 package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import java.util.Map;
+import java.util.Random;
 
-import neo.landscape.theory.apps.pseudoboolean.util.DoubleLinkedListBasedStore;
+import neo.landscape.theory.apps.pseudoboolean.util.ArrayBasedMovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.MovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
@@ -19,18 +20,18 @@ public class DeterministicQualityBasedNonNeutralSelector {
         int buckets = 2 + ((rBallSnapshot.rball.quality_limits == null) ? 0
                 : rBallSnapshot.rball.quality_limits.length);
         
-        movesStore = createMovesStore(radius, buckets, map);
+        movesStore = createMovesStore(radius, buckets, map, rBallSnapshot.rnd);
         initializeMaxScores();
         for (int i = 1; i <= radius; i++) {
             maxNonEmptyScore[i] = 0;
         }
     }
     
-    private MovesStore createMovesStore(int radius, int buckets, Map<SetOfVars, Integer> minimalPerfectHash) {
-        return new DoubleLinkedListBasedStore(radius, buckets, minimalPerfectHash);
-        //long seed = rnd.nextLong();
+    private MovesStore createMovesStore(int radius, int buckets, Map<SetOfVars, Integer> minimalPerfectHash, Random rnd) {
+        //return new DoubleLinkedListBasedStore(radius, buckets, minimalPerfectHash);
+        long seed = rnd.nextLong();
         //System.out.println("Otra: "+seed);
-        //return new ArrayBasedMovesStore(radius, buckets, minimalPerfectHash, seed);
+        return new ArrayBasedMovesStore(radius, buckets, minimalPerfectHash, seed);
     }
 
     private void initializeMaxScores() {
