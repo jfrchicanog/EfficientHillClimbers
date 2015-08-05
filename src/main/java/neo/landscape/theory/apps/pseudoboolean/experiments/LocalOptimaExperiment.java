@@ -77,10 +77,9 @@ public class LocalOptimaExperiment implements Process {
 		return "Arguments: " + getID() + " <n> <k> <q> <circular> <r> [<seed>]";
 	}
 
-	private void notifyLocalOptima(RBallEfficientHillClimberSnapshot rball,
+	private void checkAndNotifyLocalOptima(RBallEfficientHillClimberSnapshot rball,
 			NKLandscapes pbf) {
-		double imp = rball.getMovement().getImprovement();
-		if (imp <= 0.0) {
+		if (rball.getMovement()==null || rball.getMovement().getImprovement() <= 0.0) {
 			PBSolution lo = new PBSolution(rball.getSolution());
 			double val = pbf.evaluate(lo);
 			System.out.println(wI(localOptima.size()) + ": " + lo + ": " + val);
@@ -244,10 +243,10 @@ public class LocalOptimaExperiment implements Process {
     private List<PBSolution> findLocalOptima() {
         initTime = System.currentTimeMillis();
 
-		notifyLocalOptima(rball, pbf);
+		checkAndNotifyLocalOptima(rball, pbf);
 		for (int bit : new GrayCodeBitFlipIterable(pbf.getN())) {
 			rball.moveOneBit(bit);
-			notifyLocalOptima(rball, pbf);
+			checkAndNotifyLocalOptima(rball, pbf);
 		}
 
 		finalTime = System.currentTimeMillis();

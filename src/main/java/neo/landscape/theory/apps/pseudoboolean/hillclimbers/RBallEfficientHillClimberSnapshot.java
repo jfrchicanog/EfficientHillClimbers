@@ -54,6 +54,9 @@ public class RBallEfficientHillClimberSnapshot implements
 	// Used for soft restarts
 	/* Solution info */
 	protected Random rnd;
+	
+	// For getMovement
+	protected RBallPBMove nextMove;
 
 	// Auxiliary data structures
 	private int[] flippedBits;
@@ -219,19 +222,28 @@ public class RBallEfficientHillClimberSnapshot implements
 	/* Sol method */
 	@Override
 	public RBallPBMove getMovement() {
-		return movesSelector.getMovementFromSelector(this, radius);
+	    try {
+	        if (nextMove == null) {
+	            nextMove=movesSelector.getMovementFromSelector();
+	        }
+	    } catch (NoImprovingMoveException e) {
+	    }
+	    return nextMove;
+		
 	}
 
     /* Sol method */
 	@Override
 	public double move() {
-		if (movesSelector.getMinImpRadius() > radius) {
-			return 0;
-		}
+	    
+	    RBallPBMove move;
+	    if (nextMove == null) {
+            move = movesSelector.getMovementFromSelector();;
+        } else {
+            move = nextMove;
+            nextMove=null;
+        }
 
-		// else
-
-		RBallPBMove move = movesSelector.getMovementFromSelector(this, radius);
 		double imp = move.improvement;
 
 		solutionQuality += imp;

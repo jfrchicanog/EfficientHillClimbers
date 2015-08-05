@@ -48,11 +48,11 @@ public class DeterministicQualityBasedNonNeutralSelector {
         return movesStore.getMoveByID(id);
     }
 
-    public RBallPBMove getMovementFromSelector(RBallEfficientHillClimberSnapshot rBallEfficientHillClimberSnapshot, int r) {
-        if (getMinImpRadius() > r) {
-    		return new RBallPBMove(0, rBallEfficientHillClimberSnapshot.problem.getN());
+    public RBallPBMove getMovementFromSelector() {
+        if (getMinImpRadius() > radius) {
+            throw new NoImprovingMoveException();
     	} else {
-    		return movesStore.getDeterministicMove(getMinImpRadius(), maxNonEmptyScore[getMinImpRadius()]);
+    		return movesStore.getDeterministicMove(minImpRadius, maxNonEmptyScore[minImpRadius]);
     	}
     }
 

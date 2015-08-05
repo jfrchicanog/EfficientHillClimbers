@@ -29,6 +29,7 @@ public class RBallEfficientHillClimber implements
 	protected boolean collect_flips;
 	protected Properties configuration;
 	protected Random rnd;
+	
 
 	public RBallEfficientHillClimber(Properties prop) {
 		configuration = (Properties) prop.clone();

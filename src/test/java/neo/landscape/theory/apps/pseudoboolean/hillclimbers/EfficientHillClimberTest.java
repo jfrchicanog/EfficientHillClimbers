@@ -84,9 +84,9 @@ public class EfficientHillClimberTest {
         o.histogram= new int [] {0, 5251, 834, 221};
         mapSeed.put(20L,o);
         adjacentR.put(3,mapSeed);
-        }
+    }
 
-        private void loadAdjacentNValues() {
+    private void loadAdjacentNValues() {
         adjacentN = new HashMap<Integer, Map<Long, Output>>();
         mapSeed = new HashMap<Long, Output>();
         o = new Output();
@@ -139,9 +139,9 @@ public class EfficientHillClimberTest {
         o.histogram= new int [] {0, 2417, 396};
         mapSeed.put(20L,o);
         adjacentN.put(5000,mapSeed);
-        }
+    }
 
-        private void loadRandomRValues() {
+    private void loadRandomRValues() {
         randomR = new HashMap<Integer, Map<Long, Output>>();
         mapSeed = new HashMap<Long, Output>();
         o = new Output();
@@ -194,9 +194,9 @@ public class EfficientHillClimberTest {
         o.histogram= new int [] {0, 5906, 650, 170};
         mapSeed.put(20L,o);
         randomR.put(3,mapSeed);
-        }
+    }
 
-        private void loadRandomNValues() {
+    private void loadRandomNValues() {
         randomN = new HashMap<Integer, Map<Long, Output>>();
         mapSeed = new HashMap<Long, Output>();
         o = new Output();
@@ -249,7 +249,7 @@ public class EfficientHillClimberTest {
         o.histogram= new int [] {0, 2877, 278};
         mapSeed.put(20L,o);
         randomN.put(5000,mapSeed);
-        }
+    }
 
     
     @Test
@@ -377,6 +377,83 @@ public class EfficientHillClimberTest {
         }
         printEpilogueIfNecessary(variable, randomN);
     }
+    
+    @Test
+    public void testGetMovementNoException() {
+        int K=2;
+        int Q=100;
+        int r=2;
+        boolean circular = false;
+        for (int N: new int [] {1000, 2000, 5000}) {
+            for (long seed: new long [] {0, 10, 20} ) {
+                NKLandscapes pbf = new NKLandscapes();
+                Properties prop = new Properties();
+                prop.setProperty(NKLandscapes.N_STRING, ""+N);
+                prop.setProperty(NKLandscapes.K_STRING, ""+K);
+                prop.setProperty(NKLandscapes.Q_STRING, ""+Q);
+                prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular?"yes":"no");
+
+                pbf.setSeed(seed);
+                pbf.setConfiguration(prop);
+
+                RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, seed);
+                RBallEfficientHillClimberForInstanceOf rballf = (RBallEfficientHillClimberForInstanceOf) rball
+                        .initialize(pbf);
+
+                PBSolution pbs = pbf.getRandomSolution();
+                RBallEfficientHillClimberSnapshot rballs = (RBallEfficientHillClimberSnapshot) rballf
+                        .initialize(pbs);
+                
+                RBallPBMove move = rballs.getMovement();
+                RBallPBMove secondMove = rballs.getMovement();
+                
+                Assert.assertNotNull(move);
+                Assert.assertSame(move, secondMove);
+            }
+        }
+    }
+    
+    @Test
+    public void testGetMovementException() {
+        int K=2;
+        int Q=100;
+        int r=2;
+        boolean circular = false;
+        for (int N: new int [] {1000, 2000, 5000}) {
+            for (long seed: new long [] {0, 10, 20} ) {
+                NKLandscapes pbf = new NKLandscapes();
+                Properties prop = new Properties();
+                prop.setProperty(NKLandscapes.N_STRING, ""+N);
+                prop.setProperty(NKLandscapes.K_STRING, ""+K);
+                prop.setProperty(NKLandscapes.Q_STRING, ""+Q);
+                prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular?"yes":"no");
+
+                pbf.setSeed(seed);
+                pbf.setConfiguration(prop);
+
+                RBallEfficientHillClimber rball = new RBallEfficientHillClimber(r, seed);
+                RBallEfficientHillClimberForInstanceOf rballf = (RBallEfficientHillClimberForInstanceOf) rball
+                        .initialize(pbf);
+
+                PBSolution pbs = pbf.getRandomSolution();
+                RBallEfficientHillClimberSnapshot rballs = (RBallEfficientHillClimberSnapshot) rballf
+                        .initialize(pbs);
+                
+                double imp;
+                try {
+                    do {
+                        imp = rballs.move();
+                    } while (imp > 0);
+                    Assert.fail ("Exception not launched");
+                } catch (NoImprovingMoveException e) {
+
+                }
+                
+                Assert.assertNull(rballs.getMovement());
+
+            }
+        }
+    }
 
 
     private void runAndCheckConfiguration(long seed, int r, int N, int K, int Q, boolean circular, Output out) {
@@ -403,11 +480,15 @@ public class EfficientHillClimberTest {
 
         rballs.resetMovesPerDistance();
 
-        do {
-            imp = rballs.move();
-            moves++;
-        } while (imp > 0);
-        moves--;
+        try {
+            do {
+                imp = rballs.move();
+                moves++;
+            } while (imp > 0);
+            moves--;
+        } catch (NoImprovingMoveException e) {
+
+        }
 
         double final_quality = rballs.getSolutionQuality();
 
