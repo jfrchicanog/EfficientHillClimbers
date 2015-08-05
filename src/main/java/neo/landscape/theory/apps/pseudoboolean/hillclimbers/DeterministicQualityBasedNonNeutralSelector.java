@@ -11,6 +11,7 @@ public class DeterministicQualityBasedNonNeutralSelector {
     public MovesStore movesStore;
     public int[] maxNonEmptyScore;
     private int minImpRadius;
+    private int minImpBucket;
     private int radius;
     private boolean lifo;
     private double[] quality_limits;
@@ -71,7 +72,24 @@ public class DeterministicQualityBasedNonNeutralSelector {
     	}
     }
 
-    
+    private boolean searchRadiusAndBucket() {
+        for (minImpRadius=1; minImpRadius <= radius; minImpRadius++) {
+            minImpBucket = searchBucketInRadius(minImpRadius);
+            if (minImpBucket >= 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int searchBucketInRadius(int radius) {
+        for (int bucket=movesStore.getNumberOfBuckets(radius)-1; bucket >= 1; bucket--) {
+            if (!movesStore.isBucketEmpty(radius, bucket)) {
+                return bucket;
+            }
+        }
+        return -1;
+    }
 
     public Iterable<RBallPBMove> allMoves() {
         return movesStore.iterableOverMoves();
