@@ -366,30 +366,10 @@ public class RBallEfficientHillClimberSnapshot implements
 
 		}
 		// Check if they are in the correct list
-		for (int p = 1; p <= radius; p++) {
-			for (int q = 0; q < movesSelector.movesStore.getNumberOfBuckets(p); q++) {
-				for (RBallPBMove move : movesSelector.movesStore.iterableOverBucket(p, q)) {
-					assert move.flipVariables.size() == p;
-
-					if (q == 0) {
-						assert move.improvement <= 0;
-					} else if (q == 1) {
-						assert move.improvement > 0;
-						if (rball.quality_limits != null) {
-							assert move.improvement < rball.quality_limits[0];
-						}
-					} else {
-						assert (move.improvement >= rball.quality_limits[q - 2]);
-						if (q <= rball.quality_limits.length) {
-							assert move.improvement < rball.quality_limits[q - 1];
-						}
-					}
-				}
-			}
-		}
+		movesSelector.checkCorrectPositionOfMovesInSelector();
 	}
 
-	/* Sol method */
+    /* Sol method */
 	public void softRestart(int softRestart) {
 		int n = problem.getN();
 		boolean tmp = collectFlips;

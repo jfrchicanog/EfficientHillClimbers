@@ -8,8 +8,7 @@ import neo.landscape.theory.apps.pseudoboolean.util.MovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
 public class DeterministicQualityBasedNonNeutralSelector {
-    public MovesStore movesStore;
-    public int[] maxNonEmptyScore;
+    private MovesStore movesStore;
     private int minImpRadius;
     private int minImpBucket;
     private int radius;
@@ -19,15 +18,11 @@ public class DeterministicQualityBasedNonNeutralSelector {
     public DeterministicQualityBasedNonNeutralSelector(RBallEfficientHillClimberSnapshot rBallSnapshot) {
         Map<SetOfVars, Integer> map = rBallSnapshot.rballfio.minimalPerfectHash;
         radius = rBallSnapshot.rball.radius;
-        minImpRadius = radius + 1;
         quality_limits = rBallSnapshot.rball.quality_limits;
         int buckets = 2 + ((quality_limits == null) ? 0 : quality_limits.length);
         
         movesStore = createMovesStore(radius, buckets, map, rBallSnapshot.rnd);
-        initializeMaxScores();
-        for (int i = 1; i <= radius; i++) {
-            maxNonEmptyScore[i] = 0;
-        }
+
         lifo = rBallSnapshot.rball.lifo;
     }
     
@@ -38,14 +33,6 @@ public class DeterministicQualityBasedNonNeutralSelector {
         return new ArrayBasedMovesStore(radius, buckets, minimalPerfectHash, seed);
     }
 
-    private void initializeMaxScores() {
-        maxNonEmptyScore = new int[radius + 1];
-        for (int i = 1; i <= radius; i++) {
-            maxNonEmptyScore[i] = 0;
-        }
-    }
-    
-    
     private int getQualityIndex(double val) {
         if (val <= 0) {
             return 0;
@@ -64,11 +51,10 @@ public class DeterministicQualityBasedNonNeutralSelector {
     }
 
     public RBallPBMove getMovementFromSelector() {
-        updateInternalDataStructures();
-        if (minImpRadius > radius) {
+        if (!searchRadiusAndBucket()) {
             throw new NoImprovingMoveException();
     	} else {
-    		return movesStore.getDeterministicMove(minImpRadius, maxNonEmptyScore[minImpRadius]);
+    		return movesStore.getDeterministicMove(minImpRadius, minImpBucket);
     	}
     }
 
@@ -95,19 +81,6 @@ public class DeterministicQualityBasedNonNeutralSelector {
         return movesStore.iterableOverMoves();
     }
 
-    private void updateInternalDataStructures() {
-        minImpRadius = radius + 1;
-        for (int i = radius; i >= 1; i--) {
-            while (maxNonEmptyScore[i] > 0
-                    && movesStore.isBucketEmpty(i, maxNonEmptyScore[i])) {
-                maxNonEmptyScore[i]--;
-            }
-            if (maxNonEmptyScore[i] > 0) {
-                minImpRadius = i;
-            }
-        }
-    }
-
     public void changeScoreBucket(RBallPBMove move, double oldValue, double newValue) {
         int oldQualityIndex = getQualityIndex(oldValue);
         int newQualityIndex = getQualityIndex(newValue);
@@ -119,13 +92,31 @@ public class DeterministicQualityBasedNonNeutralSelector {
         	} else {
         	    movesStore.changeMoveBucketFIFO(p, oldQualityIndex, newQualityIndex, move);
         	}
-        
-        	if (newQualityIndex > maxNonEmptyScore[p]) {
-        		// It is an improving move (necessarily, because
-        		// maxNomEmptyScore is 0 at least
-        		maxNonEmptyScore[p] = newQualityIndex;
-        	}
         }
+    }
+
+    public void checkCorrectPositionOfMovesInSelector() {
+        for (int p = 1; p <= radius; p++) {
+    		for (int q = 0; q < movesStore.getNumberOfBuckets(p); q++) {
+    			for (RBallPBMove move : movesStore.iterableOverBucket(p, q)) {
+    				assert move.flipVariables.size() == p;
+    
+    				if (q == 0) {
+    					assert move.improvement <= 0;
+    				} else if (q == 1) {
+    					assert move.improvement > 0;
+    					if (quality_limits != null) {
+    						assert move.improvement < quality_limits[0];
+    					}
+    				} else {
+    					assert (move.improvement >= quality_limits[q - 2]);
+    					if (q <= quality_limits.length) {
+    						assert move.improvement < quality_limits[q - 1];
+    					}
+    				}
+    			}
+    		}
+    	}
     }
 
 
