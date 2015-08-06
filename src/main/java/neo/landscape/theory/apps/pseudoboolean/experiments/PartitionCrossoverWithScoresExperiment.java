@@ -14,6 +14,7 @@ import java.util.Properties;
 import java.util.Stack;
 import java.util.zip.GZIPOutputStream;
 
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
@@ -242,10 +243,14 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 	}
 
 	private void hillClimb(RBallEfficientHillClimberSnapshot rball) {
-		double imp;
-		do {
-			imp = rball.move();
-		} while (imp > 0);
+	    double imp;
+	    try {
+	        do {
+	            imp = rball.move();
+	        } while (imp > 0);
+	    } catch (NoImprovingMoveException e) {
+
+	    }
 	}
 
 }
