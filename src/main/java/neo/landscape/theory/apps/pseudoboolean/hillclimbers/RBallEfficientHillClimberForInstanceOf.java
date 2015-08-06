@@ -131,7 +131,7 @@ public class RBallEfficientHillClimberForInstanceOf implements
 				if (val == null) {
 					val = index;
 					minimalPerfectHash.put(sov, val);
-					if (sov.cardinality() == 1) {
+					if (sov.size() == 1) {
 						oneFlipScores[v] = val;
 					}
 					index++;
