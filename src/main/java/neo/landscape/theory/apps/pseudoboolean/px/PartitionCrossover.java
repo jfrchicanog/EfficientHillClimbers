@@ -17,14 +17,19 @@ import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 public class PartitionCrossover {
 
 	protected Random rnd;
-
 	protected EmbeddedLandscape el;
 	protected TwoStatesIntegerSet bfsSet;
+    protected Set<Integer> subfns;
+    protected Queue<Integer> toExplore;
+    protected Set<Integer> componentOfPartition;
 
 	public PartitionCrossover(EmbeddedLandscape el) {
 		this.el = el;
 		bfsSet = new TwoStatesISArrayImpl(el.getN());
 		rnd = new Random(Seeds.getSeed());
+		subfns = new HashSet<Integer>();
+		toExplore = new LinkedList<Integer>();
+        componentOfPartition = new HashSet<Integer>();
 	}
 
 	public void setSeed(long seed) {
@@ -73,10 +78,11 @@ public class PartitionCrossover {
 
 	protected Set<Integer> bfs(Integer node, PBSolution blue, PBSolution red) {
 
-		Queue<Integer> toExplore = new LinkedList<Integer>();
+		toExplore.clear();
+		componentOfPartition.clear();
+		
 		toExplore.add(node);
-		Set<Integer> res = new HashSet<Integer>();
-
+		
 		while (toExplore.size() > 0) {
 			// Take one node to explore
 			int var = toExplore.remove();
@@ -84,7 +90,7 @@ public class PartitionCrossover {
 				continue;
 			}
 
-			res.add(var);
+			componentOfPartition.add(var);
 			// Enumerate the adjacent variables
 			for (int adj : el.getInteractions()[var]) {
 				if (bfsSet.isExplored(adj)
@@ -100,13 +106,13 @@ public class PartitionCrossover {
 			bfsSet.explored(var);
 		}
 
-		return res;
+		return componentOfPartition;
 	}
 
 	protected double[] evaluateComponent(Set<Integer> vars, PBSolution... sol) {
 		double[] res = new double[sol.length];
 
-		Set<Integer> subfns = new HashSet<Integer>();
+		subfns.clear();
 
 		for (int v : vars) {
 			int[] fns = el.getAppearsIn()[v];
@@ -118,8 +124,7 @@ public class PartitionCrossover {
 		for (int i = 0; i < res.length; i++) {
 			res[i] = 0.0;
 			for (int fn : subfns) {
-				res[i] += el
-						.evaluateSubFunctionFromCompleteSolution(fn, sol[i]);
+				res[i] += el.evaluateSubFunctionFromCompleteSolution(fn, sol[i]);
 			}
 		}
 
@@ -127,56 +132,26 @@ public class PartitionCrossover {
 	}
 
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
-		List<Set<Integer>> partition = computePartition(blue, red);
-		List<Set<Integer>> takenFromBlue = new ArrayList<Set<Integer>>();
-		List<Set<Integer>> takenFromRed = new ArrayList<Set<Integer>>();
 
-		int blue_vars = 0;
-		int red_vars = 0;
+        bfsSet.reset();
+        
+		PBSolution child = new PBSolution(red); //child, copy of red
 
-		for (Set<Integer> component : partition) {
+		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
+		    Set<Integer> component = bfs(node, blue, red);
 			double[] vals = evaluateComponent(component, blue, red);
-			double blue_val = vals[0];
-			double red_val = vals[1];
+			
+			double blueVal = vals[0];
+			double redVal = vals[1];
 
-			if (blue_val > red_val) {
-				takenFromBlue.add(component);
-				blue_vars += component.size();
-			} else if (red_val > blue_val) {
-				takenFromRed.add(component);
-				red_vars += component.size();
-			} else {
-				if (rnd.nextDouble() < 0.5) {
-					takenFromBlue.add(component);
-					blue_vars += component.size();
-				} else {
-					takenFromRed.add(component);
-					red_vars += component.size();
-				}
+			if (blueVal > redVal || ((blueVal==redVal) && rnd.nextDouble() < 0.5)) {
+			    for (int v : component) {
+                    child.setBit(v, blue.getBit(v));
+                }
 			}
 		}
 
-		List<Set<Integer>> takenFromTheOther;
-		PBSolution theOther;
-		PBSolution res;
-
-		if (blue_vars > red_vars) {
-			res = new PBSolution(blue);
-			theOther = red;
-			takenFromTheOther = takenFromRed;
-		} else {
-			res = new PBSolution(red);
-			theOther = blue;
-			takenFromTheOther = takenFromBlue;
-		}
-
-		for (Set<Integer> comp : takenFromTheOther) {
-			for (int v : comp) {
-				res.setBit(v, theOther.getBit(v));
-			}
-		}
-
-		return res;
+		return child;
 	}
 
 
