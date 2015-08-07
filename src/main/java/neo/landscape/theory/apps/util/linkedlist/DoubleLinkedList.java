@@ -14,6 +14,7 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 	private Entry<T> first;
 	private Entry<T> last;
 	private EntryFactory<T> factory;
+	private int size;
 
 	public DoubleLinkedList() {
 		this(new DefaultEntryFactory<T>());
@@ -23,6 +24,7 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 	    this.factory = factory;
         first = null;
         last = null;
+        size=0;
     }
 
 	public void remove(Entry<T> e) {
@@ -37,6 +39,7 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 		} else {
 			last = e.getPrev();
 		}
+		size--;
 	}
 
 	public void add(Entry<T> e) {
@@ -50,6 +53,7 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 		if (last == null) {
 			last = first;
 		}
+		size++;
 	}
 
 	/**
@@ -68,6 +72,7 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 		if (first == null) {
 			first = last;
 		}
+		size++;
 	}
 
 	public void add(T t) {
@@ -121,6 +126,10 @@ public class DoubleLinkedList<T> implements Iterable<T> {
 			e = e.getNext();
 		}
 		return str + "]";
+	}
+	
+	public int size() {
+	    return size;
 	}
 
 }

@@ -18,6 +18,7 @@ public class RBallEfficientHillClimber implements
 	public static final String LIFO = "lifo";
 	public static final String RANDOM_MOVES = "random";
 	public static final String NEUTRAL_MOVES = "neutral_moves";
+	public static final String MAX_NEUTRAL_PROBABILITY = "max_neutral_probability";
 
 	/* Operator dependent structures */
 
@@ -31,6 +32,7 @@ public class RBallEfficientHillClimber implements
 	protected int radius;
 	protected boolean collectFlips;
 	protected boolean neutralMoves=true;
+	protected double maxNeutralPrbability;
 	protected Properties configuration;
 	protected Random rnd;
 	
@@ -61,6 +63,10 @@ public class RBallEfficientHillClimber implements
 		}
 		collectFlips = prop.containsKey(FLIP_STAT);
 		neutralMoves = prop.containsKey(NEUTRAL_MOVES);
+		maxNeutralPrbability = 0.5;
+		if (prop.containsKey(MAX_NEUTRAL_PROBABILITY)) {
+		    maxNeutralPrbability = Double.parseDouble(prop.getProperty(MAX_NEUTRAL_PROBABILITY));
+		}
 
 		qualityLimits = quality_l;
 		this.radius = r;

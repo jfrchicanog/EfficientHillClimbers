@@ -2,7 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
 import neo.landscape.theory.apps.pseudoboolean.util.MovesStore;
 
-public class AbstractMovesSelector {
+public abstract class AbstractMovesSelector implements MovesSelector {
 
     protected MovesStore movesStore;
     protected boolean randomMoves;
@@ -19,6 +19,11 @@ public class AbstractMovesSelector {
         }
         
         
+    }
+
+    @Override
+    public RBallPBMove getMoveByID(int id) {
+        return movesStore.getMoveByID(id);
     }
 
 }

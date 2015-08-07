@@ -110,6 +110,7 @@ public class ArrayBasedMovesStoreTest {
             count++;
         }
         Assert.assertEquals(size,  count);
+        Assert.assertEquals(size, movesStore.sizeOfBucket(radius, bucket));
     }
 
     @Test
@@ -157,5 +158,6 @@ public class ArrayBasedMovesStoreTest {
             Assert.assertEquals(r, move.flipVariables.size());
         }
     }
+
 
 }

@@ -46,6 +46,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 	private double bestSoFar;
 	private Map<Integer, Integer> crossoverFailsInGeneration;
 	private SingleThreadCPUTimer timer;
+	private int maxPlateauMoves;
 	
 
 	@Override
@@ -244,10 +245,18 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 
 	private void hillClimb(RBallEfficientHillClimberSnapshot rball) {
 	    double imp;
+	    int plateauMoves =0;
 	    try {
 	        do {
 	            imp = rball.move();
-	        } while (true);
+	            if (imp == 0) {
+	                plateauMoves++;
+	            } else  if (imp > 0) {
+	                plateauMoves =0;
+	            } else {
+	                throw new RuntimeException ("Negative move!");
+	            }
+	        } while (plateauMoves <= maxPlateauMoves);
 	    } catch (NoImprovingMoveException e) {
 
 	    }

@@ -94,7 +94,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		
 		statistics =  new RBallHillClimberStatistics(radius, rball.configuration.containsKey(RBallEfficientHillClimberSnapshot.PROFILE));
 		
-		movesSelector = new DeterministicQualityBasedNonNeutralSelector(this);
+		movesSelector = createMovesSelector();
 		initializeOperatorDependentStructures();
 		initializeProblemDependentStructuresDarrell();
 
@@ -105,6 +105,14 @@ public class RBallEfficientHillClimberSnapshot implements
 			initializeSolutionDependentStructuresFromScratch(inspectorFactory);
 		}
 	}
+
+    private MovesSelector createMovesSelector() {
+        if (rball.neutralMoves) {
+            return new NeutralSelector(this);
+        } else {
+            return new QualityBasedNonNeutralSelector(this);
+        }
+    }
 
     /* Operator / problem /sol method */
 	private void initializeOperatorDependentStructures() {

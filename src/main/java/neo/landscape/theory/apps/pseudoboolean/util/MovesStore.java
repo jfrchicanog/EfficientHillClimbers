@@ -15,8 +15,10 @@ public interface MovesStore {
     public void changeMoveBucketFIFO(int radius, int oldBucket, int newBucket, RBallPBMove move);
     
     public boolean isBucketEmpty(int radius, int bucket);
+    public int sizeOfBucket(int radius, int bucket);
     
     public RBallPBMove getDeterministicMove(int radius, int bucket);
     public RBallPBMove getRandomMove(int radius, int bucket);
+    public RBallPBMove getRandomMove(int radius, int fromBucket, int toBucket);
 
 }

@@ -121,8 +121,18 @@ public class DoubleLinkedListBasedStore implements MovesStore {
     }
 
     @Override
+<<<<<<< Upstream, based on master
     public int getNumberOfMoves() {
         return mos.length;
+=======
+    public RBallPBMove getRandomMove(int radius, int fromBucket, int toBucket) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int sizeOfBucket(int radius, int bucket) {
+        return scores[radius][bucket].size();
+>>>>>>> dd356e4 Neutral moves implemented
     }
 
 }

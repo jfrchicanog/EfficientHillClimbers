@@ -14,8 +14,11 @@ public class ArrayBasedMovesStore implements MovesStore {
     private int [][] bucketIndices;
     private Random rnd;
 
-    
     public ArrayBasedMovesStore(int radius, int buckets, Map<SetOfVars, Integer> minimalPerfectHash, long seed) {
+        this(radius, buckets, minimalPerfectHash, seed, 0);
+    }
+    
+    public ArrayBasedMovesStore(int radius, int buckets, Map<SetOfVars, Integer> minimalPerfectHash, long seed, int defaultBucket) {
         bucketIndices = new int [radius + 1][buckets+1];
         
         mos = new ArrayBasedStoreRBallPBMove[minimalPerfectHash.size()]; 
@@ -24,26 +27,26 @@ public class ArrayBasedMovesStore implements MovesStore {
             SetOfVars sov = entry.getKey();
             ArrayBasedStoreRBallPBMove e = createMove(0, sov);
             mos[entry.getValue()] = e;
-            bucketIndices[sov.size()][1]++;
+            bucketIndices[sov.size()][defaultBucket+1]++;
         }
         
         scores = new ArrayBasedStoreRBallPBMove[radius + 1][];
         
         for (int r = 1; r <= radius; r++) {
-            scores[r] = new ArrayBasedStoreRBallPBMove[bucketIndices[r][1]];
-            for(int j=2; j < bucketIndices[r].length; j++) {
+            scores[r] = new ArrayBasedStoreRBallPBMove[bucketIndices[r][defaultBucket+1]];
+            for(int j=defaultBucket+2; j < bucketIndices[r].length; j++) {
                 bucketIndices[r][j] = bucketIndices[r][j-1]; 
             }
-            bucketIndices[r][1] = 0;
+            bucketIndices[r][defaultBucket+1] = 0;
         }
         
         for (Map.Entry<SetOfVars, Integer> entry : minimalPerfectHash
                 .entrySet()) {
             int r = entry.getKey().size();
             ArrayBasedStoreRBallPBMove move = mos[entry.getValue()];
-            move.index = bucketIndices[r][1];
+            move.index = bucketIndices[r][defaultBucket+1];
             scores[r][move.index] = move;
-            bucketIndices[r][1]++;
+            bucketIndices[r][defaultBucket+1]++;
         }
         rnd = new Random(seed);
 
@@ -147,8 +150,26 @@ public class ArrayBasedMovesStore implements MovesStore {
     }
 
     @Override
+<<<<<<< Upstream, based on master
     public int getNumberOfMoves() {
         return mos.length;
     }
+=======
+    public RBallPBMove getRandomMove(int radius, int fromBucket, int toBucket) {
+        if (bucketIndices[radius][fromBucket]==bucketIndices[radius][toBucket+1]) {
+            throw new NoImprovingMoveException();
+        }
+        int size = bucketIndices[radius][toBucket+1]-bucketIndices[radius][fromBucket];
+        int randomIndex = bucketIndices[radius][fromBucket] + rnd.nextInt(size);
+        return scores[radius][randomIndex];
+    }
+
+    @Override
+    public int sizeOfBucket(int radius, int bucket) {
+        return bucketIndices[radius][bucket+1]-bucketIndices[radius][bucket];
+    }
+    
+    
+>>>>>>> dd356e4 Neutral moves implemented
 
 }
