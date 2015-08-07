@@ -78,14 +78,6 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
 		return position[v] < next;
 	}
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
-	}
-
 	@Override
 	public int getNumberOfElements() {
 		return variable.length;
