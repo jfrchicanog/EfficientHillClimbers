@@ -16,30 +16,34 @@ import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class PartitionCrossover {
 
-	protected Random rnd;
+	protected static final int VARIABLE_LIMIT = 1<<29;
+	
+    protected Random rnd;
 	protected EmbeddedLandscape el;
 	protected TwoStatesIntegerSet bfsSet;
     protected Set<Integer> subfns;
     protected Queue<Integer> toExplore;
     
-    protected int [] componentOfPartition;
-    protected int sizeOfComponent;
+    protected PartitionComponent component;
+    protected VariableProcedence varProcedence;
 
-	public PartitionCrossover(EmbeddedLandscape el) {
+    public PartitionCrossover(EmbeddedLandscape el) {
 		this.el = el;
 		bfsSet = new TwoStatesISArrayImpl(el.getN());
-		if (el.getN() > (1<<29)) {
-		    throw new RuntimeException("Solution too large, the maximum allowed is "+(1<<29));
+		if (el.getN() > VARIABLE_LIMIT) {
+		    throw new RuntimeException("Solution too large, the maximum allowed is "+VARIABLE_LIMIT);
 		}
 		
 		rnd = new Random(Seeds.getSeed());
 		subfns = new HashSet<Integer>();
 		toExplore = new LinkedList<Integer>();
-        componentOfPartition = new int [el.getN()];
-        sizeOfComponent=0;
+		ComponentAndVariableMask componentAndVariableProcedence = new ComponentAndVariableMask(el.getN());
+		component = componentAndVariableProcedence;
+		varProcedence = componentAndVariableProcedence;
+
 	}
 
-	public void setSeed(long seed) {
+    public void setSeed(long seed) {
 		rnd = new Random(seed);
 	}
 
@@ -62,23 +66,22 @@ public class PartitionCrossover {
 			v = bfsSet.getNextUnexplored();
 			if (blue.getBit(v) != red.getBit(v)) {
 			    // Mark that the bits comes from the red solution
-			    componentOfPartition[v] &= (~0x3);
-			    componentOfPartition[v] |= 0x1;
+			    varProcedence.markAsRed(v);
 				return v;
 			} else {
 				bfsSet.explored(v);
 				// Mark that both solutions have the same value
-				componentOfPartition[v] |= 0x3;
+				varProcedence.markAsPurple(v);
 			}
 		}
 
 		return null;
 	}
 
-	protected int [] bfs(Integer node, PBSolution blue, PBSolution red) {
+    protected PartitionComponent bfs(Integer node, PBSolution blue, PBSolution red) {
 
 		toExplore.clear();		
-		sizeOfComponent = 0;
+		component.clearComponent();
 		
 		toExplore.add(node);
 		
@@ -89,7 +92,7 @@ public class PartitionCrossover {
 				continue;
 			}
 
-			componentOfPartition[sizeOfComponent++] = (var << 2);
+			component.addVarToComponent(var);
 			// Enumerate the adjacent variables
 			for (int adj : el.getInteractions()[var]) {
 				if (bfsSet.isExplored(adj)
@@ -105,17 +108,16 @@ public class PartitionCrossover {
 			bfsSet.explored(var);
 		}
 
-		return componentOfPartition;
+		return component;
 	}
 
-	protected double[] evaluateComponent(int [] vars, PBSolution... sol) {
+    protected double[] evaluateComponent(Iterable<Integer> vars, PBSolution... sol) {
 		double[] res = new double[sol.length];
 
 		subfns.clear();
 
-		for (int v : vars) {
-		    int variable = (v >>> 2);
-			int[] fns = el.getAppearsIn()[variable];
+		for (int variable : vars) {
+		    int[] fns = el.getAppearsIn()[variable];
 			for (int i = 0; i < fns.length; i++) {
 				subfns.add(fns[i]);
 			}
@@ -138,26 +140,20 @@ public class PartitionCrossover {
 		PBSolution child = new PBSolution(red); //child, copy of red
 
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
-		    int [] component = bfs(node, blue, red);
+		    PartitionComponent component = bfs(node, blue, red);
 			double[] vals = evaluateComponent(component, blue, red);
 			
 			double blueVal = vals[0];
 			double redVal = vals[1];
 
 			if (blueVal > redVal || ((blueVal==redVal) && rnd.nextDouble() < 0.5)) {
-			    for (int v : component) {
-			        int variable = (v >>> 2);
-                    child.setBit(variable, blue.getBit(variable));
-                    // Mark that the bits come from the blue solution
-                    componentOfPartition[variable] &= (~0x3);
-                    componentOfPartition[variable] |= 0x2;
+			    for (int variable : component) {
+			        child.setBit(variable, blue.getBit(variable));
+                    varProcedence.markAsBlue(variable);
                 }
 			}
 		}
 
 		return child;
 	}
-
-
-
 }
