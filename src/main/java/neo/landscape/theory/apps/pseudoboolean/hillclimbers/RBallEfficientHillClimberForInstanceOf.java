@@ -354,8 +354,7 @@ public class RBallEfficientHillClimberForInstanceOf implements
 	}
 
 	@Override
-	public RBallEfficientHillClimberSnapshot initialize(
-			Solution<? super EmbeddedLandscape> sol) {
+	public RBallEfficientHillClimberSnapshot initialize(Solution<? super EmbeddedLandscape> sol) {
 		if (sol instanceof PBSolution) {
 			return new RBallEfficientHillClimberSnapshot(this, (PBSolution) sol);
 		} else {

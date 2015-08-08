@@ -135,8 +135,6 @@ public class RBallEfficientHillClimberSnapshot implements
 		long init = System.currentTimeMillis();
 		// Compute the scores for all the values of the map
 
-		double update;
-
 		solutionQuality = 0;
 		for (int sf = 0; sf < problem.getM(); sf++) {
 			subfnsEvals[sf] = null;
@@ -145,7 +143,7 @@ public class RBallEfficientHillClimberSnapshot implements
 		for (RBallPBMove move : movesSelector.allMoves()) {
             SetOfVars sov = move.flipVariables;
 
-			update = 0;
+			double update = 0;
 
 			for (int sf : rballfio.subFunctionsAffected(sov)) {
 				int k = problem.getMaskLength(sf);
