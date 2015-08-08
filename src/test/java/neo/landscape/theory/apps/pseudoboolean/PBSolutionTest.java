@@ -136,6 +136,11 @@ public class PBSolutionTest {
             assertEquals("hamming distance not working", distance2, distance);
         }
 	}
+	
+	@Test
+	public void testBase64Encoding() {
+	    // TODO
+	}
 
     private int computeHammingDistanceByEnumeration(PBSolution pbs, PBSolution pbs2) {
         int dis=0;

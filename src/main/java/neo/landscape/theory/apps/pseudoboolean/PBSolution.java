@@ -1,11 +1,12 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import neo.landscape.theory.apps.efficienthc.Solution;
 import neo.landscape.theory.apps.pseudoboolean.problems.PseudoBooleanFunction;
 
-public class PBSolution implements Solution<PseudoBooleanFunction> {
+public class PBSolution implements Solution<PseudoBooleanFunction>, Serializable{
 
 	private int data[];
 	private int n;
@@ -24,7 +25,6 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 		if (other.n != n) {
 			n = other.n;
 			data = new int[n / 32 + 1];
-			;
 		}
 
 		for (int i = 0; i < other.data.length; i++) {
