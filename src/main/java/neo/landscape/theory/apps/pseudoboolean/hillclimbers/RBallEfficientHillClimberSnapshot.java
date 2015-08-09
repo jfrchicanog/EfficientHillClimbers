@@ -151,15 +151,15 @@ public class RBallEfficientHillClimberSnapshot implements
 				double vSub;
 				if (subfnsEvals[sf] != null) {
 					vSub = subfnsEvals[sf];
-					fireChange(sf, Double.NaN, vSub);
+					
 				} else {
 
 					for (int j = 0; j < k; j++) {
 						int bit = problem.getMasks(sf, j);
 						sub.setBit(j, sol.getBit(bit));
 					}
-					subfnsEvals[sf] = vSub = problem.evaluateSubfunction(sf,
-							sub);
+					subfnsEvals[sf] = vSub = problem.evaluateSubfunction(sf, sub);
+					fireChange(sf, Double.NaN, vSub);
 					solutionQuality += vSub;
 				}
 
