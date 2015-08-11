@@ -3,6 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 import java.util.Iterator;
 
 public class ComponentAndVariableMask implements PartitionComponent, VariableProcedence {
+    
     private int[] componentOfPartition;
     private int sizeOfComponent;
 
@@ -26,8 +27,8 @@ public class ComponentAndVariableMask implements PartitionComponent, VariablePro
      */
     @Override
     public void addVarToComponent(int var) {
-        componentOfPartition[sizeOfComponent] &= 0x3;
-        componentOfPartition[sizeOfComponent++] |= (var << 2);
+        componentOfPartition[sizeOfComponent] &= PURPLE;
+        componentOfPartition[sizeOfComponent++] |= (var << COLOR_BIT_LENGTH);
     }
     
     /* (non-Javadoc)
@@ -45,7 +46,7 @@ public class ComponentAndVariableMask implements PartitionComponent, VariablePro
 
             @Override
             public Integer next() {
-                return componentOfPartition[ptr++]>>>2;
+                return componentOfPartition[ptr++]>>>COLOR_BIT_LENGTH;
             }
             
         };
@@ -57,8 +58,8 @@ public class ComponentAndVariableMask implements PartitionComponent, VariablePro
      */
     @Override
     public void markAsBlue(int variable) {
-        componentOfPartition[variable] &= (~0x3);
-        componentOfPartition[variable] |= 0x2;
+        componentOfPartition[variable] &= (~PURPLE);
+        componentOfPartition[variable] |= BLUE;
     }
 
     /* (non-Javadoc)
@@ -66,7 +67,7 @@ public class ComponentAndVariableMask implements PartitionComponent, VariablePro
      */
     @Override
     public void markAsPurple(int variable) {
-        componentOfPartition[variable] |= 0x3;
+        componentOfPartition[variable] |= PURPLE;
     }
 
     /* (non-Javadoc)
@@ -74,16 +75,15 @@ public class ComponentAndVariableMask implements PartitionComponent, VariablePro
      */
     @Override
     public void markAsRed(int variable) {
-        componentOfPartition[variable] &= (~0x3);
-        componentOfPartition[variable] |= 0x1;
+        componentOfPartition[variable] &= (~PURPLE);
+        componentOfPartition[variable] |= RED;
     }
 
 
 
     @Override
     public int getColor(int variable) {
-        return componentOfPartition[variable] & 0x3;
+        return componentOfPartition[variable] & PURPLE;
     }
-    
 
 }

@@ -49,7 +49,13 @@ public class PartitionCrossover {
 
 	protected boolean isNodeInReducedGraph(int v, PBSolution blue,
 			PBSolution red) {
-		return blue.getBit(v) != red.getBit(v);
+	    if (blue.getBit(v) != red.getBit(v)) {
+	        varProcedence.markAsRed(v);
+	        return true;
+	    } else {
+	        varProcedence.markAsPurple(v);
+	        return false;
+	    }
 	}
 
 	/**
@@ -64,14 +70,10 @@ public class PartitionCrossover {
 
 		while (bfsSet.hasMoreUnexplored()) {
 			v = bfsSet.getNextUnexplored();
-			if (blue.getBit(v) != red.getBit(v)) {
-			    // Mark that the bits comes from the red solution
-			    varProcedence.markAsRed(v);
+			if (isNodeInReducedGraph(v, blue, red)) {
 				return v;
 			} else {
 				bfsSet.explored(v);
-				// Mark that both solutions have the same value
-				varProcedence.markAsPurple(v);
 			}
 		}
 

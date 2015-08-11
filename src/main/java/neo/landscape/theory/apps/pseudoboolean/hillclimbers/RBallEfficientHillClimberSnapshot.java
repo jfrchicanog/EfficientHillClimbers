@@ -76,8 +76,13 @@ public class RBallEfficientHillClimberSnapshot implements
 	private int[] flips;
 	private RBallHillClimberStatistics statistics;
 
+	public RBallEfficientHillClimberSnapshot(
+            RBallEfficientHillClimberForInstanceOf rballfio, PBSolution sol) {
+	    this(rballfio, sol, null);
+	}
+	
     public RBallEfficientHillClimberSnapshot(
-			RBallEfficientHillClimberForInstanceOf rballfio, PBSolution sol) {
+			RBallEfficientHillClimberForInstanceOf rballfio, PBSolution sol, MovesAndSubFunctionInspectorFactory inspectorFactory) {
 		this.rballfio = rballfio;
 		this.rball = rballfio.getHillClimber();
 		radius = rball.radius;
@@ -97,15 +102,14 @@ public class RBallEfficientHillClimberSnapshot implements
 			initializeSolutionDependentStructuresFromSolution((PBSolution) sol);
 		} else {
 			this.sol = (PBSolution) sol;
-			initializeSolutionDependentStructuresFromScratch(null);
+			initializeSolutionDependentStructuresFromScratch(inspectorFactory);
 		}
 	}
 
     /* Operator / problem /sol method */
 	private void initializeOperatorDependentStructures() {
 		/* Sol */
-		
-		
+
 		flippedBits = new int[radius];
 
 		solutionInitializationEvals = 0;

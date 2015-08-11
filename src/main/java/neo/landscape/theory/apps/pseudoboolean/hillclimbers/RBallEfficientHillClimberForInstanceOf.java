@@ -363,6 +363,16 @@ public class RBallEfficientHillClimberForInstanceOf implements
 							+ sol.getClass().getCanonicalName());
 		}
 	}
+	
+	public RBallEfficientHillClimberSnapshot initialize(Solution<? super EmbeddedLandscape> sol, MovesAndSubFunctionInspectorFactory inspectorFactory) {
+        if (sol instanceof PBSolution) {
+            return new RBallEfficientHillClimberSnapshot(this, (PBSolution) sol, inspectorFactory);
+        } else {
+            throw new IllegalArgumentException(
+                    "Expected argument of class PBSolution but found "
+                            + sol.getClass().getCanonicalName());
+        }
+    }
 
 	@Override
 	public RBallEfficientHillClimber getHillClimber() {
