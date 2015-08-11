@@ -22,9 +22,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class PartitionCrossoverTest {
+public class PartitionCrossoverForRBallTest {
     
-    private static final String OUTPUT_FILENAME = "testData.bin";
+    private static final String OUTPUT_FILENAME = "testDataRBall.bin";
     private static final String PX_TEST_DATA_BIN = "/px/"+OUTPUT_FILENAME;
     private boolean recording;
     
@@ -59,21 +59,24 @@ public class PartitionCrossoverTest {
             }
         }
     }
-
+    
     @Test
-    public void testRecombine() {
+    public void testRecombineRBall() {
+        int r = 2;
+        
         createSolutionsIfNecessary();
         for (int N : new int [] {100,500,1000}) {
             createMapIfNecessary();
             for (long seed : new long [] {0,50,100}) {
                 
                 NKLandscapes pbf = createNKLandscape(N, seed);
+                RBallEfficientHillClimberForInstanceOf rballfio = createRBallFio(r, seed, pbf);
                 
-                PartitionCrossover px = new PartitionCrossover(pbf);
+                PartitionCrossoverForRBallHillClimber px = new PartitionCrossoverForRBallHillClimber(pbf);
                 px.setSeed(seed);
                 
                 createListIfNecessary();
-                checkRecombination(pbf, px, N, seed);
+                checkRecombinationRBall(pbf, rballfio, px, N, seed);
                 addResultsSeedIfNecessary(seed);
                 
             }
@@ -82,7 +85,32 @@ public class PartitionCrossoverTest {
         storeSolutionIfNecessary();
         
     }
-    
+
+    private void checkRecombinationRBall(NKLandscapes pbf, RBallEfficientHillClimberForInstanceOf rballfio, 
+            PartitionCrossoverForRBallHillClimber px, int n, long seed) {
+        List<PBSolution> listSolutions=null;
+        if (!recording) {
+            listSolutions = solutions.get(n).get(seed);
+        }
+        
+        for (int i=0; i < 10; i++) {
+            PBSolution parent1 = pbf.getRandomSolution();
+            PBSolution parent2 = pbf.getRandomSolution();
+            
+            RBallEfficientHillClimberSnapshot snapshot1 = rballfio.initialize(parent1);
+            RBallEfficientHillClimberSnapshot snapshot2 = rballfio.initialize(parent2);
+
+            RBallEfficientHillClimberSnapshot child = px.recombine(snapshot1, snapshot2);
+            
+            if (child != null) {
+                child.checkConsistency();
+            } 
+            
+            printOrCheckSolutions((listSolutions==null)?null:listSolutions.get(i), child==null?null:child.getSolution());
+        }
+        
+    }
+
     private NKLandscapes createNKLandscape(int N, long seed) {
         NKLandscapes pbf = new NKLandscapes();
         Properties prop = new Properties();
@@ -96,6 +124,15 @@ public class PartitionCrossoverTest {
         return pbf;
     }
 
+    private RBallEfficientHillClimberForInstanceOf createRBallFio(int r, long seed, NKLandscapes pbf) {
+        Properties rballProp = new Properties();
+        rballProp.setProperty(RBallEfficientHillClimber.R_STRING, ""+r);
+        rballProp.setProperty(RBallEfficientHillClimber.RANDOM_MOVES, "yes");
+        rballProp.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
+        
+        return (RBallEfficientHillClimberForInstanceOf)
+                new RBallEfficientHillClimber(rballProp).initialize(pbf);
+    }
 
     private void createListIfNecessary() {
         if (recording) {
@@ -127,19 +164,6 @@ public class PartitionCrossoverTest {
         }
     }
 
-    private void checkRecombination(EmbeddedLandscape el, PartitionCrossover px, int N, long seed) {
-        List<PBSolution> listSolutions=null;
-        if (!recording) {
-            listSolutions = solutions.get(N).get(seed);
-        }
-        
-        for (int i=0; i < 10; i++) {
-
-            PBSolution solution = px.recombine(el.getRandomSolution(), el.getRandomSolution());
-            printOrCheckSolutions((listSolutions==null)?null:listSolutions.get(i), solution);
-        }
-        
-    }
 
     private void printOrCheckSolutions(PBSolution expected, PBSolution actual) {
         if (recording) {
