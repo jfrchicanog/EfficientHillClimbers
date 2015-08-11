@@ -7,7 +7,7 @@ public interface MovesSelector {
     public RBallPBMove getMovement();
 
     public Iterable<RBallPBMove> allMoves();
-
+    public int getNumberOfMoves();
     public void changeScoreBucket(RBallPBMove move, double oldValue, double newValue);
 
     public void checkCorrectPositionOfMovesInSelector();

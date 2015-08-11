@@ -8,7 +8,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
 public class RBallEfficientHillClimberSnapshot implements
-		HillClimberSnapshot<EmbeddedLandscape> {
+		HillClimberSnapshot<EmbeddedLandscape>, MovesAndSubFunctionsInspector {
 
 	public static final String PROFILE = "profile";
 
@@ -97,7 +97,7 @@ public class RBallEfficientHillClimberSnapshot implements
 			initializeSolutionDependentStructuresFromSolution((PBSolution) sol);
 		} else {
 			this.sol = (PBSolution) sol;
-			initializeSolutionDependentStructuresFromScratch();
+			initializeSolutionDependentStructuresFromScratch(null);
 		}
 	}
 
@@ -131,7 +131,7 @@ public class RBallEfficientHillClimberSnapshot implements
 	}
 
     /* Sol method */
-	private void initializeSolutionDependentStructuresFromScratch() {
+	private void initializeSolutionDependentStructuresFromScratch(MovesAndSubFunctionInspectorFactory inspectorFactory) {
 		long init = System.currentTimeMillis();
 		// Compute the scores for all the values of the map
 
@@ -140,42 +140,25 @@ public class RBallEfficientHillClimberSnapshot implements
 			subfnsEvals[sf] = null;
 		}
 
-		for (RBallPBMove move : movesSelector.allMoves()) {
+		for (int moveID=0; moveID < movesSelector.getNumberOfMoves(); moveID++) {
+		    RBallPBMove move = movesSelector.getMoveByID(moveID);
             SetOfVars sov = move.flipVariables;
-
-			double update = 0;
-
-			for (int sf : rballfio.subFunctionsAffected(sov)) {
-				int k = problem.getMaskLength(sf);
-				// For each subfunction do ...
-				double vSub;
-				if (subfnsEvals[sf] != null) {
-					vSub = subfnsEvals[sf];
-					
-				} else {
-
-					for (int j = 0; j < k; j++) {
-						int bit = problem.getMasks(sf, j);
-						sub.setBit(j, sol.getBit(bit));
-					}
-					subfnsEvals[sf] = vSub = problem.evaluateSubfunction(sf, sub);
-					fireChange(sf, Double.NaN, vSub);
-					solutionQuality += vSub;
-				}
-
-				// Build the subsolutions
-				for (int j = 0; j < k; j++) {
-					int bit = problem.getMasks(sf, j);
-					subSov.setBit(j, sol.getBit(bit)
-							^ (sov.contains(bit) ? 0x01 : 0x00));
-				}
-
-				double vSubSov = problem.evaluateSubfunction(sf, subSov);
-
-				solutionInitializationEvals += 2;
-
-				update += vSubSov - vSub;
-			}
+            
+            double update=0;
+            
+            MovesAndSubFunctionsInspector inspector;
+            if (inspectorFactory == null || 
+                    (inspector = inspectorFactory.getInspectorForMove(sov)) == null) {
+                update = computMoveImprovementFromScratch(sov, inspectorFactory);
+            } else {
+                update = inspector.getMoveImprovementByID(moveID);
+                for (int sf : rballfio.subFunctionsAffected(sov)) {
+                    if (subfnsEvals[sf] == null) {
+                        subfnsEvals[sf] = inspector.getSubFunctionEvaluation(sf);
+                    }
+                }
+            }
+            
 			double oldValue = move.improvement;
 			move.improvement = update;
 
@@ -187,6 +170,53 @@ public class RBallEfficientHillClimberSnapshot implements
 		solutionInitializationTime = System.currentTimeMillis() - init;
 
 	}
+
+    private double computMoveImprovementFromScratch(SetOfVars sov, MovesAndSubFunctionInspectorFactory inspectorFactory) {
+        double update = 0;
+        for (int sf : rballfio.subFunctionsAffected(sov)) {
+        	int k = problem.getMaskLength(sf);
+        	// For each subfunction do ...
+        	double vSub;
+        	if (subfnsEvals[sf] != null) {
+        		vSub = subfnsEvals[sf];					
+        	} else {
+        	    MovesAndSubFunctionsInspector inspector;
+        	    if (inspectorFactory == null ||
+        	            (inspector=inspectorFactory.getInspectorForSubFunction(sf)) == null) {
+        	        vSub = computeSubFunctionEvaluation(sf);
+        	    } else {
+        	        vSub = inspector.getSubFunctionEvaluation(sf);
+        	    }
+        	    
+        	    subfnsEvals[sf] = vSub;
+                fireChange(sf, Double.NaN, vSub);
+                solutionQuality += vSub;
+        	}
+
+        	// Build the subsolutions
+        	for (int j = 0; j < k; j++) {
+        		int bit = problem.getMasks(sf, j);
+        		subSov.setBit(j, sol.getBit(bit)
+        				^ (sov.contains(bit) ? 0x01 : 0x00));
+        	}
+
+        	double vSubSov = problem.evaluateSubfunction(sf, subSov);
+
+        	solutionInitializationEvals += 2;
+
+        	update += vSubSov - vSub;
+        }
+        return update;
+    }
+
+    private double computeSubFunctionEvaluation(int sf) {
+        int k = problem.getMaskLength(sf);
+        for (int j = 0; j < k; j++) {
+        	int bit = problem.getMasks(sf, j);
+        	sub.setBit(j, sol.getBit(bit));
+        }
+        return problem.evaluateSubfunction(sf, sub);
+    }
 
     /* Solution method */
 	private void initializeSolutionDependentStructuresFromSolution(
@@ -430,6 +460,16 @@ public class RBallEfficientHillClimberSnapshot implements
 
     public RBallHillClimberStatistics getStatistics() {
         return statistics;
+    }
+    
+    @Override
+    public double getSubFunctionEvaluation(int subFunction) {
+        return subfnsEvals[subFunction];
+    }
+    
+    @Override
+    public double getMoveImprovementByID(int id) {
+        return movesSelector.getMoveByID(id).improvement;
     }
 
 }

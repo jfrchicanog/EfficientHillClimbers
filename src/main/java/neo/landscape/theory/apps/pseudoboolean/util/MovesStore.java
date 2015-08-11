@@ -5,6 +5,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove;
 public interface MovesStore {
 
     public Iterable<RBallPBMove> iterableOverMoves();
+    public int getNumberOfMoves();
     public RBallPBMove getMoveByID(int entryIndex);
     
     public Iterable<RBallPBMove> iterableOverBucket(int radius, int bucket);

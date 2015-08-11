@@ -120,6 +120,11 @@ public class DoubleLinkedListBasedStore implements MovesStore {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public int getNumberOfMoves() {
+        return mos.length;
+    }
+
 }
 
 

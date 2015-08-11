@@ -146,4 +146,9 @@ public class ArrayBasedMovesStore implements MovesStore {
         return scores[radius][randomIndex];
     }
 
+    @Override
+    public int getNumberOfMoves() {
+        return mos.length;
+    }
+
 }

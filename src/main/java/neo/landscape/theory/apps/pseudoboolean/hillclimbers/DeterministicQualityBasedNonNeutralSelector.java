@@ -139,6 +139,11 @@ public class DeterministicQualityBasedNonNeutralSelector extends AbstractMovesSe
     	}
     }
 
+    @Override
+    public int getNumberOfMoves() {
+        return movesStore.getNumberOfMoves();
+    }
+
 
 
 }
