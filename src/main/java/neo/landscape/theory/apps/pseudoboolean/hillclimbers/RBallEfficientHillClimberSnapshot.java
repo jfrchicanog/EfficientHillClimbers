@@ -45,7 +45,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	// Main configuration parameters and variables
 
-	public MovesSelector movesSelector;
+	protected MovesSelector movesSelector;
     /* Solution info */
 	protected boolean collectFlips;
 
@@ -153,12 +153,14 @@ public class RBallEfficientHillClimberSnapshot implements
             MovesAndSubFunctionsInspector inspector;
             if (inspectorFactory == null || 
                     (inspector = inspectorFactory.getInspectorForMove(sov)) == null) {
-                update = computMoveImprovementFromScratch(sov, inspectorFactory);
+                update = computeMoveImprovementFromScratch(sov, inspectorFactory);
             } else {
                 update = inspector.getMoveImprovementByID(moveID);
                 for (int sf : rballfio.subFunctionsAffected(sov)) {
                     if (subfnsEvals[sf] == null) {
-                        subfnsEvals[sf] = inspector.getSubFunctionEvaluation(sf);
+                        double vSub = subfnsEvals[sf] = inspector.getSubFunctionEvaluation(sf);
+                        fireChange(sf, Double.NaN, vSub);
+                        solutionQuality += vSub;
                     }
                 }
             }
@@ -175,7 +177,7 @@ public class RBallEfficientHillClimberSnapshot implements
 
 	}
 
-    private double computMoveImprovementFromScratch(SetOfVars sov, MovesAndSubFunctionInspectorFactory inspectorFactory) {
+    private double computeMoveImprovementFromScratch(SetOfVars sov, MovesAndSubFunctionInspectorFactory inspectorFactory) {
         double update = 0;
         for (int sf : rballfio.subFunctionsAffected(sov)) {
         	int k = problem.getMaskLength(sf);
@@ -399,6 +401,8 @@ public class RBallEfficientHillClimberSnapshot implements
 		}
 		// Check if they are in the correct list
 		movesSelector.checkCorrectPositionOfMovesInSelector();
+		// Check the value of the solution
+		assert solutionQuality == problem.evaluate(sol);
 	}
 
     /* Sol method */

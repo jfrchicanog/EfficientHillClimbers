@@ -41,6 +41,7 @@ public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover {
             private MovesAndSubFunctionsInspector selectInspector(
                     final RBallEfficientHillClimberSnapshot blue,
                     final RBallEfficientHillClimberSnapshot red, int color) {
+                
                 if ((color & VariableProcedence.BLUE) != 0) {
                     //System.out.println("blue");
                     return blue;
