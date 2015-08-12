@@ -64,12 +64,12 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 	public String getInvocationInfo() {
 		return "Arguments: "
 				+ getID()
-				+ " <n> <k> <q> <circular> <r> <generation limit> <time(s)> [<seed>]";
+				+ " <n> <k> <q> <circular> <seed (problem)> <r> <generation limit> <max Plateau moves> <time(s)> [<seed>]";
 	}
 
 	@Override
 	public void execute(String[] args) {
-		if (args.length < 7) {
+		if (args.length < 9) {
 			System.out.println(getInvocationInfo());
 			return;
 		}
@@ -83,12 +83,14 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 		String k = args[1];
 		String q = args[2];
 		String circular = args[3];
-		int r = Integer.parseInt(args[4]);
-		int generationLimit = Integer.parseInt(args[5]);
-		int time = Integer.parseInt(args[6]);
+		long problemSeed = Long.parseLong(args[4]);
+		int r = Integer.parseInt(args[5]);
+		int generationLimit = Integer.parseInt(args[6]);
+		maxPlateauMoves = Integer.parseInt(args[7]);
+		int time = Integer.parseInt(args[8]);
 		seed = 0;
-		if (args.length > 7) {
-			seed = Long.parseLong(args[7]);
+		if (args.length > 9) {
+			seed = Long.parseLong(args[9]);
 		} else {
 			seed = Seeds.getSeed();
 		}
@@ -117,11 +119,17 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 		ps.println("R: " + r);
 		ps.println("Seed: " + seed);
 
-		pbf.setSeed(seed);
+		pbf.setSeed(problemSeed);
 		pbf.setConfiguration(prop);
+		
+		Properties rballConfig = new Properties();
+        rballConfig.setProperty(RBallEfficientHillClimber.NEUTRAL_MOVES, "yes");
+        rballConfig.setProperty(RBallEfficientHillClimber.MAX_NEUTRAL_PROBABILITY, "0.5");
+        rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
+        rballConfig.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
 
-		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
-				r, seed).initialize(pbf);
+		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) 
+		        new RBallEfficientHillClimber(rballConfig).initialize(pbf);
 		Stack<ExploredSolution> explored = new Stack<ExploredSolution>();
 		PartitionCrossoverForRBallHillClimber px = new PartitionCrossoverForRBallHillClimber(
 				pbf);
