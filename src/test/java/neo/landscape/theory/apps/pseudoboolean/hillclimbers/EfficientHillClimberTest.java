@@ -531,6 +531,69 @@ public class EfficientHillClimberTest {
             }
         }
     }
+    
+    @Test
+    public void testNeutralMoves() {
+        int N = 1000;
+        int K = 3;
+        int Q = 2;
+        boolean circular = true;
+        long seed = 0;
+        int r = 2;
+        
+        NKLandscapes pbf = new NKLandscapes();
+        Properties prop = new Properties();
+        prop.setProperty(NKLandscapes.N_STRING, ""+N);
+        prop.setProperty(NKLandscapes.K_STRING, ""+K);
+        prop.setProperty(NKLandscapes.Q_STRING, ""+Q);
+        prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular?"yes":"no");
+
+        pbf.setSeed(seed);
+        pbf.setConfiguration(prop);
+        
+        Properties rballConfig = new Properties();
+        rballConfig.setProperty(RBallEfficientHillClimber.NEUTRAL_MOVES, "yes");
+        rballConfig.setProperty(RBallEfficientHillClimber.MAX_NEUTRAL_PROBABILITY, "0.5");
+        rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
+        rballConfig.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
+
+        RBallEfficientHillClimber rball = new RBallEfficientHillClimber(rballConfig);
+        RBallEfficientHillClimberForInstanceOf rballf = (RBallEfficientHillClimberForInstanceOf) rball
+                .initialize(pbf);
+
+        PBSolution pbs = pbf.getRandomSolution();
+        RBallEfficientHillClimberSnapshot rballs = (RBallEfficientHillClimberSnapshot) rballf
+                .initialize(pbs);
+
+        double imp;
+        long neutralMoves = 0;
+        long moves = 0;
+        int plateauMove=0;
+
+        rballs.getStatistics().resetMovesPerDistance();
+
+        try {
+            do {
+                imp = rballs.move();
+                moves++;
+                if (imp == 0) {
+                    neutralMoves++;
+                    plateauMove++;
+                    //System.out.println("neutral");
+                } else {
+                    plateauMove = 0;
+                }
+                
+            } while (plateauMove < 20);
+        } catch (NoImprovingMoveException e) {
+
+        }
+        //System.out.println("Neutral: "+neutralMoves);
+        //System.out.println("TOtal: "+moves);
+        Assert.assertTrue(neutralMoves > 0);        
+        Assert.assertTrue((neutralMoves-plateauMove)*1.5 <= moves);
+
+    }
 
 
     private void runAndCheckConfiguration(long seed, int r, int N, int K, int Q, boolean circular, Output out) {
