@@ -141,20 +141,10 @@ public class ArrayBasedMovesStore implements MovesStore {
 
     @Override
     public RBallPBMove getRandomMove(int radius, int bucket) {
-        if (isBucketEmpty(radius, bucket)) {
-            throw new NoImprovingMoveException();
-        }
-        int size = bucketIndices[radius][bucket+1]-bucketIndices[radius][bucket];
-        int randomIndex = bucketIndices[radius][bucket] + rnd.nextInt(size);
-        return scores[radius][randomIndex];
+        return getRandomMove(radius, bucket, bucket);
     }
-
+    
     @Override
-<<<<<<< Upstream, based on master
-    public int getNumberOfMoves() {
-        return mos.length;
-    }
-=======
     public RBallPBMove getRandomMove(int radius, int fromBucket, int toBucket) {
         if (bucketIndices[radius][fromBucket]==bucketIndices[radius][toBucket+1]) {
             throw new NoImprovingMoveException();
@@ -165,11 +155,15 @@ public class ArrayBasedMovesStore implements MovesStore {
     }
 
     @Override
+    public int getNumberOfMoves() {
+        return mos.length;
+    }
+
+    
+
+    @Override
     public int sizeOfBucket(int radius, int bucket) {
         return bucketIndices[radius][bucket+1]-bucketIndices[radius][bucket];
     }
     
-    
->>>>>>> dd356e4 Neutral moves implemented
-
 }

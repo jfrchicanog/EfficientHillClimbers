@@ -26,4 +26,9 @@ public abstract class AbstractMovesSelector implements MovesSelector {
         return movesStore.getMoveByID(id);
     }
 
+    @Override
+    public int getNumberOfMoves() {
+        return movesStore.getNumberOfMoves();
+    }
+
 }
