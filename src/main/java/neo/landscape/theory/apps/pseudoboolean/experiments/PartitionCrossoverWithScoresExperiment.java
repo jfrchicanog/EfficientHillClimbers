@@ -118,14 +118,16 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 		ps.println("Generation limit: " + generationLimit);
 		ps.println("R: " + r);
 		ps.println("Seed: " + seed);
+		ps.println("ProblemSeed: "+problemSeed);
 
 		pbf.setSeed(problemSeed);
 		pbf.setConfiguration(prop);
 		
 		Properties rballConfig = new Properties();
-        rballConfig.setProperty(RBallEfficientHillClimber.NEUTRAL_MOVES, "yes");
-        rballConfig.setProperty(RBallEfficientHillClimber.MAX_NEUTRAL_PROBABILITY, "0.5");
-        rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
+        //rballConfig.setProperty(RBallEfficientHillClimber.NEUTRAL_MOVES, "yes");
+        //rballConfig.setProperty(RBallEfficientHillClimber.MAX_NEUTRAL_PROBABILITY, "0.5");
+        rballConfig.setProperty(RBallEfficientHillClimber.RANDOM_MOVES, "yes");
+		rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
         rballConfig.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
 
 		RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) 
@@ -141,46 +143,50 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 
 		ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
 
-		while (!timer.shouldStop()) {
-			// Create a generation-0 solution
-			ExploredSolution currentSolution = createGenerationZeroSolution(rballfio);
-			notifyExploredSolution(currentSolution);
-			
-			if (explored.empty()
-					|| explored.peek().generation > currentSolution.generation) {
-				if (currentSolution.generation < generationLimit) {
-					explored.push(currentSolution);
-				}
-			} else {
-				// Recombine solutions with the same level
-				while ((!explored.empty())
-						&& currentSolution != null
-						&& explored.peek().generation == currentSolution.generation
-						&& !timer.shouldStop()) {
-					ExploredSolution popedSolution = explored.pop();
-					RBallEfficientHillClimberSnapshot result = px.recombine(
-							popedSolution.solution, currentSolution.solution);
+		try {
+		    while (!timer.shouldStop()) {
+		        // Create a generation-0 solution
+		        ExploredSolution currentSolution = createGenerationZeroSolution(rballfio);
+		        notifyExploredSolution(currentSolution);
 
-					if (result == null) {
-						increaseCrossoverFailInGeneration(currentSolution.generation);
-						currentSolution = null;
-					} else {
-						hillClimb(result);
-						currentSolution = ExploredSolution
-								.createExploredSolution(result,
-										currentSolution.generation + 1);
-						notifyExploredSolution(currentSolution);
-					}
-					
-				}
+		        if (explored.empty()
+		                || explored.peek().generation > currentSolution.generation) {
+		            if (currentSolution.generation < generationLimit) {
+		                explored.push(currentSolution);
+		            }
+		        } else {
+		            // Recombine solutions with the same level
+		            while ((!explored.empty())
+		                    && currentSolution != null
+		                    && explored.peek().generation == currentSolution.generation
+		                    && !timer.shouldStop()) {
+		                ExploredSolution popedSolution = explored.pop();
+		                RBallEfficientHillClimberSnapshot result = px.recombine(
+		                        popedSolution.solution, currentSolution.solution);
 
-				if (currentSolution != null) {
-					if (currentSolution.generation < generationLimit) {
-						explored.push(currentSolution);
-					}
-				}
-			}
+		                if (result == null) {
+		                    increaseCrossoverFailInGeneration(currentSolution.generation);
+		                    currentSolution = null;
+		                } else {
+		                    hillClimb(result);
+		                    currentSolution = ExploredSolution
+		                            .createExploredSolution(result,
+		                                    currentSolution.generation + 1);
+		                    notifyExploredSolution(currentSolution);
+		                }
 
+		            }
+
+		            if (currentSolution != null) {
+		                if (currentSolution.generation < generationLimit) {
+		                    explored.push(currentSolution);
+		                }
+		            }
+		        }
+
+		    }
+		} catch (Exception e) {
+		    ps.print("Exception: "+e.getMessage());
 		}
 
 		writeCrossoverFails();

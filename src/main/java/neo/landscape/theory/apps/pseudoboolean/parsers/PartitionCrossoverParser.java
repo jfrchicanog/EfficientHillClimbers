@@ -29,8 +29,11 @@ public class PartitionCrossoverParser implements Process {
     private long seed;
     private int q;
     private boolean seedSet;
+    private long problemSeed;
+    private boolean problemSeedSet;
     
     private AveragedSample averagedSample = new AveragedSample();
+    
 
     @Override
 	public String getDescription() {
@@ -113,7 +116,7 @@ public class PartitionCrossoverParser implements Process {
     }
 
     private List<Sample> adjustTrace(List<Sample> aux) {
-        double optimumQuality = computeOptimum(n, k, q, seed);
+        double optimumQuality = computeOptimum(n, k, q, problemSeedSet?problemSeed:seed);
 		for (Sample s : aux) {
 			s.quality = (optimumQuality - s.quality) / optimumQuality;
 		}
@@ -134,6 +137,8 @@ public class PartitionCrossoverParser implements Process {
 		q = -1;
 		seed = -1;
 		seedSet = false;
+		problemSeed = -1;
+		problemSeedSet = false;
 
 		String line;
 
@@ -185,7 +190,11 @@ public class PartitionCrossoverParser implements Process {
 				strs = line.split(":");
 				seed = Long.parseLong(strs[1].trim());
 				seedSet = true;
-			}
+			} else if (line.startsWith("ProblemSeed")) {
+                strs = line.split(":");
+                problemSeed = Long.parseLong(strs[1].trim());
+                problemSeedSet = true;
+            }
 		}
 		
 		return aux;
