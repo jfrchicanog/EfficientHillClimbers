@@ -44,8 +44,8 @@ public class NeutralSelector extends AbstractMovesSelector implements MovesSelec
         if (rNeutral==0 && rImproving==0) {
             throw new NoImprovingMoveException();
         } else {
-            int neutralMoves = rNeutral==0?0:movesStore.sizeOfBucket(rNeutral, NEUTRAL_BUCKET);
-            int improvingMoves = rImproving==0?0:movesStore.sizeOfBucket(rImproving, IMPROVING_BUCKET);
+            int neutralMoves = (rNeutral==0)?0:movesStore.sizeOfBucket(rNeutral, NEUTRAL_BUCKET);
+            int improvingMoves = (rImproving==0)?0:movesStore.sizeOfBucket(rImproving, IMPROVING_BUCKET);
             if (improvingMoves == 0 
                     || neutralMoves == 0
                     || neutralMoves <= neutralMaxProbability * (improvingMoves+neutralMoves)) {
