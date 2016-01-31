@@ -26,12 +26,14 @@ public class NKLandscapes extends EmbeddedLandscape implements
 	public static final String N_STRING = "n";
 	public static final String K_STRING = "k";
 	public static final String Q_STRING = "q";
+	public static final String SHIFT_STRING = "s"; 
 	public static final String CIRCULAR_STRING = "circular";
 	public static final String FORCE_NK = ".";
 
 	protected double[][] subFunctions;
 	protected int [] maxIndexInSubFnction;
     protected int q;
+    protected int shift;
 	protected NKModel nkModel;
 	protected int k;
 
@@ -51,6 +53,9 @@ public class NKLandscapes extends EmbeddedLandscape implements
 				q = -1;
 			} else {
 				q = Integer.parseInt(prop.getProperty(Q_STRING));
+				if (prop.getProperty(SHIFT_STRING) != null) {
+				    shift = Integer.parseInt(prop.getProperty(SHIFT_STRING));
+				}
 			}
 		}
 
@@ -105,7 +110,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 		for (int sf = 0; sf < m; sf++) {
 		    int maxIndex=0;
 			for (int i = 0; i < twoToK; i++) {
-				subFunctions[sf][i] = ((q > 0) ? rnd.nextInt(q) : rnd
+				subFunctions[sf][i] = ((q > 0) ? rnd.nextInt(q)-shift : rnd
 						.nextDouble());
 				if (subFunctions[sf][i] > subFunctions[sf][maxIndex]) {
 				    maxIndex = i;
@@ -250,7 +255,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 	}
 
 	public static void showHelp() {
-		System.err.println("Arguments: <N> <K> <q> <c> [<seed>] [<solution>]");
+		System.err.println("Arguments: <N> <K> <q> <c> [<shift>] [<seed>] [<solution>]");
 		System.err.println("Use <q>=" + FORCE_NK
 				+ " for NK landscapes (otherwise NKq-landscape is generated)");
 		System.err.println("Use <q>=- for q=2^(K+1)");
@@ -272,15 +277,21 @@ public class NKLandscapes extends EmbeddedLandscape implements
 		String circular = args[3];
 		PBSolution sol = null;
 		long seed = 0;
+		String shift = "0";
 		boolean readFromReader = false;
+		
 		if (args.length >= 5) {
-			seed = Long.parseLong(args[4]);
+            shift = args[4];
+        }
+		
+		if (args.length >= 6) {
+			seed = Long.parseLong(args[5]);
 		} else {
 			seed = Seeds.getSeed();
 		}
 
-		if (args.length >= 6) {
-			String solution = args[5];
+		if (args.length >= 7) {
+			String solution = args[6];
 			if (solution.equals("-")) {
 			    readFromReader = true;
 			} else {
@@ -295,6 +306,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 		prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular);
 		if (!q.equals("-")) {
 			prop.setProperty(NKLandscapes.Q_STRING, q);
+			prop.setProperty(NKLandscapes.SHIFT_STRING, shift);
 		}
 
 		pbf.setSeed(seed);
