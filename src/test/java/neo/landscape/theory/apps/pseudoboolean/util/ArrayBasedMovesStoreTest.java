@@ -5,6 +5,9 @@ import java.util.Map;
 
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove;
+import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedMoveFactory;
+import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedMovesStore;
+import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedRBallPBMoveFactory;
 
 import org.junit.Assert;
 import org.junit.Before;

@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.util;
+package neo.landscape.theory.apps.pseudoboolean.util.movestore;
 
 public interface ArrayBasedMove<M> {
     public int getIndex();

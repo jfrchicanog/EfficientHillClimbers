@@ -1,6 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
-import neo.landscape.theory.apps.pseudoboolean.util.MovesStore;
+import neo.landscape.theory.apps.pseudoboolean.util.movestore.MovesStore;
 
 public abstract class AbstractMovesSelector<M> implements MovesSelector<M> {
 

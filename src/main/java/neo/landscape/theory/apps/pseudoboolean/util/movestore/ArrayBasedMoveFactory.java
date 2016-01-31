@@ -1,4 +1,6 @@
-package neo.landscape.theory.apps.pseudoboolean.util;
+package neo.landscape.theory.apps.pseudoboolean.util.movestore;
+
+import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
 
 public interface ArrayBasedMoveFactory<M> {
