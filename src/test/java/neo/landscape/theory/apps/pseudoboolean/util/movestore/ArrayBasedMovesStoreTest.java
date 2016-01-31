@@ -1,10 +1,11 @@
-package neo.landscape.theory.apps.pseudoboolean.util;
+package neo.landscape.theory.apps.pseudoboolean.util.movestore;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove;
+import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedMoveFactory;
 import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedMovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedRBallPBMoveFactory;
