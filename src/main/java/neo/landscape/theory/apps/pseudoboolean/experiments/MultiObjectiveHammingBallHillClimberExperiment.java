@@ -261,8 +261,8 @@ public class MultiObjectiveHammingBallHillClimberExperiment implements Process {
                 moves++;
             } while (!timer.shouldStop());
         } catch (NoImprovingMoveException e) {
-            nonDominatedSet.reportSolutionToArchive(rball.getSolutionQuality());
         }
+        nonDominatedSet.reportSolutionToArchive(rball.getSolutionQuality());
         return moves;
     }    
 
