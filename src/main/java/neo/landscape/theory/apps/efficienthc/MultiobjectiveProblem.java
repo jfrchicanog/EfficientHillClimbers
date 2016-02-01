@@ -7,4 +7,5 @@ public interface MultiobjectiveProblem extends Problem{
 	public <P extends MultiobjectiveProblem> double [] evaluate(Solution<P> sol);
 	public <P extends MultiobjectiveProblem> BigDecimal [] evaluateArbitraryPrecision(
 			Solution<P> sol);
+	public int getConstraintIndex();
 }

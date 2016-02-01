@@ -19,7 +19,11 @@ public class ConstrainedMNKLandscape extends MNKLandscape {
             throw new IllegalArgumentException("At least one objective function must exist");
         }
     }
-    
-    
 
+    @Override
+    public int getConstraintIndex() {
+        return constraintIndex;
+    }
+    
+    
 }

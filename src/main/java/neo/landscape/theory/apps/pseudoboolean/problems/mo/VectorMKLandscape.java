@@ -180,6 +180,11 @@ public class VectorMKLandscape implements MultiobjectiveProblem {
         return functions[dimension].evaluateSubfunction(subfunctionInDimension, subSov);
     }
 
+    @Override
+    public int getConstraintIndex() {
+        return functions.length;
+    }
+
 
     
     
