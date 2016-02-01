@@ -80,7 +80,7 @@ public class MultiObjectiveSelector extends MultiObjectiveAbstractMovesSelector<
             impBucket = STRONGLY_IMPROVING_BUCKET;
         } else {
             minImpRadius = searchMinRadiusInBucket(WEAKLY_IMPROVING_BUCKET);
-            impBucket = STRONGLY_IMPROVING_BUCKET;
+            impBucket = WEAKLY_IMPROVING_BUCKET;
         }
         return minImpRadius >= 1;
     }
