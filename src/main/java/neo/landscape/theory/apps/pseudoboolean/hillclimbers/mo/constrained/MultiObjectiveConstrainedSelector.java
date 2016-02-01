@@ -338,13 +338,13 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
         double [] solQuality = solutionQuality.getCurrentSolutionQuality();
         double [] improvement = move.getImprovement();
         
-        boolean nonnegative=false;
+        boolean nonnegative=true;
         double wScore=0.0;
         
         for (int i = constraintIndex; i < improvement.length; i++) {
             double val = improvement[i] + solQuality[i];
             wScore += weights[i] * val;
-            nonnegative |= (val >= 0.0);
+            nonnegative &= (val >= 0.0);
         }
         
         if (nonnegative) {
@@ -379,7 +379,7 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
         return classifyMoveAccordingToGImprovement(move);
     }
 
-    private neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.ConstrainedVectorMovesSelector.MoveClass classifyMoveInUnfeasibleRegionForCriterion0(
+    private MoveClass classifyMoveInUnfeasibleRegionForCriterion0(
             VectorPBMove move) {
         
         MoveClass moveClass = classifyMoveAccordingToFeasibility(move);
@@ -398,8 +398,6 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
         }
     }
 
-
-
     @Override
     public void setWStar(double[] wstar) {
         assert wstar.length + constraintIndex == weights.length;
@@ -408,8 +406,6 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
         }
         
     }
-
-    
 
     @Override
     public void setRegion(Region region) {
@@ -423,17 +419,10 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
             }
             assignBucketsToUnclassifiedMoves();
         }
-        
     }
 
     @Override
     public void setYSolutionQuality(double[] yValue) {
         ySolutionQuality = yValue.clone();
     }
-
-    
-
-
-
-
 }
