@@ -19,6 +19,7 @@ public interface MultiCriteriaMovesStore<M> {
     public M getDeterministicMove(int criterion, int radius, int bucket);
     public M getRandomMove(int criterion, int radius, int bucket);
     public M getRandomMove(int criterion, int radius, int fromBucket, int toBucket);
+    public void changeAllMovesToBucket(int criterion, int radius, int bucket);
     public abstract int getBucketOfMove(int criterion, M move);
 
 }

@@ -198,5 +198,16 @@ public class ArrayBasedMovesStore<M> implements MultiCriteriaMovesStore<M> {
     public int sizeOfBucket(int criterion, int radius, int bucket) {
         return bucketIndices[criterion][radius][bucket+1]-bucketIndices[criterion][radius][bucket];
     }
+
+    @Override
+    public void changeAllMovesToBucket(int criterion, int radius, int bucket) {
+        int i=0;
+        for (;i <= bucket; i++) {
+            bucketIndices[criterion][radius][i] = 0;
+        }
+        for (; i < bucketIndices[criterion][radius].length; i++) {
+            bucketIndices[criterion][radius][i] = scores[criterion][radius].length;
+        }
+    }
     
 }
