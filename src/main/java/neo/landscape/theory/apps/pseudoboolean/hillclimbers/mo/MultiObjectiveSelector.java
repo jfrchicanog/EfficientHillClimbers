@@ -55,7 +55,7 @@ public class MultiObjectiveSelector extends MultiObjectiveAbstractMovesSelector<
     private void checkWeights() {
         for (double weight: weights) {
             if (weight <= 0.0) {
-                throw new RuntimeException ("All components of the weight vector must be positive");
+                throw new RuntimeException ("All components of the weight vector must be strictly positive");
             }
         }
     }
