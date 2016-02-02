@@ -159,7 +159,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
 
         while (!timer.shouldStop()) {
             double [] weights = generateRandomPositiveWeights(pbf.getDimension());
-            PBSolution solution = pbf.getRandomSolution();
+            PBSolution solution = getFeasibleInitialSolution(pbf);
             
             MultiObjectiveConstrainedHammingBallHillClimberSnapshot rball = rballfio.initialize(weights, solution);
             rball.setSeed(random.nextLong());
@@ -190,6 +190,21 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
         ps.println(nonDominatedSet.printArchive());
 
         printOutput();
+    }
+
+    protected PBSolution getFeasibleInitialSolution(final ConstrainedMNKLandscape pbf) {
+        boolean feasible = true;
+        PBSolution sol;
+        do {
+            sol = pbf.getRandomSolution();
+            feasible = true;
+            double [] quality = pbf.evaluate(sol);
+            for (int i=pbf.getConstraintIndex(); i< quality.length; i++) {
+                feasible &= (quality[i] >= 0); 
+            }
+            
+        } while (!feasible);
+        return sol;
     }
 
 

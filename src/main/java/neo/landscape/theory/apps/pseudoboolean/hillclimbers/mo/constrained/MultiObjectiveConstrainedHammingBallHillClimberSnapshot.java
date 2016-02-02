@@ -209,10 +209,9 @@ public class MultiObjectiveConstrainedHammingBallHillClimberSnapshot implements
             }
             
             movesSelector.setYSolutionQuality(solutionQuality);
-            movesSelector.setRegion(Region.UNFEASIBLE);
-            
             VectorPBMove move = movesSelector.selectMove(MoveClass.WFEASIBLE);
             applyMove(move);
+            movesSelector.setRegion(Region.UNFEASIBLE);
             
             listener.enterNewRegion(Region.UNFEASIBLE, statistics.getTotalMoves());
             
@@ -233,7 +232,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberSnapshot implements
 	        }
 	        
 	        if (move == null) {
-	            listener.finished(Reason.NO_IMPROVING_CONSTRAINT_MOVE, statistics.getTotalMoves());
+	            return Reason.NO_IMPROVING_CONSTRAINT_MOVE;
 	        } else {
 	            applyMove(move);
 	            if (timer.shouldStop()) {
