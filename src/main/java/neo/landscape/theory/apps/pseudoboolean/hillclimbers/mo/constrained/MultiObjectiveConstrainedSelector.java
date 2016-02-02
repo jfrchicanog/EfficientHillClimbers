@@ -3,9 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained;
 import java.util.Map;
 import java.util.Random;
 
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.VectorPBMove;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.ConstrainedVectorMovesSelector.MoveClass;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 import neo.landscape.theory.apps.pseudoboolean.util.movestore.multicrieria.ArrayBasedMoveFactory;
 import neo.landscape.theory.apps.pseudoboolean.util.movestore.multicrieria.ArrayBasedMovesStore;
@@ -36,11 +34,13 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
     
     private ArrayBasedMoveFactory<VectorPBMove> movesFactory;
     
-    public MultiObjectiveConstrainedSelector(boolean allowRandomMoves, int theRadius, int constraintIndex, 
-            Random random, Map<SetOfVars, Integer> perfectHash, double [] weights, 
-            CurrentSolutionQuality solQ) {
+    public MultiObjectiveConstrainedSelector(boolean allowRandomMoves, int theRadius, 
+            int constraintIndex, Random random, 
+            Map<SetOfVars, Integer> perfectHash, double [] weights, 
+            CurrentSolutionQuality solQ, Region reg) {
         initializeDefaultBuckets();
         
+        this.region = reg;
         solutionQuality = solQ;
         this.weights = weights.clone();
         checkWeights();
@@ -424,5 +424,18 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
     @Override
     public void setYSolutionQuality(double[] yValue) {
         ySolutionQuality = yValue.clone();
+    }
+
+    @Override
+    public void beginUpdatesForMove(VectorPBMove move) {
+        // TODO: in the future we can do this more efficient if we analyze the kind of move
+    }
+
+    @Override
+    public void endUpdatesForMove() {
+        for (int r=1; r <= radius; r++) {
+            movesStore.changeAllMovesToBucket(0, r, getBucketForUnclassifiedClass(0));
+        }    
+        assignBucketsToUnclassifiedMoves();
     }
 }

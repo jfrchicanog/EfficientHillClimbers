@@ -16,7 +16,11 @@ public interface ConstrainedVectorMovesSelector<M> {
     public Iterable<M> allMoves();
     public int getNumberOfMoves();
     public void unclassifyMove(M move);
+    
+    public void beginUpdatesForMove(M move);
+    public void endUpdatesForMove();
     public void assignBucketsToUnclassifiedMoves();
+    
     public void checkCorrectPositionOfMovesInSelector();
     
     public void setWStar(double [] wstar);
