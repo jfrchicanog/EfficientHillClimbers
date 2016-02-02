@@ -21,6 +21,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveSel
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.VectorPBMove;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.problems.PseudoBooleanFunction;
+import neo.landscape.theory.apps.pseudoboolean.problems.mo.ConstrainedMNKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
 import neo.landscape.theory.apps.util.Process;
@@ -42,6 +43,8 @@ public class ExactMultiObjectiveExperiment implements Process {
     private static final String K_ARGUMENT = "k";
     private static final String N_ARGUMENT = "n";
     private static final String D_ARGUMENT = "d";
+    private static final String SHIFT_ARGUMENT = "shift";
+    private static final String C_ARGUMENT = "c";
     
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
@@ -53,7 +56,7 @@ public class ExactMultiObjectiveExperiment implements Process {
     
 	@Override
 	public String getDescription() {
-		return "Multi-Objective Exhaustive Exploration for MNK Landscapes";
+		return "Multi-Objective (Constrained) Exhaustive Exploration for Constrained MNK Landscapes";
 	}
 
     @Override
@@ -87,6 +90,8 @@ public class ExactMultiObjectiveExperiment implements Process {
 	    options.addOption(MODEL_ARGUMENT, true, "NK-model: y->adjacent, n->random, <number>->Localized");
 	    options.addOption(PROBLEM_SEED_ARGUMENT, true, "random seed for generating the problem");
 	    options.addOption(D_ARGUMENT, true, "dimension of the problem");
+	    options.addOption(C_ARGUMENT, true, "constraints of the problem");
+	    options.addOption(SHIFT_ARGUMENT, true, "shift in the values for the tables");
 	    
 	    return options;
 	}
@@ -108,7 +113,7 @@ public class ExactMultiObjectiveExperiment implements Process {
 		initializeDataHolders();
 		initializeOutput();
 		
-		MNKLandscape pbf = configureProblem(commandLine);
+		ConstrainedMNKLandscape pbf = configureProblem(commandLine);
 		
         ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
         
@@ -133,24 +138,37 @@ public class ExactMultiObjectiveExperiment implements Process {
         int limit = 1 << n;
         for (data[0] = 0; data[0] < limit; data[0]++) {
             double val [] = pbf.evaluate(sol);
-            nonDominatedSet.reportSolutionToArchive(val);
+            if (feasibleSolution(val, pbf.getConstraintIndex())) {
+                nonDominatedSet.reportSolutionToArchive(val, pbf.getConstraintIndex());
+            }
             
         }
     }
 
+    private boolean feasibleSolution(double[] val, int constraintIndex) {
+        boolean feasible = true;
+        for (int i = constraintIndex; feasible && i < val.length; i++) {
+            feasible &= (val[i] >= 0);
+        }
+        return feasible;
+    }
 
-    private MNKLandscape configureProblem(CommandLine commandLine) {
+    private ConstrainedMNKLandscape configureProblem(CommandLine commandLine) {
         String n = commandLine.getOptionValue(N_ARGUMENT);
         String k = commandLine.getOptionValue(K_ARGUMENT);
         String q = commandLine.getOptionValue(Q_ARGUMENT);
-        String d = commandLine.getOptionValue(D_ARGUMENT);
+        String shift = commandLine.getOptionValue(SHIFT_ARGUMENT);
+        int d = Integer.parseInt(commandLine.getOptionValue(D_ARGUMENT));
+        int c = Integer.parseInt(commandLine.getOptionValue(C_ARGUMENT));
         String circular = commandLine.getOptionValue(MODEL_ARGUMENT);
         long problemSeed = Long.parseLong(commandLine.getOptionValue(PROBLEM_SEED_ARGUMENT));
         
 		Properties prop = new Properties();
 		prop.setProperty(NKLandscapes.N_STRING, n);
 		prop.setProperty(NKLandscapes.K_STRING, k);
-		prop.setProperty(MNKLandscape.DIMENSION_STRING, d);
+		prop.setProperty(MNKLandscape.DIMENSION_STRING, String.valueOf(d+c));
+        prop.setProperty(ConstrainedMNKLandscape.CONSTRAINTS_STRING, String.valueOf(c));
+        prop.setProperty(NKLandscapes.SHIFT_STRING, shift);
 
 		if (!q.equals("-")) {
 			prop.setProperty(NKLandscapes.Q_STRING, q);
@@ -162,12 +180,14 @@ public class ExactMultiObjectiveExperiment implements Process {
 		    prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular);
 		}
 		
-		MNKLandscape pbf = new MNKLandscape(problemSeed, prop);
+		ConstrainedMNKLandscape pbf = new ConstrainedMNKLandscape(problemSeed, prop);
 
 		ps.println("N: " + n);
 		ps.println("K: " + k);
 		ps.println("Q: " + q);
 		ps.println("D: " + d);
+		ps.println("C: " + c);
+        ps.println("Shift: " + shift);
 		ps.println("NK-model: "+circular);
 		ps.println("ProblemSeed: "+problemSeed);
         return pbf;

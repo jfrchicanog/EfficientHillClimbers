@@ -172,7 +172,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
                 
                 @Override
                 public void finished(Reason reason, long totalMoves) {
-                    ps.println("Finished:"+reason);
+                    ps.println("Finished:"+reason+ " (moves: "+totalMoves+")");
                     MultiObjectiveConstrainedHammingBallHillClimberExperiment.this.totalMoves += totalMoves;
                 }
                 
@@ -242,6 +242,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
 		ps.println("Q: " + q);
 		ps.println("D: " + d);
 		ps.println("C: " + c);
+		ps.println("Shift: " + shift);
 		ps.println("NK-model: "+circular);
 		ps.println("ProblemSeed: "+problemSeed);
         return pbf;
