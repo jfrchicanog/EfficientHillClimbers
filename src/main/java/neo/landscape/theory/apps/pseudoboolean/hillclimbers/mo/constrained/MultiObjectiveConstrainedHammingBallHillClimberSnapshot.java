@@ -251,6 +251,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberSnapshot implements
         statistics.reportMovement(move);
         movesSelector.beginUpdatesForMove(move);
         moveSeveralBitsEff(move.flipVariables);
+        //checkConsistency();
     }
 
     private void generateRandomWeights(double[] wstar) {

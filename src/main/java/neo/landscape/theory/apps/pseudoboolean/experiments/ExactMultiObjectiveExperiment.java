@@ -49,6 +49,7 @@ public class ExactMultiObjectiveExperiment implements Process {
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
 	private SingleThreadCPUTimer timer;
+	private int unfeasibleSolutions;
 
     private Options options;
     
@@ -116,10 +117,11 @@ public class ExactMultiObjectiveExperiment implements Process {
 		ConstrainedMNKLandscape pbf = configureProblem(commandLine);
 		
         ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
-        
+        unfeasibleSolutions=0;
         completeEnumeration(pbf);
         
         ps.println("Elapsed time: "+timer.elapsedTimeInMilliseconds());
+        ps.println("Unfeasible solutions: "+unfeasibleSolutions);
         ps.println(nonDominatedSet.printArchive());
 
         printOutput();
@@ -140,9 +142,11 @@ public class ExactMultiObjectiveExperiment implements Process {
             double val [] = pbf.evaluate(sol);
             if (feasibleSolution(val, pbf.getConstraintIndex())) {
                 nonDominatedSet.reportSolutionToArchive(val, pbf.getConstraintIndex());
+            } else {
+                unfeasibleSolutions++;
             }
-            
         }
+        
     }
 
     private boolean feasibleSolution(double[] val, int constraintIndex) {
