@@ -197,6 +197,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
         String n = commandLine.getOptionValue(N_ARGUMENT);
         String k = commandLine.getOptionValue(K_ARGUMENT);
         String q = commandLine.getOptionValue(Q_ARGUMENT);
+        String shift = commandLine.getOptionValue(SHIFT_ARGUMENT);
         int d = Integer.parseInt(commandLine.getOptionValue(D_ARGUMENT));
         int c = Integer.parseInt(commandLine.getOptionValue(C_ARGUMENT));
         String circular = commandLine.getOptionValue(MODEL_ARGUMENT);
@@ -207,6 +208,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
 		prop.setProperty(NKLandscapes.K_STRING, k);
 		prop.setProperty(MNKLandscape.DIMENSION_STRING, String.valueOf(d+c));
 		prop.setProperty(ConstrainedMNKLandscape.CONSTRAINTS_STRING, String.valueOf(c));
+		prop.setProperty(NKLandscapes.SHIFT_STRING, shift);
 
 		if (!q.equals("-")) {
 			prop.setProperty(NKLandscapes.Q_STRING, q);
