@@ -192,11 +192,14 @@ public class ArrayBasedMovesStore<M> implements MultiCriteriaMovesStore<M> {
         return mos.length;
     }
 
-    
-
     @Override
     public int sizeOfBucket(int criterion, int radius, int bucket) {
         return bucketIndices[criterion][radius][bucket+1]-bucketIndices[criterion][radius][bucket];
+    }
+    
+    @Override
+    public int getNumberOfMoves(int criterion, int radius) {
+        return scores[criterion][radius].length;
     }
 
     @Override
@@ -209,5 +212,6 @@ public class ArrayBasedMovesStore<M> implements MultiCriteriaMovesStore<M> {
             bucketIndices[criterion][radius][i] = scores[criterion][radius].length;
         }
     }
+
     
 }

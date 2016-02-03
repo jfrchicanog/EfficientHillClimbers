@@ -62,6 +62,8 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
     
     ParetoNonDominatedSet nonDominatedSet;
     private int totalMoves;
+    private int feasibleSolutionsGenerated;
+    private int totalSolutionsGenerated;
     
 	@Override
 	public String getDescription() {
@@ -183,6 +185,8 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
             });
         }
         
+        ps.println("Total random solutions generated:"+totalSolutionsGenerated);
+        ps.println("Feasible random solutions generated: "+feasibleSolutionsGenerated);
         ps.println("Total moves: "+totalMoves);
         ps.println("Stored scores:" + rballfio.getStoredScores());
         ps.println("Total time (ms):"+timer.elapsedTimeInMilliseconds());
@@ -197,6 +201,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
         PBSolution sol;
         do {
             sol = pbf.getRandomSolution();
+            totalSolutionsGenerated++;
             feasible = true;
             double [] quality = pbf.evaluate(sol);
             for (int i=pbf.getConstraintIndex(); i< quality.length; i++) {
@@ -204,6 +209,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
             }
             
         } while (!feasible);
+        feasibleSolutionsGenerated++;
         return sol;
     }
 

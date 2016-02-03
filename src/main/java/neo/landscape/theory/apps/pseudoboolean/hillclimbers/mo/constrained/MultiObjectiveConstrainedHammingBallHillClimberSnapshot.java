@@ -203,13 +203,18 @@ public class MultiObjectiveConstrainedHammingBallHillClimberSnapshot implements
                 return;
             }
             
-            if (movesSelector.selectMove(MoveClass.WFEASIBLE) == null) {
+            if (movesSelector.selectMove(MoveClass.WFEASIBLE) == null &&
+                movesSelector.selectMove(MoveClass.FEASIBLE_DISIMPROVING_F)==null) {
                 listener.finished(Reason.NO_FEASIBLE_MOVE, statistics.getTotalMoves());
                 return;
             }
             
             movesSelector.setYSolutionQuality(solutionQuality);
             VectorPBMove move = movesSelector.selectMove(MoveClass.WFEASIBLE);
+            if (move == null) {
+                move = movesSelector.selectMove(MoveClass.UNFEASIBLE);
+            }
+            
             applyMove(move);
             movesSelector.setRegion(Region.UNFEASIBLE);
             

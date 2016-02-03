@@ -1,5 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Random;
 
@@ -12,6 +13,10 @@ import neo.landscape.theory.apps.pseudoboolean.util.movestore.multicrieria.Multi
 
 public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMovesSelector<VectorPBMove> {
     
+    private enum ScoresFeasibility {
+        ALL_FEASIBLE, ALL_UNFEASIBLE, MIX, NOT_SET
+    }
+    
     private class BucketLocation {
         public int criterion;
         public int bucket;
@@ -23,12 +28,16 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
     private static final int [] defaultBuckets = new int [CRITERIA];
 
     private int minImpRadius;
-    private int impBucket;
+    private BucketLocation bucketLocation = new BucketLocation();
     private int radius;
     private int constraintIndex;
     private Region region;
     private CurrentSolutionQuality solutionQuality;
     private double [] ySolutionQuality;
+    private ScoresFeasibility scoresFeasibility = null;
+    private double [] scoresMin;
+    private double [] scoresMax;
+    private double [] zero;
     
     private double [] weights;
     
@@ -50,6 +59,10 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
         radius = theRadius;
         this.constraintIndex = constraintIndex; 
         movesStore = createMovesStore(radius, BUCKET_NUMBER, map, random);
+        scoresMin = new double [weights.length];
+        scoresMax = new double [weights.length];
+        zero = new double [weights.length];
+        resetMinAndMaxScoresValuesIfNecessary();
     }
 
     protected void initializeDefaultBuckets() {
@@ -74,7 +87,7 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
     }
     
     private BucketLocation getLocationOfMoveClassInUnfeasibleRegion(MoveClass moveClass) {
-        BucketLocation res = new BucketLocation();
+        BucketLocation res = bucketLocation;
         switch (moveClass) {
         case FEASIBLE_STRONG_IMPROVING_Y:
             res.bucket = 0;
@@ -112,7 +125,7 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
     }
 
     private BucketLocation getLocationOfMoveClassInFeasibleRegion(MoveClass moveClass) {
-        BucketLocation res = new BucketLocation();
+        BucketLocation res = bucketLocation;
         switch (moveClass) {
         case FEASIBLE_STRONG_IMPROVING_F:
             res.bucket = 0;
@@ -214,15 +227,44 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
 
     @Override
     public void assignBucketsToUnclassifiedMoves() {
+        
+        resetMinAndMaxScoresValuesIfNecessary();
+        
         for (int rad=1; rad <= radius; rad++) {
             for (int criterion=0; criterion < CRITERIA; criterion++) {
                 int unclassifiedBucket = getBucketForUnclassifiedClass(criterion);
                 while (!movesStore.isBucketEmpty(criterion, rad, unclassifiedBucket)) {
                     VectorPBMove move = movesStore.getDeterministicMove(criterion, rad, unclassifiedBucket);
+                    if (criterion==0) {
+                        updateMinAndMaxScores(move.getImprovement());
+                    }
                     BucketLocation bl = getLocationOfMoveClass(classifyMove(criterion, move));
                     movesStore.changeMoveBucketFIFO(bl.criterion, rad, unclassifiedBucket, bl.bucket, move);
                 }
             }
+        }
+    }
+
+    private void updateMinAndMaxScores(double [] improvement) {
+        for (int i = 0; i < improvement.length; i++) {
+            if (scoresMax[i] < improvement[i]) {
+                scoresMax[i] = improvement[i];
+            }
+            if (scoresMin[i] > improvement[i]) {
+                scoresMin[i] = improvement[i];
+            }
+        }
+    }
+
+    private void resetMinAndMaxScoresValuesIfNecessary() {
+        boolean unclassified = true;
+        for (int rad=1; unclassified && rad <= radius; rad++) {
+            unclassified &= (movesStore.sizeOfBucket(0, rad, getBucketForUnclassifiedClass(0)) 
+                    == movesStore.getNumberOfMoves(0, rad));
+        }
+        if (unclassified) {
+            Arrays.fill(scoresMin, Double.MAX_VALUE);
+            Arrays.fill(scoresMax, -Double.MAX_VALUE);
         }
     }
 
@@ -343,9 +385,11 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
         
         for (int i = constraintIndex; i < improvement.length; i++) {
             double val = improvement[i] + solQuality[i];
+            //System.err.print("s"+solQuality[i]+ " "+improvement[i]);
             wScore += weights[i] * val;
             nonnegative &= (val >= 0.0);
         }
+        //System.err.println();
         
         if (nonnegative) {
             return MoveClass.FEASIBLE;
@@ -428,14 +472,50 @@ public class MultiObjectiveConstrainedSelector extends MultiObjectiveAbstractMov
 
     @Override
     public void beginUpdatesForMove(VectorPBMove move) {
-        // TODO: in the future we can do this more efficient if we analyze the kind of move
+        if (region.equals(Region.FEASIBLE)) {
+            scoresFeasibility = classifyAllScoresAccordingToFeasibility(move);
+        }
+    }
+
+    private ScoresFeasibility classifyAllScoresAccordingToFeasibility(VectorPBMove move) {
+        boolean feasible = true;
+        boolean unfeasible = true;
+        double [] imp = (move==null)?zero:move.getImprovement();
+        
+        double [] solQ = solutionQuality.getCurrentSolutionQuality();
+        for (int i=constraintIndex; i < solQ.length; i++) {
+            feasible &= (solQ[i]-imp[i]+scoresMin[i] >= 0);
+            unfeasible &= (solQ[i]-imp[i]+scoresMax[i] < 0);
+        }
+        if (feasible) {
+            return ScoresFeasibility.ALL_FEASIBLE;
+        } else if (unfeasible) {
+            return ScoresFeasibility.ALL_UNFEASIBLE;
+        } else {
+            return ScoresFeasibility.MIX;
+        }
     }
 
     @Override
     public void endUpdatesForMove() {
-        for (int r=1; r <= radius; r++) {
-            movesStore.changeAllMovesToBucket(0, r, getBucketForUnclassifiedClass(0));
-        }    
+        if (region.equals(Region.UNFEASIBLE) ||
+                scoresFeasibility == null || scoresFeasibility.equals(ScoresFeasibility.MIX) ||
+                scoresFeasibility.equals(ScoresFeasibility.NOT_SET) ||
+                !scoresFeasibility.equals(classifyAllScoresAccordingToFeasibility(null))) {
+
+            for (int r=1; r <= radius; r++) {
+                movesStore.changeAllMovesToBucket(0, r, getBucketForUnclassifiedClass(0));
+            }
+        } else {
+            //System.err.print(".");
+        }
         assignBucketsToUnclassifiedMoves();
+        scoresFeasibility = ScoresFeasibility.NOT_SET;
+//        for (int r=1; r <= radius; r++) {
+//            for(int bucket=0; bucket < movesStore.getNumberOfBuckets(0, r); bucket++) {
+//                System.err.print(movesStore.sizeOfBucket(0, r, bucket)+" ");
+//            }
+//        }
+//        System.err.println();
     }
 }
