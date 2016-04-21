@@ -11,10 +11,14 @@ The list of options are the different experiments available (see below).
 
 # Multi-objective Hamming Ball Hill Climber
 
-This hill climber was published in the EvoCOP 2016 paper entitled "Efficient Hill Climber for Multi-Objective Pseudo-Boolean Optimization" by Francisco Chicano, Darrell Whitley and Renato Tinós.
+This branch contains the code of the hill climber published in the EvoCOP 2016 paper entitled "Efficient Hill Climber for Multi-Objective Pseudo-Boolean Optimization" by Francisco Chicano, Darrell Whitley and Renato Tinós (http://dx.doi.org/10.1007/978-3-319-30698-8_7); and in the GECCO 2016 paper entitled "Efficient Hill Climber for Constrained Pseudo-Boolean Optimization Problems" (to appear).
 
-All the experiments in that paper were conducted with this software. In order to run the Multi-Objective Hamming Ball Hill Climber select the "mo-hbhc" experiment using this string as the first argument after the JAR file name:
+In order to run the Multi-Objective Hamming Ball Hill Climber of EvoCOP 2016 select the "mo-hbhc" experiment using this string as the first argument after the JAR file name:
 
 java -jar EfficientHillClimbers-1.0-SNAPSHOT.jar mo-hbhc
+
+In order to run the Hill Climber for Constrained Problems (explained in the GECCO paper), you should select the "moc-hbhc" experiment:
+
+java -jar EfficientHillClimbers-1.0-SNAPSHOT.jar moc-hbhc
 
 If run without any other argument, a list of all the options will appear with an explanation of their meaning.
