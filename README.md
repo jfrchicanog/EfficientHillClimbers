@@ -19,4 +19,4 @@ java -jar EfficientHillClimbers-1.0-SNAPSHOT.jar mo-hbhc
 
 If run without any other argument, a list of all the options will appear with an explanation of their meaning.
 
-Note: After submitting the camera-ready, a bug was found that fix a problem that could affect the results. In this branch the bug is fixed. The exact verions used for the experiments in the EvoCOP paper is commit: 213036ef593bb25617b48dcb58e81097a3437d71  .
+Note: After submitting the camera-ready, a bug was found that fix a problem that could affect the results. In this branch the bug is fixed. The exact verions used for the experiments in the EvoCOP paper is commit: https://github.com/jfrchicanog/EfficientHillClimbers/commit/213036ef593bb25617b48dcb58e81097a3437d71 .
