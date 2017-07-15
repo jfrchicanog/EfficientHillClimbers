@@ -1,0 +1,172 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>es.uma.chicano</groupId>
+	<artifactId>EfficientHillClimbers</artifactId>
+	<version>0.1-SNAPSHOT</version>
+	<name>Efficient Hill Climbers</name>
+	<description>Work done during the research stay in CSU in August-November 2013</description>
+
+	<scm>
+		<url>scm:git:ssh://mallba10.lcc.uma.es/home/francis/git-repos/EfficientSteepestDescent.git</url>
+	</scm>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.9</version>
+				<configuration>
+					<argLine>-ea</argLine>
+				</configuration>
+			</plugin>
+
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+				<version>1.3</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>create-timestamp</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<doCheck>true</doCheck>
+					<doUpdate>true</doUpdate>
+					<timestampFormat>yyyy-MM-dd-HHmmss</timestampFormat>
+				</configuration>
+			</plugin>
+			
+			<plugin>
+                <!-- We want to create a standalone jar that can be run on the command
+                  line. Java does not really allow this - you cannot place jars inside of jars.
+                  You must either provide all the dependency jars to the user (usually lib/
+                  under the directory containing the runnable jar) or explode all the jars
+                  and repackage them into a single jar. The problem is that while class files
+                  are nicely organized into the package namespace and should not collide, the
+                  META-INF directories of the jars will collide. Maven's standard assembly
+                  plugin does not account for this and will just clobber metadata. This then
+                  causes runtime errors, particularly with Spring. Instead, we use the shade
+                  plugin which has transformers that will for example append files of the same
+                  name rather than overwrite them in the combined JAR. NB: Don't use a version
+                  of the shade plugin older than 1.3.2, as it fixed MSHADE-76 (files not merged
+                  properly if some input files are missing a terminating newline) -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <filters>
+                                <filter>
+                                    <!-- exclude signatures from merged JAR to avoid invalid signature messages -->
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <!-- The shaded JAR will be the main artifact for the project -->
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <!-- MinimizeJar removes unused classes, (classes not imported explicitly by name).
+                              We have eliminated most Jersey auto-scanning, but there is still some need for include
+                              filters to force-include classes that are dynamically loaded by name/auto-scanned. -->
+                            <!-- This roughly halves the size of the OTP JAR, bringing it down to around 20 MB. -->
+                              <minimizeJar>true</minimizeJar>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>neo.landscape.theory.apps.pseudoboolean.Experiments</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+		</plugins>
+
+		
+
+
+	</build>
+	<organization>
+		<url>www.franciscochicano.es</url>
+		<name>Francisco Chicano at Universidad de Malaga</name>
+	</organization>
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.8</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.7.2</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-cli</groupId>
+			<artifactId>commons-cli</artifactId>
+			<version>1.3.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.2</version>
+			</dependency>
+		<dependency>
+    <groupId>com.google.code.gson</groupId>
+    <artifactId>gson</artifactId>
+    <version>2.8.0</version>
+		</dependency>
+	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>metrics</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>cobertura-maven-plugin</artifactId>
+						<version>2.5.1</version>
+						<configuration>
+							<formats>
+								<format>html</format>
+								<format>xml</format>
+							</formats>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+</project>
