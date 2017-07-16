@@ -16,13 +16,17 @@ public class ParetoNonDominatedSet {
     public ParetoNonDominatedSet() {
         archive = new ArrayList<double []>();
     }
-
+    
     public void reportSolutionToArchive(double[] solutionToAdd) {
+        reportSolutionToArchive(solutionToAdd, solutionToAdd.length);
+    }
+
+    public void reportSolutionToArchive(double[] solutionToAdd, int objectives) {
         Iterator<double []> iterator = archive.iterator();
         while(iterator.hasNext()) {
             double [] solutionQuality = iterator.next();
             
-            switch (dominanceRelation(solutionToAdd, solutionQuality)) {
+            switch (dominanceRelation(solutionToAdd, solutionQuality, objectives)) {
             case DOMINATES:
                 iterator.remove();
                 break;
@@ -53,11 +57,11 @@ public class ParetoNonDominatedSet {
         builder.append("\n");
     }
 
-    public DominanceRelation dominanceRelation(double[] firstSolution, double[] secondSolution) {
+    public DominanceRelation dominanceRelation(double[] firstSolution, double[] secondSolution, int objectives) {
         boolean firstBetter=false;
         boolean secondBetter=false;
         
-        for (int i = 0; i < firstSolution.length; i++) {
+        for (int i = 0; i < objectives; i++) {
             firstBetter |= (firstSolution[i] > secondSolution[i]);
             secondBetter |= (firstSolution[i] < secondSolution[i]);
         }

@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.util;
 
 import static org.junit.Assert.fail;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -19,15 +20,15 @@ public class SingleThreadCPUTimerTest {
         cpuTimer.elapsedTime();
     }
     
-    @Test(expected=RuntimeException.class)
+    @Test
     public void testShouldStopException() {
-        cpuTimer.shouldStop();
+        Assert.assertFalse(cpuTimer.shouldStop());
     }
     
-    @Test(expected=RuntimeException.class)
+    @Test
     public void testShouldStopNotSetException() {
         cpuTimer.startTimer();
-        cpuTimer.shouldStop();
+        Assert.assertFalse(cpuTimer.shouldStop());
     }
 
 }

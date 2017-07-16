@@ -4,11 +4,11 @@ import java.util.Map;
 import java.util.Random;
 
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
-import neo.landscape.theory.apps.pseudoboolean.util.ArrayBasedMoveFactory;
-import neo.landscape.theory.apps.pseudoboolean.util.ArrayBasedMovesStore;
-import neo.landscape.theory.apps.pseudoboolean.util.ArrayBasedVectorPBMoveFactory;
-import neo.landscape.theory.apps.pseudoboolean.util.MovesStore;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
+import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedMoveFactory;
+import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedMovesStore;
+import neo.landscape.theory.apps.pseudoboolean.util.movestore.ArrayBasedVectorPBMoveFactory;
+import neo.landscape.theory.apps.pseudoboolean.util.movestore.MovesStore;
 
 public class MultiObjectiveSelector extends MultiObjectiveAbstractMovesSelector<VectorPBMove> {
     
@@ -55,7 +55,7 @@ public class MultiObjectiveSelector extends MultiObjectiveAbstractMovesSelector<
     private void checkWeights() {
         for (double weight: weights) {
             if (weight <= 0.0) {
-                throw new RuntimeException ("All components of the weight vector must be positive");
+                throw new RuntimeException ("All components of the weight vector must be strictly positive");
             }
         }
     }

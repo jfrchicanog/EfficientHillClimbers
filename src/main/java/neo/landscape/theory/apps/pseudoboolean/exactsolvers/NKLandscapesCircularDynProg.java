@@ -227,8 +227,4 @@ public class NKLandscapesCircularDynProg implements
 		return sol;
 	}
 
-	/**
-	 * @param args
-	 */
-
 }

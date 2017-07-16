@@ -1,9 +1,10 @@
-package neo.landscape.theory.apps.pseudoboolean.util;
+package neo.landscape.theory.apps.pseudoboolean.util.movestore;
 
 import java.util.Map;
 import java.util.Random;
 
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
+import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 import neo.landscape.theory.apps.util.Adaptor;
 import neo.landscape.theory.apps.util.IteratorFromArray;
 
