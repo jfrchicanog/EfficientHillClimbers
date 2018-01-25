@@ -18,5 +18,7 @@ public interface TwoStatesIntegerSet {
 	public boolean isExplored(int v);
 	public int getNumberOfElements();
 	public int getNumberOfExploredElements();
+	public String exploredToString();
+	public String unexploredToString();
 
 }

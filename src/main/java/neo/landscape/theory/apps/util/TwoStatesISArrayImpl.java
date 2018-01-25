@@ -88,4 +88,26 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
         return next;
     }
 
+    @Override
+    public String exploredToString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (int i=0; i < next; i++) {
+            sb.append(""+variable[i]+",");
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+
+    @Override
+    public String unexploredToString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (int i=next; i < variable.length; i++) {
+            sb.append(""+variable[i]+",");
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+
 }

@@ -65,17 +65,19 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
 		return explored.size() + unexplored.size();
 	}
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
-	}
-
     @Override
     public int getNumberOfExploredElements() {
         return explored.size();
+    }
+
+    @Override
+    public String exploredToString() {
+        return explored.toString();
+    }
+
+    @Override
+    public String unexploredToString() {
+        return unexplored.toString();
     }
 
 }
