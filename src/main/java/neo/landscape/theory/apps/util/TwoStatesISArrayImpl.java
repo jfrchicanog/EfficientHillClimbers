@@ -83,4 +83,9 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
 		return variable.length;
 	}
 
+    @Override
+    public int getNumberOfExploredElements() {
+        return next;
+    }
+
 }

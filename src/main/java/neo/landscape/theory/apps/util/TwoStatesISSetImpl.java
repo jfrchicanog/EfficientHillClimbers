@@ -73,4 +73,9 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
 
 	}
 
+    @Override
+    public int getNumberOfExploredElements() {
+        return explored.size();
+    }
+
 }

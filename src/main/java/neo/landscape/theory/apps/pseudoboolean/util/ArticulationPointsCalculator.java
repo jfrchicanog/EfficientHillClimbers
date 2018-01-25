@@ -1,6 +1,7 @@
 package neo.landscape.theory.apps.pseudoboolean.util;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
@@ -14,6 +15,38 @@ public class ArticulationPointsCalculator {
         public int numberOfAdjacentVertices(int vertex);
         public int adjacentVertexNumber(int vertex, int index);
         public int numberOfVertices();
+    }
+    
+    static public interface GraphV2 {
+        public Iterator<Integer> adjacentVertices(int vertex);
+        public int numberOfVertices();
+    }
+    
+    static public class GraphV2Adaptor implements GraphV2{
+        private Graph graph;
+        public GraphV2Adaptor(Graph g) {
+            this.graph=g;
+        }
+        @Override
+        public Iterator<Integer> adjacentVertices(int vertex) {
+            return new Iterator<Integer> () {
+                int i=0;
+                @Override
+                public boolean hasNext() {
+                    return i < graph.numberOfAdjacentVertices(vertex);
+                }
+
+                @Override
+                public Integer next() {
+                    return graph.adjacentVertexNumber(vertex, i++);
+                }
+                
+            };
+        }
+        @Override
+        public int numberOfVertices() {
+            return graph.numberOfVertices();
+        }
     }
     
     static private class VertexIndex {
@@ -64,62 +97,65 @@ public class ArticulationPointsCalculator {
         while (explored.hasMoreUnexplored()) {
             int root = explored.getNextUnexplored();
 
-            parent[root] = -1;
-            int rootChildren = 0;
-            stack.add(VertexIndex.newVertexIndex(root, 0));
-            while (!stack.isEmpty()) {
-                VertexIndex vi = stack.pop();
-                int v = vi.vertex;
-                int i = vi.index;
-                if (i == 0) {
-                    explored.explored(v);
-                    time[v] = globalTime++;
-                    low[v] = time[v];
-                }
-                if (i < graph.numberOfAdjacentVertices(v)) {
-                    stack.add(VertexIndex.newVertexIndex(v, i+1));
-                    int w = graph.adjacentVertexNumber(v, i);
-                    if (!explored.isExplored(w)) { 
-                        if (parent[v] < 0) {
-                            rootChildren++;
-                        }
-                        edgeStack.add(Edge.newEdge(v,  w));
-                        stack.add(VertexIndex.newVertexIndex(w, 0));
-                        parent[w] = v;
-
-                    } else if (time[w] < time[v] && w != parent[v]) {
-                        edgeStack.add(Edge.newEdge(v, w));
-                        low[v] = Math.min(low[v], time[w]);
+            exploreFromRoot(graph, root);
+        }
+    }
+    
+    protected void exploreFromRoot(Graph graph, int root) {
+        parent[root] = -1;
+        int rootChildren = 0;
+        stack.add(VertexIndex.newVertexIndex(root, 0));
+        while (!stack.isEmpty()) {
+            VertexIndex vi = stack.pop();
+            int v = vi.vertex;
+            int i = vi.index;
+            if (i == 0) {
+                explored.explored(v);
+                time[v] = globalTime++;
+                low[v] = time[v];
+            }
+            if (i < graph.numberOfAdjacentVertices(v)) {
+                stack.add(VertexIndex.newVertexIndex(v, i+1));
+                int w = graph.adjacentVertexNumber(v, i);
+                if (!explored.isExplored(w)) { 
+                    if (parent[v] < 0) {
+                        rootChildren++;
                     }
-                } else if (!stack.isEmpty()){
-                    int w = v;
-                    vi = stack.peek();
-                    v = vi.vertex;
-                    i = vi.index;
-                    low[v] = Math.min(low[v],low[w]);
-                    if (low[w] >= time[v]) {
-                        if (parent[v] >= 0) {
-                            articulationPoints.explored(v);
-                        }
-                        if (!edgeStack.isEmpty()) {
-                            Set<Integer> component = new HashSet<>();
-                            while (time[edgeStack.peek().tail] >= time[w]) {
-                                Edge e = edgeStack.pop();
-                                component.add(e.head);
-                                component.add(e.tail);
-                            }
+                    edgeStack.add(Edge.newEdge(v,  w));
+                    stack.add(VertexIndex.newVertexIndex(w, 0));
+                    parent[w] = v;
+
+                } else if (time[w] < time[v] && w != parent[v]) {
+                    edgeStack.add(Edge.newEdge(v, w));
+                    low[v] = Math.min(low[v], time[w]);
+                }
+            } else if (!stack.isEmpty()){
+                int w = v;
+                vi = stack.peek();
+                v = vi.vertex;
+                low[v] = Math.min(low[v],low[w]);
+                if (low[w] >= time[v]) {
+                    if (parent[v] >= 0) {
+                        articulationPoints.explored(v);
+                    }
+                    if (!edgeStack.isEmpty()) {
+                        Set<Integer> component = new HashSet<>();
+                        while (time[edgeStack.peek().tail] >= time[w]) {
                             Edge e = edgeStack.pop();
                             component.add(e.head);
                             component.add(e.tail);
-                            biconnectedComponents.add(component);
                         }
+                        Edge e = edgeStack.pop();
+                        component.add(e.head);
+                        component.add(e.tail);
+                        biconnectedComponents.add(component);
                     }
                 }
             }
+        }
 
-            if (rootChildren >= 2) {
-                articulationPoints.explored(root);
-            }
+        if (rootChildren >= 2) {
+            articulationPoints.explored(root);
         }
     }
 
