@@ -1,6 +1,8 @@
 package neo.landscape.theory.apps.util;
 
+import java.util.Arrays;
 import java.util.NoSuchElementException;
+import java.util.stream.IntStream;
 
 public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
 
@@ -108,6 +110,16 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
         }
         sb.append("}");
         return sb.toString();
+    }
+
+    @Override
+    public IntStream getExplored() {
+        return Arrays.stream(variable, 0, next);
+    }
+
+    @Override
+    public IntStream getUnexplored() {
+        return Arrays.stream(variable, next,variable.length);
     }
 
 }

@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.util;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
 
@@ -78,6 +79,16 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
     @Override
     public String unexploredToString() {
         return unexplored.toString();
+    }
+
+    @Override
+    public IntStream getExplored() {
+        return explored.stream().mapToInt(Integer::intValue);
+    }
+
+    @Override
+    public IntStream getUnexplored() {
+        return unexplored.stream().mapToInt(Integer::intValue);
     }
 
 }

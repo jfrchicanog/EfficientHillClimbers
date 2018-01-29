@@ -1,5 +1,7 @@
 package neo.landscape.theory.apps.util;
 
+import java.util.stream.IntStream;
+
 /**
  * 
  * @author Francisco Chicano
@@ -20,5 +22,7 @@ public interface TwoStatesIntegerSet {
 	public int getNumberOfExploredElements();
 	public String exploredToString();
 	public String unexploredToString();
+	public IntStream getExplored();
+	public IntStream getUnexplored();
 
 }
