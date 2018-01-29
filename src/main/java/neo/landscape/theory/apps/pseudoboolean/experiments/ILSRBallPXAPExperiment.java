@@ -6,6 +6,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Properties;
+import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
@@ -168,6 +169,7 @@ public class ILSRBallPXAPExperiment implements Process {
                 new RBallEfficientHillClimber(rballConfig).initialize(pbf);
         PXAPForRBallHillClimber px = new PXAPForRBallHillClimber(pbf);
         px.setSeed(seed);
+        px.setPrintStream(ps);
 
         timer.setStopTimeMilliseconds(time * 1000);
         ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
@@ -206,6 +208,11 @@ public class ILSRBallPXAPExperiment implements Process {
 		        } else {
 		            ps.println("* Success in PX: "+px.getNumberOfComponents());
 		            ps.println("* Articulation Points: "+px.getNumberOfArticulationPoints());
+		            
+		            ps.println("* Min, Avg, Max of degree of articulation points: "
+		                    +px.degreeOfArticulationPoints().min().getAsInt()
+		                    +","+px.degreeOfArticulationPoints().average().getAsDouble()
+		                    + ","+px.degreeOfArticulationPoints().max().getAsInt());
 		            hillClimb(child);
 		            reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 		            reportLONEdge(nextSolution, child, TYPE_CROSSOVER);

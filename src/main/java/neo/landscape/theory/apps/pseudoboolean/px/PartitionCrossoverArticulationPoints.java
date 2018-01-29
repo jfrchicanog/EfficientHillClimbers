@@ -1,11 +1,15 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
+import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
+import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
@@ -26,6 +30,8 @@ public class PartitionCrossoverArticulationPoints {
     protected PartitionComponent component;
     protected VariableProcedence varProcedence;
 
+    protected PrintStream ps;
+    
     private int numberOfComponents;
 
     public PartitionCrossoverArticulationPoints(EmbeddedLandscape el) {
@@ -86,11 +92,13 @@ public class PartitionCrossoverArticulationPoints {
     private int low[];
     private int time[];
     private int parent[];
+    private int degree[];
     private int globalTime;
     private TwoStatesIntegerSet articulationPoints;
     private Stack<VertexIndex> stack;
     private Stack<Edge> edgeStack;
     private Set<Set<Integer>> biconnectedComponents;
+    private List<Integer> degreeOfArticulationPoints;
     
     static private class VertexIndex {
         private int vertex;
@@ -127,10 +135,17 @@ public class PartitionCrossoverArticulationPoints {
         low = new int[n];
         time = new int [n];
         parent = new int [n];
+        degree = new int[n];
         globalTime = 0;
         stack = new Stack<>();
         edgeStack = new Stack<>();
         biconnectedComponents = new HashSet<>();
+        degreeOfArticulationPoints = new ArrayList<>();
+        
+    }
+    
+    public void setPrintStream(PrintStream ps) {
+        this.ps=ps;
     }
 
     protected PartitionComponent dfs(Integer root, PBSolution blue, PBSolution red) {
@@ -175,7 +190,13 @@ public class PartitionCrossoverArticulationPoints {
                 low[v] = Math.min(low[v],low[w]);
                 if (low[w] >= time[v]) {
                     if (parent[v] >= 0) {
-                        articulationPoints.explored(v);
+                        if (articulationPoints.isExplored(v)) {
+                            degree[v]++;
+                        } else {
+                            articulationPoints.explored(v);
+                            degree[v] = 2;
+                        }
+                        
                     }
                     if (!edgeStack.isEmpty()) {
                         Set<Integer> component = new HashSet<>();
@@ -195,6 +216,7 @@ public class PartitionCrossoverArticulationPoints {
 
         if (rootChildren >= 2) {
             articulationPoints.explored(root);
+            degree[root]=rootChildren;
         }
 
 		return component;
@@ -236,6 +258,11 @@ public class PartitionCrossoverArticulationPoints {
 
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
 		    PartitionComponent component = dfs(node, blue, red);
+		    
+		    if (ps!= null) {
+		        printComponent(component);
+		    }
+		    
 			double[] vals = evaluateComponent(component, blue, red);
 			
 			double blueVal = vals[0];
@@ -249,6 +276,11 @@ public class PartitionCrossoverArticulationPoints {
 			}
 			numberOfComponents++;
 		}
+		
+		if (ps!=null) {
+		    printBiconnectedComponents();
+            printArticulationPoints();
+		}
 
 		return child;
 	}
@@ -259,5 +291,32 @@ public class PartitionCrossoverArticulationPoints {
     
     public int getNumberOfArticulationPoints() {
         return articulationPoints.getNumberOfExploredElements();
+    }
+    
+    private void printComponent(PartitionComponent pc) {
+        Set<Integer> componentSet = new HashSet<>();
+        pc.forEach(e->componentSet.add(e));
+        
+        ps.print("{");
+        for (int u: componentSet) {
+            for (int v: el.getInteractions()[u]) {
+                if (u < v && componentSet.contains(v)) {
+                    ps.print("("+u+","+v+"),");
+                }
+            }
+        }
+        ps.println("}");
+    }
+    
+    private void printBiconnectedComponents() {
+       ps.println(biconnectedComponents);
+    }
+    
+    private void printArticulationPoints() {
+        ps.println(articulationPoints.exploredToString());
+    }
+    
+    public IntStream degreeOfArticulationPoints() {
+        return articulationPoints.getExplored().map(i->degree[i]);
     }
 }
