@@ -38,11 +38,6 @@ public class ILSRBallPXAPExperiment implements Process {
     private static final String TIME_ARGUMENT = "time";
     private static final String MOVES_FACTOR_ARGUMENT = "mf";
     private static final String RADIUS_ARGUMENT = "r";
-    private static final String PROBLEM_SEED_ARGUMENT = "pseed";
-    private static final String MODEL_ARGUMENT = "model";
-    private static final String Q_ARGUMENT = "q";
-    private static final String K_ARGUMENT = "k";
-    private static final String N_ARGUMENT = "n";
     private static final String LON_ARGUMENT = "lon";
     private static final String LON_MINIMUM_FITNESS_ARGUMENT = "lonmin";
     
@@ -63,6 +58,7 @@ public class ILSRBallPXAPExperiment implements Process {
     private PBSolutionDigest solutionDigest;
     private Double localOptimumFitnessFilter;
     private CommandLine commandLine;
+    private EmbeddedLandscapeConfigurator problemConfigurator;
 
     
 	@Override
@@ -96,11 +92,7 @@ public class ILSRBallPXAPExperiment implements Process {
 	private Options prepareOptions() {
 	    Options options = new Options();
 	    
-	    options.addOption(N_ARGUMENT, true, "number of variables");
-	    options.addOption(K_ARGUMENT, true, "number of subfunction arguments");
-	    options.addOption(Q_ARGUMENT, true, "cardinality of subfunction domain");
-	    options.addOption(MODEL_ARGUMENT, true, "NK-model: y->adjacent, n->random, <number>->Localized");
-	    options.addOption(PROBLEM_SEED_ARGUMENT, true, "random seed for generating the problem");
+	    getProblemConfigurator().prepareOptionsForProblem(options);
 	    options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
 	    options.addOption(MOVES_FACTOR_ARGUMENT, true, "proportion of variables used for the random walk in the perturbation");
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
@@ -130,7 +122,7 @@ public class ILSRBallPXAPExperiment implements Process {
 		initializeStatistics();
 		initializeOutput();
 		
-		NKLandscapes pbf = configureProblem(commandLine);
+		EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(commandLine, ps);
 		
 		if (commandLine.hasOption(LON_ARGUMENT)) {
             initializeLONDataStructures(pbf);
@@ -208,11 +200,12 @@ public class ILSRBallPXAPExperiment implements Process {
 		        } else {
 		            ps.println("* Success in PX: "+px.getNumberOfComponents());
 		            ps.println("* Articulation Points: "+px.getNumberOfArticulationPoints());
-		            
-		            ps.println("* Min, Avg, Max of degree of articulation points: "
-		                    +px.degreeOfArticulationPoints().min().getAsInt()
-		                    +","+px.degreeOfArticulationPoints().average().getAsDouble()
-		                    + ","+px.degreeOfArticulationPoints().max().getAsInt());
+		            if (px.getNumberOfArticulationPoints() != 0) {
+		                ps.println("* Min, Avg, Max of degree of articulation points: "
+		                        +px.degreeOfArticulationPoints().min().getAsInt()
+		                        +","+px.degreeOfArticulationPoints().average().getAsDouble()
+		                        + ","+px.degreeOfArticulationPoints().max().getAsInt());
+		            }
 		            hillClimb(child);
 		            reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 		            reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
@@ -223,47 +216,13 @@ public class ILSRBallPXAPExperiment implements Process {
 		        
 		    }
 		} catch (Exception e) {
-		    ps.print("Exception: "+e.getMessage());
+		    ps.println("Exception: "+e.getMessage());
+		    e.printStackTrace(ps);
 		}
 
         writeLONInformation();
         printOutput();
 
-    }
-
-    private NKLandscapes configureProblem(CommandLine commandLine) {
-        String n = commandLine.getOptionValue(N_ARGUMENT);
-        String k = commandLine.getOptionValue(K_ARGUMENT);
-        String q = commandLine.getOptionValue(Q_ARGUMENT);
-        String circular = commandLine.getOptionValue(MODEL_ARGUMENT);
-        long problemSeed = Long.parseLong(commandLine.getOptionValue(PROBLEM_SEED_ARGUMENT));
-        
-		NKLandscapes pbf = new NKLandscapes();
-		Properties prop = new Properties();
-		prop.setProperty(NKLandscapes.N_STRING, n);
-		prop.setProperty(NKLandscapes.K_STRING, k);
-
-		if (!q.equals("-")) {
-			prop.setProperty(NKLandscapes.Q_STRING, q);
-		}
-
-		if (circular.equals("y")) {
-			prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
-		} else {
-		    prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular);
-		}
-		
-		pbf.setSeed(problemSeed);
-        pbf.setConfiguration(prop);
-
-		ps.println("N: " + pbf.getN());
-		ps.println("K: " + pbf.getK());
-		ps.println("Q: " + pbf.getQ());
-		ps.println("Adjacent model?: "
-				+ (NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));
-		ps.println("NK-model: "+circular);
-		ps.println("ProblemSeed: "+problemSeed);
-        return pbf;
     }
 
     private CommandLine parseCommandLine(String[] args) {
@@ -365,6 +324,17 @@ public class ILSRBallPXAPExperiment implements Process {
         if (commandLine.hasOption(LON_MINIMUM_FITNESS_ARGUMENT)) {
             localOptimumFitnessFilter = Double.parseDouble(commandLine.getOptionValue(LON_MINIMUM_FITNESS_ARGUMENT));
         }
+    }
+    
+    private EmbeddedLandscapeConfigurator getProblemConfigurator() {
+        if (problemConfigurator==null) {
+            problemConfigurator = createEmbeddedLandscapeConfigurator();
+        }
+        return problemConfigurator;
+    }
+    
+    protected EmbeddedLandscapeConfigurator createEmbeddedLandscapeConfigurator() {
+        return new NKLandscapeConfigurator();
     }
 
 
