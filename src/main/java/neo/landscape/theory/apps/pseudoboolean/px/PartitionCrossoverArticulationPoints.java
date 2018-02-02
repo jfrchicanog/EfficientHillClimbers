@@ -28,12 +28,23 @@ public class PartitionCrossoverArticulationPoints {
        BLUE, RED
     }
     
-    private class APInformation {
+    private static class APInformation {
         double greenMinusBlueForParent;
         double yellowMinusRedForParent;
         double accumulatedDifference;
         double contributionIfBlueIsFlipped;
         double contributionIfRedIsFlipped;
+    }
+    
+    private static class BranchDecision {
+        FlippedSolution decisionForRedFlip;
+        FlippedSolution decisionForBlueFlip;
+        Set<Integer> biconnectedComponent;
+        public BranchDecision(FlippedSolution forRed, FlippedSolution forBlue, Set<Integer> biconnectedComponent) {
+            decisionForBlueFlip = forBlue;
+            decisionForRedFlip = forRed;
+            this.biconnectedComponent = biconnectedComponent;
+        }
     }
 
 	protected static final int VARIABLE_LIMIT = 1<<29;
@@ -118,11 +129,12 @@ public class PartitionCrossoverArticulationPoints {
     private Stack<VertexIndex> stack;
     private Stack<Edge> edgeStack;
     private Set<Set<Integer>> biconnectedComponents;
-    private List<Integer> degreeOfArticulationPoints;
     private TwoStatesIntegerSet subfunctions;
     private TwoStatesIntegerSet variablesInBiconnectedComponents;
     
     private Map<Integer, FlippedSolution> allArticulationPointsToFlip;
+    
+    private Map<Integer, List<BranchDecision>> articulationPointsDecisions;
     
     private Set<Set<Integer>> partition;
 
@@ -191,11 +203,11 @@ public class PartitionCrossoverArticulationPoints {
         stack = new Stack<>();
         edgeStack = new Stack<>();
         biconnectedComponents = new HashSet<>();
-        degreeOfArticulationPoints = new ArrayList<>();
         subfunctions = new TwoStatesISArrayImpl(el.getM());
         variablesInBiconnectedComponents = new TwoStatesISArrayImpl(n);
         allArticulationPointsToFlip = new HashMap<>();
         partition = new HashSet<>();
+        articulationPointsDecisions = new HashMap<>();
         
     }
     
@@ -271,17 +283,25 @@ public class PartitionCrossoverArticulationPoints {
                         if (e.tail != v) {
                             analizeVariableInBiconnectedComponent(blue, red, v, component, e.tail);
                         }
+                        
+                        BranchDecision pd = new BranchDecision(null, null, component);
+                        setDecisionOfBranch(v, pd);
+                        
                         if (deltaBlueRed+deltaGreenBlue > 0) {
-                            // TODO: Choose blue in this branch
-                            ps.println("Blue for blue flip in: "+component+" ("+(deltaBlueRed+deltaGreenBlue)+")");
+                            reportDebugInformation("Blue for blue flip in: "+component+" ("+(deltaBlueRed+deltaGreenBlue)+")");
                             articulationPointsOfBC.getData(v).contributionIfBlueIsFlipped += deltaBlueRed+deltaGreenBlue;
+                            pd.decisionForBlueFlip = FlippedSolution.BLUE;
+                        } else {
+                            pd.decisionForBlueFlip = FlippedSolution.RED;
                         }
+                        
                         if (deltaBlueRed > deltaYellowRed) {
-                            // TODO: Choose blue in this branch
                             ps.println("Blue for red flip in: "+component+" ("+(deltaBlueRed)+")");
                             articulationPointsOfBC.getData(v).contributionIfRedIsFlipped += deltaBlueRed;
+                            pd.decisionForRedFlip = FlippedSolution.BLUE;
                         } else {
                             articulationPointsOfBC.getData(v).contributionIfRedIsFlipped += deltaYellowRed;
+                            pd.decisionForRedFlip = FlippedSolution.RED;
                         }
                         
                         analyzeArticulationPointFunctions(blue, red, v, component);
@@ -325,22 +345,45 @@ public class PartitionCrossoverArticulationPoints {
 		return component;
 	}
 
+    protected void setDecisionOfBranch(int v, BranchDecision pd) {
+        List<BranchDecision> list = articulationPointsDecisions.get(v);
+        if (list ==null) {
+            list = new ArrayList<>();
+            articulationPointsDecisions.put(v,list);
+        }
+        list.add(pd);
+    }
+
+    protected void reportDebugInformation(String message) {
+        if (debug && ps != null) {
+            ps.println(message);
+        }
+    }
+
     protected void postProcessArticulationPoint(double totalBlueRedDifference, int ap) {
         APInformation apInfo = articulationPointsOfBC.getData(ap);
         double blueFlipContribution = totalBlueRedDifference-apInfo.accumulatedDifference + apInfo.greenMinusBlueForParent;
+        BranchDecision branchDecision = articulationPointsDecisions.get(ap).stream()
+                .filter(bd->{return bd.decisionForBlueFlip==null;})
+                .findFirst()
+                .get();
         if (blueFlipContribution > 0) {
-            ps.println("Blue for blue flip in parent of: "+ap+" ("+(blueFlipContribution)+")");
+            reportDebugInformation("Blue for blue flip in parent of: "+ap+" ("+(blueFlipContribution)+")");
             apInfo.contributionIfBlueIsFlipped += blueFlipContribution;
-            // TODO: Choose Blue in the parent biconnected comonent
+            branchDecision.decisionForBlueFlip = FlippedSolution.BLUE;
+        } else {
+            branchDecision.decisionForBlueFlip = FlippedSolution.RED;
         }
+        
         
         double redBlueDifference = totalBlueRedDifference-apInfo.accumulatedDifference;
         if (redBlueDifference > apInfo.yellowMinusRedForParent) {
             ps.println("Blue for red flip in parent of: "+ap+" ("+(redBlueDifference)+")");
             apInfo.contributionIfRedIsFlipped += redBlueDifference;
-            // TODO: Choose Blue in the parent biconnected comonent
+            branchDecision.decisionForRedFlip = FlippedSolution.BLUE;
         } else {
             apInfo.contributionIfRedIsFlipped += apInfo.yellowMinusRedForParent;
+            branchDecision.decisionForRedFlip = FlippedSolution.RED;
         }
         
         updateImprovementWithAPOptions(ap, apInfo);
@@ -399,6 +442,10 @@ public class PartitionCrossoverArticulationPoints {
             component.add(newVariable);
             if (articulationPointsOfBC.isExplored(newVariable)) {
                 deltaBlueRed += articulationPointsOfBC.getData(newVariable).accumulatedDifference;
+                
+                BranchDecision pd = new BranchDecision(null, null, component);
+                setDecisionOfBranch(newVariable, pd);
+                
             }
             
             for (int fns: el.getAppearsIn()[newVariable]) {
@@ -477,11 +524,12 @@ public class PartitionCrossoverArticulationPoints {
         overAllImprovement = 0.0;
         allArticulationPointsToFlip.clear();
         partition.clear();
+        articulationPointsDecisions.clear();
         
-        if (debug) {
-            ps.println("Red solution: "+red+"("+el.evaluate(red)+")");
-            ps.println("Blue solution:"+blue+"("+el.evaluate(blue)+")");
-        }
+        
+        reportDebugInformation("Red solution: "+red+"("+el.evaluate(red)+")");
+        reportDebugInformation("Blue solution:"+blue+"("+el.evaluate(blue)+")");
+        
         
 		PBSolution child = new PBSolution(red); //child, copy of red
 		numberOfComponents = 0;
@@ -496,27 +544,20 @@ public class PartitionCrossoverArticulationPoints {
 		    
 		    articulationPointsOfBC.getExplored().forEach(allArticulationPoints::add);
 		    
-		    Set<Integer> varsInComponent = new HashSet<>();
-		    component.forEach(var->{
-		        varsInComponent.add(var);
-		    });
-		    partition.add(varsInComponent);
-		    
-		    if (ps!= null) {
-		        printComponent(component);
+		    if (debug) {
+		        Set<Integer> varsInComponent = new HashSet<>();
+		        component.forEach(var->{
+		            varsInComponent.add(var);
+		        });
+		        partition.add(varsInComponent);
+
+
+		        if (ps!= null) {
+		            printComponent(component);
+		        }
 		    }
 		    
-			double[] vals = evaluateComponent(component, blue, red);
-			
-			double blueVal = vals[0];
-			double redVal = vals[1];
-
-			if (blueVal > redVal || ((blueVal==redVal) && rnd.nextDouble() < 0.5)) {
-			    for (int variable : component) {
-			        child.setBit(variable, blue.getBit(variable));
-                    varProcedence.markAsBlue(variable);
-                }
-			}
+		    prepareOffspringSolution(blue, red, child, component);
 			numberOfComponents++;
 		}
 		
@@ -528,6 +569,73 @@ public class PartitionCrossoverArticulationPoints {
 		return child;
 	}
 
+    protected void prepareOffspringSolution(PBSolution blue, PBSolution red, PBSolution child,
+            PartitionComponent component) {
+        if (articulationPointToFlip < 0) {
+            double[] vals = evaluateComponent(component, blue, red);
+
+            double blueVal = vals[0];
+            double redVal = vals[1];
+
+            if (blueVal > redVal || ((blueVal==redVal) && rnd.nextDouble() < 0.5)) {
+                for (int variable : component) {
+                    blueBitInChild(blue, child, variable);
+                }
+            }
+        } else {
+            if (FlippedSolution.BLUE.equals(solutionToFlip)) {
+                // child does not need to be flipped, since it is red, 
+                // and does not need to be marked as red
+                for (BranchDecision bd:  articulationPointsDecisions.get(articulationPointToFlip)) {
+                    if (FlippedSolution.BLUE.equals(bd.decisionForBlueFlip)) {
+                        markBlueRecursivelyAvoiding(blue, child, bd.biconnectedComponent, articulationPointToFlip);
+                    }
+                }
+            } else {
+                blueBitInChild(blue, child, articulationPointToFlip);
+                for (BranchDecision bd:  articulationPointsDecisions.get(articulationPointToFlip)) {
+                    if (FlippedSolution.BLUE.equals(bd.decisionForRedFlip)) {
+                        markBlueRecursivelyAvoiding(blue, child, bd.biconnectedComponent, articulationPointToFlip);
+                    }
+                }
+            }
+        }
+    }
+	
+	protected void markBlueRecursivelyAvoiding(PBSolution blue, PBSolution child, Set<Integer> component, int var) {
+        List<BranchDecision> toPaint = new ArrayList<>();
+
+	    for (int variable: component) {
+	        if (variable != var) {
+	            blueBitInChild(blue, child, variable);
+	            if (articulationPointsOfBC.isExplored(variable)) {
+	                articulationPointsDecisions.get(variable).stream()
+	                    .filter(bd->{return bd.biconnectedComponent != component;})
+	                    .forEach(toPaint::add);
+	            }
+	        }
+	    }
+	    
+	    while (!toPaint.isEmpty()) {
+	        BranchDecision exploring = toPaint.remove(toPaint.size()-1);
+	        for (int variable: exploring.biconnectedComponent) {
+	            if (varProcedence.getColor(variable) != varProcedence.BLUE &&
+	                    articulationPointsOfBC.isExplored(variable)) {
+	                articulationPointsDecisions.get(variable).stream()
+	                .filter(bd->{return bd != exploring;})
+	                .forEach(toPaint::add);
+	            }
+	            blueBitInChild(blue, child, variable);
+	        }
+
+	    }
+	}
+
+    protected void blueBitInChild(PBSolution blue, PBSolution child, int variable) {
+        child.setBit(variable, blue.getBit(variable));
+        varProcedence.markAsBlue(variable);
+    }
+
     public int getNumberOfComponents() {
         return numberOfComponents;
     }
@@ -537,26 +645,28 @@ public class PartitionCrossoverArticulationPoints {
     }
     
     private void printComponent(PartitionComponent pc) {
-        Set<Integer> componentSet = new HashSet<>();
-        pc.forEach(e->componentSet.add(e));
-        
-        ps.print("{");
-        for (int u: componentSet) {
-            for (int v: el.getInteractions()[u]) {
-                if (u < v && componentSet.contains(v)) {
-                    ps.print("("+u+","+v+"),");
+        if (debug) {
+            Set<Integer> componentSet = new HashSet<>();
+            pc.forEach(e->componentSet.add(e));
+
+            ps.print("{");
+            for (int u: componentSet) {
+                for (int v: el.getInteractions()[u]) {
+                    if (u < v && componentSet.contains(v)) {
+                        ps.print("("+u+","+v+"),");
+                    }
                 }
             }
+            ps.println("}");
         }
-        ps.println("}");
     }
     
     private void printBiconnectedComponents() {
-       ps.println(biconnectedComponents);
+       reportDebugInformation(""+biconnectedComponents);
     }
     
     private void printArticulationPoints() {
-        ps.println(allArticulationPoints.toString());
+        reportDebugInformation(allArticulationPoints.toString());
     }
     
     public IntStream degreeOfArticulationPoints() {
@@ -564,8 +674,8 @@ public class PartitionCrossoverArticulationPoints {
     }
     
     public void printArticulationPointToFlipAndImprovement() {
-        ps.println("Articulation Point to flip:"+allArticulationPointsToFlip);
-        ps.println("Improvement: "+overAllImprovement);
+        reportDebugInformation("Articulation Point to flip:"+allArticulationPointsToFlip);
+        reportDebugInformation("Improvement: "+overAllImprovement);
     }
     
     public Map<Integer, FlippedSolution> getAllArticulationPointsToFlip() {

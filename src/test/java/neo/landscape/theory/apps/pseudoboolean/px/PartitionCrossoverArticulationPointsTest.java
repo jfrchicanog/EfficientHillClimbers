@@ -55,6 +55,7 @@ public class PartitionCrossoverArticulationPointsTest {
         pxap = new PartitionCrossoverArticulationPoints(nk);
         px = new PartitionCrossover(nk);
         try {
+            pxap.setDebug(true);
             pxap.setPrintStream(System.out);
             pxap.setPrintStream(new PrintStream(new FileOutputStream("/dev/null")));
             
@@ -70,6 +71,8 @@ public class PartitionCrossoverArticulationPointsTest {
         
         checkImprovement(red, blue, result, apsToFlip, improvement);        
         checkBestImprovement(red, improvement);
+        
+        Assert.assertEquals(improvement, nk.evaluate(result)-nk.evaluate(red));
 
     }
 
