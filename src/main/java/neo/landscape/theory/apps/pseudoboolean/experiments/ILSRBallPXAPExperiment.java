@@ -205,6 +205,7 @@ public class ILSRBallPXAPExperiment implements Process {
 		        
 		        if (!timer.shouldStop()) {
 		            child = px.recombine(currentSolution, nextSolution);
+		            ps.println("Recombination time:"+px.getLastRuntime());
 		        }
 		        
 		        if (child == null) {
@@ -212,11 +213,14 @@ public class ILSRBallPXAPExperiment implements Process {
 		        } else {
 		            ps.println("* Success in PX: "+px.getNumberOfComponents());
 		            ps.println("* Articulation Points: "+px.getNumberOfArticulationPoints());
-		            if (px.getNumberOfArticulationPoints() != 0) {
-		                ps.println("* Min, Avg, Max of degree of articulation points: "
-		                        +px.degreeOfArticulationPoints().min().getAsInt()
-		                        +","+px.degreeOfArticulationPoints().average().getAsDouble()
-		                        + ","+px.degreeOfArticulationPoints().max().getAsInt());
+		            ps.println("* Improvement by articulation points analysis: "+px.isArticulationPointAnalysisImprovement());
+		            if (commandLine.hasOption(DEBUG_ARGUMENT)) {
+		                if (px.getNumberOfArticulationPoints() != 0) {
+		                    ps.println("* Min, Avg, Max of degree of articulation points: "
+		                            +px.degreeOfArticulationPoints().min().getAsInt()
+		                            +","+px.degreeOfArticulationPoints().average().getAsDouble()
+		                            + ","+px.degreeOfArticulationPoints().max().getAsInt());
+		                }
 		            }
 		            px.printArticulationPointToFlipAndImprovement();
 		            hillClimb(child);

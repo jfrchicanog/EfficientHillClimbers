@@ -16,10 +16,14 @@ public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover {
 	public RBallEfficientHillClimberSnapshot recombine(
 			final RBallEfficientHillClimberSnapshot blue,
 			final RBallEfficientHillClimberSnapshot red) {
-		PBSolution blueSolution = blue.getSolution();
+		
+	    long initTime = System.nanoTime();
+	    PBSolution blueSolution = blue.getSolution();
 		PBSolution redSolution = red.getSolution();
 		PBSolution res = super.recombine(blueSolution, redSolution);
 
+		
+		
 		if (res.equals(blueSolution) || res.equals(redSolution)) {
 			return null;
 		}
@@ -71,7 +75,9 @@ public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover {
             }
         };
 
-		return blue.getHillClimberForInstanceOf().initialize(res, inspectorFactory);
+		RBallEfficientHillClimberSnapshot solution = blue.getHillClimberForInstanceOf().initialize(res, inspectorFactory);
+		lastRuntime = System.nanoTime()-initTime;
+        return solution;
 	}
 
 }

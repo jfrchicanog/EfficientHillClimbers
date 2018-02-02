@@ -191,6 +191,7 @@ public class ILSRBallPXExperiment implements Process {
 		        
 		        if (!timer.shouldStop()) {
 		            child = px.recombine(currentSolution, nextSolution);
+		            ps.println("Recombination time:"+px.getLastRuntime());
 		        }
 		        
 		        if (child == null) {

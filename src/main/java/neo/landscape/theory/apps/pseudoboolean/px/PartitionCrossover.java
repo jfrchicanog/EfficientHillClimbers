@@ -24,6 +24,8 @@ public class PartitionCrossover {
     
     protected PartitionComponent component;
     protected VariableProcedence varProcedence;
+    
+    protected long lastRuntime;
 
     private int numberOfComponents;
 
@@ -136,7 +138,7 @@ public class PartitionCrossover {
 	}
 
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
-
+	    long initTime = System.nanoTime();
         bfsSet.reset();
         
 		PBSolution child = new PBSolution(red); //child, copy of red
@@ -157,11 +159,15 @@ public class PartitionCrossover {
 			}
 			numberOfComponents++;
 		}
-
+		lastRuntime = System.nanoTime() - initTime;
 		return child;
 	}
 
     public int getNumberOfComponents() {
         return numberOfComponents;
+    }
+    
+    public long getLastRuntime() {
+        return lastRuntime;
     }
 }

@@ -16,6 +16,9 @@ public class PXAPForRBallHillClimber extends PartitionCrossoverArticulationPoint
 	public RBallEfficientHillClimberSnapshot recombine(
 			final RBallEfficientHillClimberSnapshot blue,
 			final RBallEfficientHillClimberSnapshot red) {
+	    
+	    long initTime = System.nanoTime();
+	    
 		PBSolution blueSolution = blue.getSolution();
 		PBSolution redSolution = red.getSolution();
 		PBSolution res = super.recombine(blueSolution, redSolution);
@@ -71,7 +74,10 @@ public class PXAPForRBallHillClimber extends PartitionCrossoverArticulationPoint
             }
         };
 
-		return blue.getHillClimberForInstanceOf().initialize(res, inspectorFactory);
+		RBallEfficientHillClimberSnapshot solution = blue.getHillClimberForInstanceOf().initialize(res, inspectorFactory);
+        lastRunTime = System.nanoTime()-initTime;
+        
+		return solution;
 	}
 
 }

@@ -131,6 +131,7 @@ public class PartitionCrossoverArticulationPoints {
     private Set<Set<Integer>> biconnectedComponents;
     private TwoStatesIntegerSet subfunctions;
     private TwoStatesIntegerSet variablesInBiconnectedComponents;
+    private boolean articulationPointAnalysisImprovement = false;
     
     private Map<Integer, FlippedSolution> allArticulationPointsToFlip;
     
@@ -149,6 +150,8 @@ public class PartitionCrossoverArticulationPoints {
     private double overAllImprovement;
 
     private double deltaYellowRed;
+    
+    protected long lastRunTime;
     
     static private class VertexIndex {
         private int vertex;
@@ -513,6 +516,7 @@ public class PartitionCrossoverArticulationPoints {
 
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
 
+	    long lastInitTime = System.nanoTime();
         bfsSet.reset();
         allArticulationPoints.clear();
         globalTime = 0;
@@ -525,6 +529,7 @@ public class PartitionCrossoverArticulationPoints {
         allArticulationPointsToFlip.clear();
         partition.clear();
         articulationPointsDecisions.clear();
+        articulationPointAnalysisImprovement = false;
         
         
         reportDebugInformation("Red solution: "+red+"("+el.evaluate(red)+")");
@@ -538,8 +543,15 @@ public class PartitionCrossoverArticulationPoints {
 		    PartitionComponent component = dfs(node, blue, red);
 		    
 		    overAllImprovement += improvement;
-		    if (articulationPointToFlip >= 0) {
-		        allArticulationPointsToFlip.put(articulationPointToFlip, solutionToFlip);
+		    
+		    if (articulationPointToFlip >= 0 ){
+		        articulationPointAnalysisImprovement = true;
+		    }
+		    
+		    if (debug) {
+		        if (articulationPointToFlip >= 0) {
+		            allArticulationPointsToFlip.put(articulationPointToFlip, solutionToFlip);
+		        }
 		    }
 		    
 		    articulationPointsOfBC.getExplored().forEach(allArticulationPoints::add);
@@ -565,8 +577,14 @@ public class PartitionCrossoverArticulationPoints {
 		    printBiconnectedComponents();
             printArticulationPoints();
 		}
+		
+		lastRunTime = System.nanoTime() - lastInitTime; 
 
 		return child;
+	}
+	
+	public long getLastRuntime() {
+	    return lastRunTime;
 	}
 
     protected void prepareOffspringSolution(PBSolution blue, PBSolution red, PBSolution child,
@@ -697,4 +715,10 @@ public class PartitionCrossoverArticulationPoints {
     public Set<Integer> getAllArticulationPoints() {
         return allArticulationPoints;
     }
+
+    public boolean isArticulationPointAnalysisImprovement() {
+        return articulationPointAnalysisImprovement;
+    }
+    
+    
 }
