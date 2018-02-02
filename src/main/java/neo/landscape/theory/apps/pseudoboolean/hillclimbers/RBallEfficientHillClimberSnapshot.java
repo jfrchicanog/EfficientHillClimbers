@@ -406,5 +406,9 @@ public class RBallEfficientHillClimberSnapshot implements
     public MovesAndSubFunctionsInspector getInspectorForSubFunction(int subFunction) {
         return this;
     }
+    
+    public int getNumberOfMoves() {
+        return movesSelector.getNumberOfMoves();
+    }
 
 }
