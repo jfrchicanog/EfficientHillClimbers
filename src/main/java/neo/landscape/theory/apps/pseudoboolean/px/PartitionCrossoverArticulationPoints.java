@@ -15,9 +15,18 @@ import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
+import neo.landscape.theory.apps.util.TwoStatesISWithDataArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSetWithData;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSetWithData.DataFactory;
 
 public class PartitionCrossoverArticulationPoints {
+    
+    private class APInformation {
+        double greenMinusBlueForParent;
+        double accumulatedDifference;
+        double contributionIfReflippped;
+    }
 
 	protected static final int VARIABLE_LIMIT = 1<<29;
 	
@@ -29,6 +38,8 @@ public class PartitionCrossoverArticulationPoints {
     
     protected PartitionComponent component;
     protected VariableProcedence varProcedence;
+    
+    protected boolean debug;
 
     protected PrintStream ps;
     
@@ -48,7 +59,7 @@ public class PartitionCrossoverArticulationPoints {
 		component = componentAndVariableProcedence;
 		varProcedence = componentAndVariableProcedence;
 		
-		initializeDataStructures(el.getN());
+		initializeDataStructures();
 
 	}
 
@@ -94,11 +105,27 @@ public class PartitionCrossoverArticulationPoints {
     private int parent[];
     private int degree[];
     private int globalTime;
-    private TwoStatesIntegerSet articulationPoints;
+    private TwoStatesIntegerSetWithData<APInformation> articulationPointsOfBC;
+    private Set<Integer> allArticulationPoints;
     private Stack<VertexIndex> stack;
     private Stack<Edge> edgeStack;
     private Set<Set<Integer>> biconnectedComponents;
     private List<Integer> degreeOfArticulationPoints;
+    private TwoStatesIntegerSet subfunctions;
+    private TwoStatesIntegerSet variablesInBiconnectedComponents;
+    
+    private Set<Integer> allArticulationPointsToFlip;
+    
+    private Set<Set<Integer>> partition;
+
+    private double deltaBlueRed;
+
+    private double deltaGreenBlue;
+
+    private int articulationPointToFlip;
+
+    private double improvement;
+    private double overAllImprovement;
     
     static private class VertexIndex {
         private int vertex;
@@ -128,9 +155,22 @@ public class PartitionCrossoverArticulationPoints {
         }
     }
     
-    private void initializeDataStructures(int n) {
-        articulationPoints = new TwoStatesISArrayImpl(n);
-        articulationPoints.reset();
+    private void initializeDataStructures() {
+        int n = el.getN();
+        articulationPointsOfBC = new TwoStatesISWithDataArrayImpl<>(n);
+        articulationPointsOfBC.reset();
+        allArticulationPoints = new HashSet<>();
+        articulationPointsOfBC.setDataFactory(new DataFactory<APInformation> () {
+            @Override
+            public APInformation newData() {
+                return new APInformation();
+            }
+            @Override
+            public void recycle(APInformation data) {
+                // TODO Auto-generated method stub
+                throw new UnsupportedOperationException("Recycling not supported");
+            }
+        });
         
         low = new int[n];
         time = new int [n];
@@ -141,6 +181,10 @@ public class PartitionCrossoverArticulationPoints {
         edgeStack = new Stack<>();
         biconnectedComponents = new HashSet<>();
         degreeOfArticulationPoints = new ArrayList<>();
+        subfunctions = new TwoStatesISArrayImpl(el.getM());
+        variablesInBiconnectedComponents = new TwoStatesISArrayImpl(n);
+        allArticulationPointsToFlip = new HashSet<>();
+        partition = new HashSet<>();
         
     }
     
@@ -153,6 +197,8 @@ public class PartitionCrossoverArticulationPoints {
         
         parent[root] = -1;
         int rootChildren = 0;
+        articulationPointsOfBC.reset();
+        articulationPointsOfBC.setData(root, null);
         stack.add(VertexIndex.newVertexIndex(root, 0));
         while (!stack.isEmpty()) {
             VertexIndex vi = stack.pop();
@@ -169,7 +215,7 @@ public class PartitionCrossoverArticulationPoints {
                 if (isNodeInReducedGraph(el.getInteractions()[v][i], blue, red)) {
                     int w = el.getInteractions()[v][i];
                     if (!bfsSet.isExplored(w)) { 
-                        if (parent[v] < 0) {
+                        if (v == root) {
                             rootChildren++;
                         }
                         edgeStack.add(Edge.newEdge(v,  w));
@@ -189,38 +235,172 @@ public class PartitionCrossoverArticulationPoints {
                 v = vi.vertex;
                 low[v] = Math.min(low[v],low[w]);
                 if (low[w] >= time[v]) {
-                    if (parent[v] >= 0) {
-                        if (articulationPoints.isExplored(v)) {
-                            degree[v]++;
-                        } else {
-                            articulationPoints.explored(v);
-                            degree[v] = 2;
-                        }
-                        
+                    if (v!=root) {
+                        markInternalArticulationPoint(v);
                     }
                     if (!edgeStack.isEmpty()) {
+                        deltaBlueRed = 0;
+                        deltaGreenBlue = 0;
+                        
                         Set<Integer> component = new HashSet<>();
                         while (time[edgeStack.peek().tail] >= time[w]) {
                             Edge e = edgeStack.pop();
-                            component.add(e.head);
-                            component.add(e.tail);
+                            if (e.head != v) {
+                                analizeVariableInBiconnectedComponent(blue, red, v, component, e.head);
+                            }
+                            if (e.tail != v) {
+                                analizeVariableInBiconnectedComponent(blue, red, v, component, e.tail);
+                            }
                         }
                         Edge e = edgeStack.pop();
-                        component.add(e.head);
-                        component.add(e.tail);
+                        if (e.head != v) {
+                            analizeVariableInBiconnectedComponent(blue, red, v, component, e.head);
+                        }
+                        if (e.tail != v) {
+                            analizeVariableInBiconnectedComponent(blue, red, v, component, e.tail);
+                        }
+                        if (deltaBlueRed+deltaGreenBlue > 0) {
+                            // TODO: Choose blue in this branch
+                            ps.println("Blue in: "+component+" ("+(deltaBlueRed+deltaGreenBlue)+")");
+                            articulationPointsOfBC.getData(v).contributionIfReflippped += deltaBlueRed+deltaGreenBlue;
+                        }
+                        
+                        analyzeArticulationPointFunctions(blue, red, v, component);
+   
                         biconnectedComponents.add(component);
                     }
                 }
             }
         }
+        
 
         if (rootChildren >= 2) {
-            articulationPoints.explored(root);
-            degree[root]=rootChildren;
+            markRootArticulationPoint(root, rootChildren);
         }
+        
+        if (rootChildren > 0) {
+            // Finish the computation of options
+            double totalBlueRedDifference = articulationPointsOfBC.getData(root).accumulatedDifference;
+            improvement = Math.max(0, totalBlueRedDifference);
+            articulationPointToFlip = -1;
 
+            articulationPointsOfBC.getExplored().forEach(ap->{
+                if (ap != root) {
+                    postProcessArticulationPoint(totalBlueRedDifference, ap);
+                }
+            });
+            if (articulationPointsOfBC.isExplored(root)) {
+                APInformation apInfo = articulationPointsOfBC.getData(root);
+                if (apInfo.contributionIfReflippped > improvement) {
+                    articulationPointToFlip = root;
+                    improvement = apInfo.contributionIfReflippped;
+                }
+            }
+        } else {
+            articulationPointToFlip = -1;
+            
+            double[] vals = evaluateComponent(component, blue, red);
+            
+            double blueVal = vals[0];
+            double redVal = vals[1];
+            improvement = Math.max(blueVal-redVal, 0);
+        }
+        
 		return component;
 	}
+
+    protected void postProcessArticulationPoint(double totalBlueRedDifference, int ap) {
+        APInformation apInfo = articulationPointsOfBC.getData(ap);
+        double contribution = totalBlueRedDifference-apInfo.accumulatedDifference + apInfo.greenMinusBlueForParent;
+        if (contribution > 0) {
+            ps.println("Blue in parent of: "+ap+" ("+(contribution)+")");
+            apInfo.contributionIfReflippped += contribution;
+            // TODO: Choose Blue in the parent biconnected comonent
+        }
+        if (apInfo.contributionIfReflippped > improvement) {
+            articulationPointToFlip = ap;
+            improvement = apInfo.contributionIfReflippped;
+        }
+    }
+
+    protected void analyzeArticulationPointFunctions(PBSolution blue, PBSolution red, int v,
+            Set<Integer> component) {
+        if (!variablesInBiconnectedComponents.isExplored(v)) {
+            //variablesInBiconnectedComponents.explored(v);
+            component.add(v);
+            for (int fns: el.getAppearsIn()[v]) {
+                if (!subfunctions.isExplored(fns)) {
+                    if (checkFunctionLinkedToVariable(fns, v, blue, red)) {
+                        subfunctions.explored(fns);
+                        
+                        double blueValue = el.evaluateSubFunctionFromCompleteSolution(fns, blue);
+                        deltaBlueRed += (blueValue
+                                -el.evaluateSubFunctionFromCompleteSolution(fns, red));
+                    }
+                }
+            }
+        }
+        articulationPointsOfBC.getData(v).accumulatedDifference += deltaBlueRed;
+    }
+    
+    private boolean checkFunctionLinkedToVariable(int fns, int v, PBSolution blue, PBSolution red) {
+        boolean onlyV = true;
+        for (int var: el.getMasks()[fns]) {
+            if (var != v && isNodeInReducedGraph(var, blue, red)) {
+                onlyV = false;
+                break;
+            }
+        }
+        return onlyV;
+    }
+
+    protected void analizeVariableInBiconnectedComponent(PBSolution blue, PBSolution red, int v,
+            Set<Integer> component, int newVariable) {
+        if (!variablesInBiconnectedComponents.isExplored(newVariable)) {
+            variablesInBiconnectedComponents.explored(newVariable);
+            component.add(newVariable);
+            if (articulationPointsOfBC.isExplored(newVariable)) {
+                deltaBlueRed += articulationPointsOfBC.getData(newVariable).accumulatedDifference;
+            }
+            
+            for (int fns: el.getAppearsIn()[newVariable]) {
+                if (!subfunctions.isExplored(fns)) {
+                    subfunctions.explored(fns);
+                    double blueValue = el.evaluateSubFunctionFromCompleteSolution(fns, blue);
+                    deltaBlueRed += (blueValue
+                            -el.evaluateSubFunctionFromCompleteSolution(fns, red));
+                    for (int var: el.getMasks()[fns]) {
+                        if (var == v || articulationPointsOfBC.isExplored(var)) {
+                            double greenValue = 
+                                    el.evaluateSubFunctionFromCompleteSolutionFlippingVariable(fns, var, blue);
+                            double yellowValue = 
+                                    el.evaluateSubFunctionFromCompleteSolutionFlippingVariable(fns, var, red);
+                            if (var == v){
+                                deltaGreenBlue += greenValue - blueValue;
+                            } else {
+                                articulationPointsOfBC.getData(var).greenMinusBlueForParent += greenValue - blueValue; 
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    protected void markRootArticulationPoint(Integer root, int rootChildren) {
+        articulationPointsOfBC.explored(root);
+        degree[root]=rootChildren;
+    }
+
+    protected void markInternalArticulationPoint(int v) {
+        if (articulationPointsOfBC.isExplored(v)) {
+            degree[v]++;
+        } else {
+            articulationPointsOfBC.explored(v);
+            articulationPointsOfBC.setData(v, null);
+            degree[v] = 2;
+        }
+    }
 
     protected double[] evaluateComponent(Iterable<Integer> vars, PBSolution... sol) {
 		double[] res = new double[sol.length];
@@ -247,17 +427,40 @@ public class PartitionCrossoverArticulationPoints {
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
 
         bfsSet.reset();
-        articulationPoints.reset();
+        allArticulationPoints.clear();
         globalTime = 0;
         biconnectedComponents.clear();
         edgeStack.clear();
         stack.clear();
+        variablesInBiconnectedComponents.reset();
+        subfunctions.reset();
+        overAllImprovement = 0.0;
+        allArticulationPointsToFlip.clear();
+        partition.clear();
+        
+        if (debug) {
+            ps.println("Red solution: "+red+"("+el.evaluate(red)+")");
+            ps.println("Blue solution:"+blue+"("+el.evaluate(blue)+")");
+        }
         
 		PBSolution child = new PBSolution(red); //child, copy of red
 		numberOfComponents = 0;
 
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
 		    PartitionComponent component = dfs(node, blue, red);
+		    
+		    overAllImprovement += improvement;
+		    if (articulationPointToFlip >= 0) {
+		        allArticulationPointsToFlip.add(articulationPointToFlip);
+		    }
+		    
+		    articulationPointsOfBC.getExplored().forEach(allArticulationPoints::add);
+		    
+		    Set<Integer> varsInComponent = new HashSet<>();
+		    component.forEach(var->{
+		        varsInComponent.add(var);
+		    });
+		    partition.add(varsInComponent);
 		    
 		    if (ps!= null) {
 		        printComponent(component);
@@ -290,7 +493,7 @@ public class PartitionCrossoverArticulationPoints {
     }
     
     public int getNumberOfArticulationPoints() {
-        return articulationPoints.getNumberOfExploredElements();
+        return allArticulationPoints.size();
     }
     
     private void printComponent(PartitionComponent pc) {
@@ -313,10 +516,35 @@ public class PartitionCrossoverArticulationPoints {
     }
     
     private void printArticulationPoints() {
-        ps.println(articulationPoints.exploredToString());
+        ps.println(allArticulationPoints.toString());
     }
     
     public IntStream degreeOfArticulationPoints() {
-        return articulationPoints.getExplored().map(i->degree[i]);
+        return allArticulationPoints.stream().mapToInt(i->degree[i]);
+    }
+    
+    public void printArticulationPointToFlipAndImprovement() {
+        ps.println("Articulation Point to flip:"+allArticulationPointsToFlip);
+        ps.println("Improvement: "+overAllImprovement);
+    }
+    
+    public Set<Integer> getAllArticulationPointsToFlip() {
+        return allArticulationPointsToFlip;
+    }
+    
+    public double getOverallImprovement() {
+        return overAllImprovement;
+    }
+    
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+    
+    public Set<Set<Integer>> getPartition() {
+        return partition;
+    }
+    
+    public Set<Integer> getAllArticulationPoints() {
+        return allArticulationPoints;
     }
 }

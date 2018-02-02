@@ -34,7 +34,8 @@ import org.apache.commons.cli.ParseException;
 public class ILSRBallPXAPExperiment implements Process {
 
 
-	private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
+	private static final String DEBUG_ARGUMENT = "debug";
+    private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
     private static final String TIME_ARGUMENT = "time";
     private static final String MOVES_FACTOR_ARGUMENT = "mf";
     private static final String RADIUS_ARGUMENT = "r";
@@ -99,6 +100,7 @@ public class ILSRBallPXAPExperiment implements Process {
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
 	    options.addOption(LON_ARGUMENT,false, "print the PX Local Optima Network");
         options.addOption(LON_MINIMUM_FITNESS_ARGUMENT,true, "minimum fitness to consider a LON (optional)");
+        options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
 	    
 	    return options;
 	}
@@ -123,6 +125,14 @@ public class ILSRBallPXAPExperiment implements Process {
 		initializeOutput();
 		
 		EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(commandLine, ps);
+		
+		if (commandLine.hasOption(DEBUG_ARGUMENT)) {
+		    StringWriter sr = new StringWriter();
+		    if (pbf instanceof NKLandscapes) {
+		        ((NKLandscapes)pbf).writeTo(sr);
+		        ps.print(sr.toString());
+		    }
+		}
 		
 		if (commandLine.hasOption(LON_ARGUMENT)) {
             initializeLONDataStructures(pbf);
@@ -162,6 +172,8 @@ public class ILSRBallPXAPExperiment implements Process {
         PXAPForRBallHillClimber px = new PXAPForRBallHillClimber(pbf);
         px.setSeed(seed);
         px.setPrintStream(ps);
+        px.setDebug(commandLine.hasOption(DEBUG_ARGUMENT));
+        
 
         timer.setStopTimeMilliseconds(time * 1000);
         ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
@@ -206,6 +218,7 @@ public class ILSRBallPXAPExperiment implements Process {
 		                        +","+px.degreeOfArticulationPoints().average().getAsDouble()
 		                        + ","+px.degreeOfArticulationPoints().max().getAsInt());
 		            }
+		            px.printArticulationPointToFlipAndImprovement();
 		            hillClimb(child);
 		            reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 		            reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
