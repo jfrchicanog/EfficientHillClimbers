@@ -3,6 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.IntStream;
@@ -10,6 +11,7 @@ import java.util.stream.IntStream;
 import junit.framework.Assert;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
+import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverArticulationPoints.FlippedSolution;
 
 import org.junit.Test;
 
@@ -55,6 +57,7 @@ public class PartitionCrossoverArticulationPointsTest {
         try {
             pxap.setPrintStream(System.out);
             pxap.setPrintStream(new PrintStream(new FileOutputStream("/dev/null")));
+            
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -62,7 +65,7 @@ public class PartitionCrossoverArticulationPointsTest {
         
         PBSolution result = pxap.recombine(blue, red);
         
-        Set<Integer> apsToFlip = pxap.getAllArticulationPointsToFlip();
+        Map<Integer, FlippedSolution> apsToFlip = pxap.getAllArticulationPointsToFlip();
         double improvement = pxap.getOverallImprovement();
         
         checkImprovement(red, blue, result, apsToFlip, improvement);        
@@ -92,7 +95,7 @@ public class PartitionCrossoverArticulationPointsTest {
                         improvementInComponent = imp;
                     }
                     trial.flipBit(ap);
-                    /*
+                    
                     red.flipBit(ap);
                     result  = px.recombine(trial, red);
                     resultValue = nk.evaluate(result);
@@ -100,7 +103,7 @@ public class PartitionCrossoverArticulationPointsTest {
                     if (imp > improvementInComponent) {
                         improvementInComponent = imp;
                     }
-                    red.flipBit(ap);*/
+                    red.flipBit(ap);
                 }
             }
             overallImprovement += improvementInComponent;
@@ -109,17 +112,32 @@ public class PartitionCrossoverArticulationPointsTest {
     }
 
     protected void checkImprovement(PBSolution red, PBSolution blue, PBSolution result,
-            Set<Integer> apsToFlip, double improvement) {
+            Map<Integer, FlippedSolution> apsToFlip, double improvement) {
         double redValue = nk.evaluate(red);
         if (apsToFlip.isEmpty()) {
             double resultValue = nk.evaluate(result);
             Assert.assertEquals(resultValue-redValue, improvement);
         } else {
-            apsToFlip.stream().forEach(ap->{blue.flipBit(ap);});
+            apsToFlip.entrySet().stream().forEach(entry->{
+                if (FlippedSolution.BLUE.equals(entry.getValue())) {
+                    blue.flipBit(entry.getKey());
+                } else {
+                    red.flipBit(entry.getKey());
+                }
+            });
+            
+            
             result = px.recombine(blue, red);
             double resultValue = nk.evaluate(result);
             Assert.assertEquals(resultValue-redValue, improvement);
-            apsToFlip.stream().forEach(ap->{blue.flipBit(ap);});
+            
+            apsToFlip.entrySet().stream().forEach(entry->{
+                if (FlippedSolution.BLUE.equals(entry.getValue())) {
+                    blue.flipBit(entry.getKey());
+                } else {
+                    red.flipBit(entry.getKey());
+                }
+            });
         }
     }
     
