@@ -291,7 +291,8 @@ public class PartitionCrossoverArticulationPoints {
                         setDecisionOfBranch(v, pd);
                         
                         if (deltaBlueRed+deltaGreenBlue > 0) {
-                            reportDebugInformation("Blue for blue flip in: "+component+" ("+(deltaBlueRed+deltaGreenBlue)+")");
+                            if (debug) 
+                                reportDebugInformation("Blue for blue flip in: "+component+" ("+(deltaBlueRed+deltaGreenBlue)+")");
                             articulationPointsOfBC.getData(v).contributionIfBlueIsFlipped += deltaBlueRed+deltaGreenBlue;
                             pd.decisionForBlueFlip = FlippedSolution.BLUE;
                         } else {
@@ -299,7 +300,8 @@ public class PartitionCrossoverArticulationPoints {
                         }
                         
                         if (deltaBlueRed > deltaYellowRed) {
-                            reportDebugInformation("Blue for red flip in: "+component+" ("+(deltaBlueRed)+")");
+                            if (debug)
+                                reportDebugInformation("Blue for red flip in: "+component+" ("+(deltaBlueRed)+")");
                             articulationPointsOfBC.getData(v).contributionIfRedIsFlipped += deltaBlueRed;
                             pd.decisionForRedFlip = FlippedSolution.BLUE;
                         } else {
@@ -371,7 +373,8 @@ public class PartitionCrossoverArticulationPoints {
                 .findFirst()
                 .get();
         if (blueFlipContribution > 0) {
-            reportDebugInformation("Blue for blue flip in parent of: "+ap+" ("+(blueFlipContribution)+")");
+            if (debug) 
+                reportDebugInformation("Blue for blue flip in parent of: "+ap+" ("+(blueFlipContribution)+")");
             apInfo.contributionIfBlueIsFlipped += blueFlipContribution;
             branchDecision.decisionForBlueFlip = FlippedSolution.BLUE;
         } else {
@@ -381,7 +384,8 @@ public class PartitionCrossoverArticulationPoints {
         
         double redBlueDifference = totalBlueRedDifference-apInfo.accumulatedDifference;
         if (redBlueDifference > apInfo.yellowMinusRedForParent) {
-            reportDebugInformation("Blue for red flip in parent of: "+ap+" ("+(redBlueDifference)+")");
+            if (debug)
+                reportDebugInformation("Blue for red flip in parent of: "+ap+" ("+(redBlueDifference)+")");
             apInfo.contributionIfRedIsFlipped += redBlueDifference;
             branchDecision.decisionForRedFlip = FlippedSolution.BLUE;
         } else {
@@ -531,9 +535,10 @@ public class PartitionCrossoverArticulationPoints {
         articulationPointsDecisions.clear();
         articulationPointAnalysisImprovement = false;
         
-        
+        if (debug) {
         reportDebugInformation("Red solution: "+red+"("+el.evaluate(red)+")");
         reportDebugInformation("Blue solution:"+blue+"("+el.evaluate(blue)+")");
+        }
         
         
 		PBSolution child = new PBSolution(red); //child, copy of red
@@ -573,7 +578,7 @@ public class PartitionCrossoverArticulationPoints {
 			numberOfComponents++;
 		}
 		
-		if (ps!=null) {
+		if (debug && ps!=null) {
 		    printBiconnectedComponents();
             printArticulationPoints();
 		}
@@ -680,11 +685,11 @@ public class PartitionCrossoverArticulationPoints {
     }
     
     private void printBiconnectedComponents() {
-       reportDebugInformation(""+biconnectedComponents);
+       if (debug) reportDebugInformation(""+biconnectedComponents);
     }
     
     private void printArticulationPoints() {
-        reportDebugInformation(allArticulationPoints.toString());
+        if (debug) reportDebugInformation(allArticulationPoints.toString());
     }
     
     public IntStream degreeOfArticulationPoints() {
@@ -692,8 +697,8 @@ public class PartitionCrossoverArticulationPoints {
     }
     
     public void printArticulationPointToFlipAndImprovement() {
-        reportDebugInformation("Articulation Point to flip:"+allArticulationPointsToFlip);
-        reportDebugInformation("Improvement: "+overAllImprovement);
+        if (debug) reportDebugInformation("Articulation Point to flip:"+allArticulationPointsToFlip);
+        if (debug) reportDebugInformation("Improvement: "+overAllImprovement);
     }
     
     public Map<Integer, FlippedSolution> getAllArticulationPointsToFlip() {
