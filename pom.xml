@@ -3,8 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>es.uma.chicano</groupId>
 	<artifactId>EfficientHillClimbers</artifactId>
-
-	<version>1.0-SNAPSHOT</version>
+	<version>0.1-GECCO2018</version>
 	<name>Efficient Hill Climbers</name>
 	<description>Work starting during the research stay in CSU in August-November 2013</description>
 
