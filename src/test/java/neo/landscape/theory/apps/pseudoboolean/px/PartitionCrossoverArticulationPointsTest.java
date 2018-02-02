@@ -143,7 +143,5 @@ public class PartitionCrossoverArticulationPointsTest {
             });
         }
     }
-    
-    
 
 }

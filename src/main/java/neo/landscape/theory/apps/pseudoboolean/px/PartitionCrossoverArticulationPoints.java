@@ -296,7 +296,7 @@ public class PartitionCrossoverArticulationPoints {
                         }
                         
                         if (deltaBlueRed > deltaYellowRed) {
-                            ps.println("Blue for red flip in: "+component+" ("+(deltaBlueRed)+")");
+                            reportDebugInformation("Blue for red flip in: "+component+" ("+(deltaBlueRed)+")");
                             articulationPointsOfBC.getData(v).contributionIfRedIsFlipped += deltaBlueRed;
                             pd.decisionForRedFlip = FlippedSolution.BLUE;
                         } else {
@@ -378,7 +378,7 @@ public class PartitionCrossoverArticulationPoints {
         
         double redBlueDifference = totalBlueRedDifference-apInfo.accumulatedDifference;
         if (redBlueDifference > apInfo.yellowMinusRedForParent) {
-            ps.println("Blue for red flip in parent of: "+ap+" ("+(redBlueDifference)+")");
+            reportDebugInformation("Blue for red flip in parent of: "+ap+" ("+(redBlueDifference)+")");
             apInfo.contributionIfRedIsFlipped += redBlueDifference;
             branchDecision.decisionForRedFlip = FlippedSolution.BLUE;
         } else {
