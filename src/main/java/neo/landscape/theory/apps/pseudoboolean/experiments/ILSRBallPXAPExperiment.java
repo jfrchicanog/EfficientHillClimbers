@@ -231,7 +231,6 @@ public class ILSRBallPXAPExperiment implements Process {
 		            currentSolution = child;
 		            notifyExploredSolution(currentSolution);
 		        }
-		        
 		    }
 		} catch (Exception e) {
 		    ps.println("Exception: "+e.getMessage());
