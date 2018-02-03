@@ -42,6 +42,7 @@ public class ILSRBallPXAPExperiment implements Process {
     private static final String LON_ARGUMENT = "lon";
     private static final String LON_MINIMUM_FITNESS_ARGUMENT = "lonmin";
     private static final String NOAP_ARGUMENT = "noap";
+    private static final String DEGREE_ARGUMENT = "degree";
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
@@ -103,6 +104,7 @@ public class ILSRBallPXAPExperiment implements Process {
         options.addOption(LON_MINIMUM_FITNESS_ARGUMENT,true, "minimum fitness to consider a LON (optional)");
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(NOAP_ARGUMENT, false, "disables the reflip of articulation points");
+        options.addOption(DEGREE_ARGUMENT, false, "reports the degree of the articulation points");
 	    
 	    return options;
 	}
@@ -176,6 +178,8 @@ public class ILSRBallPXAPExperiment implements Process {
         px.setPrintStream(ps);
         px.setDebug(commandLine.hasOption(DEBUG_ARGUMENT));
         px.enableArticulationPointsAnalysis(!commandLine.hasOption(NOAP_ARGUMENT));
+        
+        boolean showDegreeOfArticulationPoints = commandLine.hasOption(DEGREE_ARGUMENT);
 
         timer.setStopTimeMilliseconds(time * 1000);
         ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
@@ -216,13 +220,8 @@ public class ILSRBallPXAPExperiment implements Process {
 		            ps.println("* Success in PX: "+px.getNumberOfComponents());
 		            ps.println("* Articulation Points: "+px.getNumberOfArticulationPoints());
 		            ps.println("* Improvement by articulation points analysis: "+px.isArticulationPointAnalysisImprovement());
-		            if (commandLine.hasOption(DEBUG_ARGUMENT)) {
-		                if (px.getNumberOfArticulationPoints() != 0) {
-		                    ps.println("* Min, Avg, Max of degree of articulation points: "
-		                            +px.degreeOfArticulationPoints().min().getAsInt()
-		                            +","+px.degreeOfArticulationPoints().average().getAsDouble()
-		                            + ","+px.degreeOfArticulationPoints().max().getAsInt());
-		                }
+		            if (showDegreeOfArticulationPoints) {
+		                ps.println("* Degrees of articulation points: "+px.degreeOfArticulationPoints());
 		            }
 		            px.printArticulationPointToFlipAndImprovement();
 		            hillClimb(child);

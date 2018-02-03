@@ -144,6 +144,7 @@ public class PartitionCrossoverArticulationPoints {
     private double deltaYellowRed;
     protected long lastRunTime;
     protected boolean articulationPointsAnalysisEnabled=true;
+    protected List<Integer> degreesOfArticulationPoints;
 
     private double totalBlueRedDifference;
     
@@ -205,6 +206,7 @@ public class PartitionCrossoverArticulationPoints {
         allArticulationPointsToFlip = new HashMap<>();
         partition = new HashSet<>();
         articulationPointsDecisions = new HashMap<>();
+        degreesOfArticulationPoints = new ArrayList<>();
         
     }
     
@@ -527,6 +529,7 @@ public class PartitionCrossoverArticulationPoints {
         partition.clear();
         articulationPointsDecisions.clear();
         articulationPointAnalysisImprovement = false;
+        degreesOfArticulationPoints.clear();
         
         if (debug) {
         reportDebugInformation("Red solution: "+red+"("+el.evaluate(red)+")");
@@ -559,7 +562,11 @@ public class PartitionCrossoverArticulationPoints {
 		    
 		    overAllImprovement += improvement;
 		    
-		    articulationPointsOfBC.getExplored().forEach(allArticulationPoints::add);
+		    articulationPointsOfBC.getExplored().forEach(ap->{
+		        allArticulationPoints.add(ap);
+		        degreesOfArticulationPoints.add(degree[ap]);
+		    });
+		    degreesOfArticulationPoints.add(0);
 		    
 		    if (debug) {
 		        Set<Integer> varsInComponent = new HashSet<>();
@@ -692,8 +699,8 @@ public class PartitionCrossoverArticulationPoints {
         if (debug) reportDebugInformation(allArticulationPoints.toString());
     }
     
-    public IntStream degreeOfArticulationPoints() {
-        return allArticulationPoints.stream().mapToInt(i->degree[i]);
+    public List<Integer> degreeOfArticulationPoints() {
+        return degreesOfArticulationPoints;
     }
     
     public void printArticulationPointToFlipAndImprovement() {
