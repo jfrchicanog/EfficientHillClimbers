@@ -41,6 +41,7 @@ public class ILSRBallPXAPExperiment implements Process {
     private static final String RADIUS_ARGUMENT = "r";
     private static final String LON_ARGUMENT = "lon";
     private static final String LON_MINIMUM_FITNESS_ARGUMENT = "lonmin";
+    private static final String NOAP_ARGUMENT = "noap";
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
@@ -101,6 +102,7 @@ public class ILSRBallPXAPExperiment implements Process {
 	    options.addOption(LON_ARGUMENT,false, "print the PX Local Optima Network");
         options.addOption(LON_MINIMUM_FITNESS_ARGUMENT,true, "minimum fitness to consider a LON (optional)");
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
+        options.addOption(NOAP_ARGUMENT, false, "disables the reflip of articulation points");
 	    
 	    return options;
 	}
@@ -173,7 +175,7 @@ public class ILSRBallPXAPExperiment implements Process {
         px.setSeed(seed);
         px.setPrintStream(ps);
         px.setDebug(commandLine.hasOption(DEBUG_ARGUMENT));
-        
+        px.enableArticulationPointsAnalysis(!commandLine.hasOption(NOAP_ARGUMENT));
 
         timer.setStopTimeMilliseconds(time * 1000);
         ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());

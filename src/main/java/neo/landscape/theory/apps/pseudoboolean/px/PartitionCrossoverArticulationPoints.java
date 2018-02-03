@@ -132,26 +132,20 @@ public class PartitionCrossoverArticulationPoints {
     private TwoStatesIntegerSet subfunctions;
     private TwoStatesIntegerSet variablesInBiconnectedComponents;
     private boolean articulationPointAnalysisImprovement = false;
-    
     private Map<Integer, FlippedSolution> allArticulationPointsToFlip;
-    
     private Map<Integer, List<BranchDecision>> articulationPointsDecisions;
-    
     private Set<Set<Integer>> partition;
-
     private double deltaBlueRed;
-
     private double deltaGreenBlue;
-
     private int articulationPointToFlip;
     private FlippedSolution solutionToFlip;;
-
     private double improvement;
     private double overAllImprovement;
-
     private double deltaYellowRed;
-    
     protected long lastRunTime;
+    protected boolean articulationPointsAnalysisEnabled=true;
+
+    private double totalBlueRedDifference;
     
     static private class VertexIndex {
         private int vertex;
@@ -323,8 +317,7 @@ public class PartitionCrossoverArticulationPoints {
         }
         
         if (rootChildren > 0) {
-            // Finish the computation of options
-            double totalBlueRedDifference = articulationPointsOfBC.getData(root).accumulatedDifference;
+            totalBlueRedDifference = articulationPointsOfBC.getData(root).accumulatedDifference;
             improvement = Math.max(0, totalBlueRedDifference);
             articulationPointToFlip = -1;
 
@@ -546,18 +539,25 @@ public class PartitionCrossoverArticulationPoints {
 
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
 		    PartitionComponent component = dfs(node, blue, red);
-		    
-		    overAllImprovement += improvement;
+
+		    if (!articulationPointsAnalysisEnabled) {
+		        if (articulationPointToFlip >= 0) {
+		            improvement = totalBlueRedDifference;
+		        }
+		        articulationPointToFlip = -1;
+		    }
 		    
 		    if (articulationPointToFlip >= 0 ){
 		        articulationPointAnalysisImprovement = true;
 		    }
-		    
+
 		    if (debug) {
 		        if (articulationPointToFlip >= 0) {
 		            allArticulationPointsToFlip.put(articulationPointToFlip, solutionToFlip);
 		        }
 		    }
+		    
+		    overAllImprovement += improvement;
 		    
 		    articulationPointsOfBC.getExplored().forEach(allArticulationPoints::add);
 		    
@@ -723,6 +723,14 @@ public class PartitionCrossoverArticulationPoints {
 
     public boolean isArticulationPointAnalysisImprovement() {
         return articulationPointAnalysisImprovement;
+    }
+    
+    public boolean isArticulationPointsAnalysisEnabled() {
+        return articulationPointsAnalysisEnabled;
+    }
+    
+    public void enableArticulationPointsAnalysis(boolean val) {
+        articulationPointsAnalysisEnabled = val;
     }
     
     
