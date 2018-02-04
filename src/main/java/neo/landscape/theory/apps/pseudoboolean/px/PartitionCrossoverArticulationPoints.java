@@ -679,15 +679,15 @@ public class PartitionCrossoverArticulationPoints {
             Set<Integer> componentSet = new HashSet<>();
             pc.forEach(e->componentSet.add(e));
 
-            ps.print("{");
+            ps.println("* Start component {");
             for (int u: componentSet) {
                 for (int v: el.getInteractions()[u]) {
                     if (u < v && componentSet.contains(v)) {
-                        ps.print("("+u+","+v+"),");
+                        ps.println(u+"\t"+v);
                     }
                 }
             }
-            ps.println("}");
+            ps.println("* End component }");
         }
     }
     
