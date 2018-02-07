@@ -145,6 +145,7 @@ public class PartitionCrossoverArticulationPoints {
     protected long lastRunTime;
     protected boolean articulationPointsAnalysisEnabled=true;
     protected List<Integer> degreesOfArticulationPoints;
+    protected int edgesJoiningArticulationPoints;
 
     private double totalBlueRedDifference;
     
@@ -217,6 +218,8 @@ public class PartitionCrossoverArticulationPoints {
     protected PartitionComponent dfs(Integer root, PBSolution blue, PBSolution red) {
         component.clearComponent();
         
+        boolean edgesJoiningArticulationPointWithRoot = false;
+        edgesJoiningArticulationPoints=0;
         parent[root] = -1;
         int rootChildren = 0;
         articulationPointsOfBC.reset();
@@ -309,6 +312,12 @@ public class PartitionCrossoverArticulationPoints {
    
                         biconnectedComponents.add(component);
                     }
+                    if (articulationPointsOfBC.isExplored(w)) {
+                        edgesJoiningArticulationPoints++;
+                        if (v == root) {
+                            edgesJoiningArticulationPointWithRoot=true;
+                        }
+                    }
                 }
             }
         }
@@ -316,6 +325,10 @@ public class PartitionCrossoverArticulationPoints {
 
         if (rootChildren >= 2) {
             markRootArticulationPoint(root, rootChildren);
+        }
+        
+        if (edgesJoiningArticulationPointWithRoot && rootChildren == 1) {
+            edgesJoiningArticulationPoints--;
         }
         
         if (rootChildren > 0) {
@@ -566,7 +579,7 @@ public class PartitionCrossoverArticulationPoints {
 		        allArticulationPoints.add(ap);
 		        degreesOfArticulationPoints.add(degree[ap]);
 		    });
-		    degreesOfArticulationPoints.add(0);
+		    degreesOfArticulationPoints.add(-edgesJoiningArticulationPoints);
 		    
 		    if (debug) {
 		        Set<Integer> varsInComponent = new HashSet<>();
@@ -738,6 +751,10 @@ public class PartitionCrossoverArticulationPoints {
     
     public void enableArticulationPointsAnalysis(boolean val) {
         articulationPointsAnalysisEnabled = val;
+    }
+    
+    public int getNumberOfEdgesJoiningArticulationPoints() {
+        return edgesJoiningArticulationPoints;
     }
     
     
