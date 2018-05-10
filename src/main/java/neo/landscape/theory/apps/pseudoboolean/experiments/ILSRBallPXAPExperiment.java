@@ -43,6 +43,8 @@ public class ILSRBallPXAPExperiment implements Process {
     private static final String LON_MINIMUM_FITNESS_ARGUMENT = "lonmin";
     private static final String NOAP_ARGUMENT = "noap";
     private static final String DEGREE_ARGUMENT = "degree";
+    private static final String IMPROVING_LO = "improvingLo";
+    private static final String DISABLE_CROSSOVER = "nopx";
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
@@ -105,7 +107,9 @@ public class ILSRBallPXAPExperiment implements Process {
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(NOAP_ARGUMENT, false, "disables the reflip of articulation points");
         options.addOption(DEGREE_ARGUMENT, false, "reports the degree of the articulation points");
-	    
+        options.addOption(DISABLE_CROSSOVER, false, "disables the partition crossover");
+        options.addOption(IMPROVING_LO, false, "accept only non disimproving local optima in ILS");
+        
 	    return options;
 	}
 
@@ -173,11 +177,16 @@ public class ILSRBallPXAPExperiment implements Process {
 
         RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) 
                 new RBallEfficientHillClimber(rballConfig).initialize(pbf);
-        PXAPForRBallHillClimber px = new PXAPForRBallHillClimber(pbf);
-        px.setSeed(seed);
-        px.setPrintStream(ps);
-        px.setDebug(commandLine.hasOption(DEBUG_ARGUMENT));
-        px.enableArticulationPointsAnalysis(!commandLine.hasOption(NOAP_ARGUMENT));
+        
+        PXAPForRBallHillClimber px = null;
+        
+        if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
+            px = new PXAPForRBallHillClimber(pbf);
+            px.setSeed(seed);
+            px.setPrintStream(ps);
+            px.setDebug(commandLine.hasOption(DEBUG_ARGUMENT));
+            px.enableArticulationPointsAnalysis(!commandLine.hasOption(NOAP_ARGUMENT));
+        }
         
         boolean showDegreeOfArticulationPoints = commandLine.hasOption(DEGREE_ARGUMENT);
 
@@ -209,13 +218,13 @@ public class ILSRBallPXAPExperiment implements Process {
 
 		        RBallEfficientHillClimberSnapshot child = null;
 		        
-		        if (!timer.shouldStop()) {
+		        if (px!= null && !timer.shouldStop()) {
 		            child = px.recombine(currentSolution, nextSolution);
 		            ps.println("Recombination time:"+px.getLastRuntime());
 		        }
 		        
 		        if (child == null) {
-		            currentSolution = nextSolution;
+		            child = nextSolution;
 		        } else {
 		            ps.println("* Success in PX: "+px.getNumberOfComponents());
 		            ps.println("* Articulation Points: "+px.getNumberOfArticulationPoints());
@@ -228,9 +237,9 @@ public class ILSRBallPXAPExperiment implements Process {
 		            reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 		            reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
 		            
-		            currentSolution = child;
-		            notifyExploredSolution(currentSolution);
+		            notifyExploredSolution(child);
 		        }
+		        currentSolution = acceptanceCriterion(currentSolution, child);
 		    }
 		} catch (Exception e) {
 		    ps.println("Exception: "+e.getMessage());
@@ -240,6 +249,17 @@ public class ILSRBallPXAPExperiment implements Process {
         writeLONInformation();
         printOutput();
 
+    }
+	
+	protected RBallEfficientHillClimberSnapshot acceptanceCriterion(
+            RBallEfficientHillClimberSnapshot currentSolution, 
+            RBallEfficientHillClimberSnapshot child) {
+        
+        if (commandLine.hasOption(IMPROVING_LO) && currentSolution.getSolutionQuality() > child.getSolutionQuality()) {
+            return currentSolution;
+        } else {
+            return child;
+        }
     }
 
     private CommandLine parseCommandLine(String[] args) {

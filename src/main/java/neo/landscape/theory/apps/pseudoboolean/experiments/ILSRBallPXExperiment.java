@@ -16,6 +16,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes.NKModel;
+import neo.landscape.theory.apps.pseudoboolean.px.PXAPForRBallHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverForRBallHillClimber;
 import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
@@ -42,6 +43,8 @@ public class ILSRBallPXExperiment implements Process {
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
+    private static final String IMPROVING_LO = "improving_lo";
+    private static final String DISABLE_CROSSOVER = "nopx";
     
     private long seed;
 	private PrintStream ps;
@@ -98,6 +101,8 @@ public class ILSRBallPXExperiment implements Process {
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
 	    options.addOption(LON_ARGUMENT,false, "print the PX Local Optima Network");
         options.addOption(LON_MINIMUM_FITNESS_ARGUMENT,true, "minimum fitness to consider a LON (optional)");
+        options.addOption(DISABLE_CROSSOVER, false, "disables the partition crossover");
+        options.addOption(IMPROVING_LO, false, "accept only non disimproving local optima in ILS");
 	    
 	    return options;
 	}
@@ -158,9 +163,14 @@ public class ILSRBallPXExperiment implements Process {
 
         RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) 
                 new RBallEfficientHillClimber(rballConfig).initialize(pbf);
-        PartitionCrossoverForRBallHillClimber px = new PartitionCrossoverForRBallHillClimber(pbf);
-        px.setSeed(seed);
+        
+        PartitionCrossoverForRBallHillClimber px = null;
 
+        if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
+            px = new PartitionCrossoverForRBallHillClimber(pbf);
+            px.setSeed(seed);
+        }
+        
         timer.setStopTimeMilliseconds(time * 1000);
         ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
 
@@ -189,22 +199,23 @@ public class ILSRBallPXExperiment implements Process {
 
 		        RBallEfficientHillClimberSnapshot child = null;
 		        
-		        if (!timer.shouldStop()) {
+		        if (px!=null && !timer.shouldStop()) {
 		            child = px.recombine(currentSolution, nextSolution);
 		            ps.println("Recombination time:"+px.getLastRuntime());
 		        }
 		        
 		        if (child == null) {
-		            currentSolution = nextSolution;
+		            child = nextSolution;
 		        } else {
 		            ps.println("* Success in PX: "+px.getNumberOfComponents());
 		            hillClimb(child);
 		            reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 		            reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
 		            
-		            currentSolution = child;
-		            notifyExploredSolution(currentSolution);
+		            notifyExploredSolution(child);
 		        }
+		        
+		        currentSolution = acceptanceCriterion(currentSolution, child);
 		        
 		    }
 		} catch (Exception e) {
@@ -214,6 +225,17 @@ public class ILSRBallPXExperiment implements Process {
         writeLONInformation();
         printOutput();
 
+    }
+
+    protected RBallEfficientHillClimberSnapshot acceptanceCriterion(
+            RBallEfficientHillClimberSnapshot currentSolution, 
+            RBallEfficientHillClimberSnapshot child) {
+        
+        if (commandLine.hasOption(IMPROVING_LO) && currentSolution.getSolutionQuality() > child.getSolutionQuality()) {
+            return currentSolution;
+        } else {
+            return child;
+        }
     }
 
     private CommandLine parseCommandLine(String[] args) {
