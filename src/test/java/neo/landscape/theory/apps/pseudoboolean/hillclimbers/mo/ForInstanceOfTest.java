@@ -1,15 +1,11 @@
 package neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo;
 
-import static org.junit.Assert.fail;
-
 import java.util.Properties;
 
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 
 import org.junit.Before;
-import org.junit.Test;
 
 public class ForInstanceOfTest {
     private MultiObjectiveHammingBallHillClimberForInstanceOf forInstanceOf;

@@ -1,10 +1,12 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DrilsPXAPNKTest {
 
     @Test
+    @Ignore
     public void test() {
         Experiments.main(new String[]{"drils+pxap-nk","-n","20",
                 "-k","3",
