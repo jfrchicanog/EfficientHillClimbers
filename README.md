@@ -18,20 +18,27 @@ In order to run the algorithms you need first to compile and package them into a
 
 * For DRILS+APX solving NKQ Landscapes
 
+```
 java -jar <jarfile name> drils+apx-nk  <options omitted>
+```
 
 * For DRILS+APX solving MAX-SAT
 
+```
 java -jar <jarfile name> drils+apx-maxsat  <options omitted>
+```
 
 * For DRILS (using PX) solving NKQ Landscapes
 
+```
 java -jar <jarfile name> drils-nk  <options omitted>
+```
 
 * For DRILS (using PX) solving MAX-SAT
 
+```
 java -jar <jarfile name> drils-maxsat <options omitted>
-
+```
 
 To see the options, just run the algorithms without options. 
 
@@ -42,11 +49,15 @@ In order to run the algorithms you need first to compile and package them into a
 
 * For HiReLS
 
+```
 java -jar <jarfile name> px  <options omitted>
+```
 
 * For DRILS
 
+```
 java -jar <jarfile name> rball+ils+px  <options omitted>
+```
 
 To see the options, just run the algorithms without options. 
 
@@ -55,11 +66,15 @@ To see the options, just run the algorithms without options.
 
 In order to run the Multi-Objective Hamming Ball Hill Climber of EvoCOP 2016 select the "mo-hbhc" experiment using this string as the first argument after the JAR file name:
 
+```
 java -jar <jarfile name> mo-hbhc
+```
 
 In order to run the Hill Climber for Constrained Problems (explained in the GECCO 2016 paper), you should select the "moc-hbhc" experiment:
 
+```
 java -jar <jarfile name> moc-hbhc
+```
 
 If you run without any other argument, a list of all the options will appear with an explanation of their meaning.
 
@@ -71,11 +86,15 @@ If you run without any other argument, a list of all the options will appear wit
 
 The repository contains Java code shipped as a maven project. Maven 3 is needed as prerequisite. In order to build the executable JAR file open the command line and write:
 
+```
 mvn package
+```
 
 This will generate a JAR file in the target directory with all the dependencies included. To run the JAR file write:
 
+```
 java -jar <jarfile name>
+```
 
 The list of options are the different experiments available.
 
