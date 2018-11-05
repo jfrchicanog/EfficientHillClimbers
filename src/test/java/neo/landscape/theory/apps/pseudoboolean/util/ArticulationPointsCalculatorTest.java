@@ -1,7 +1,7 @@
 package neo.landscape.theory.apps.pseudoboolean.util;
 
 import junit.framework.Assert;
-import neo.landscape.theory.apps.pseudoboolean.util.ArticulationPointsCalculator.Graph;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.Graph;
 
 import org.junit.Test;
 
@@ -53,7 +53,7 @@ public class ArticulationPointsCalculatorTest {
     
     
         
-    static class SampleGraph implements ArticulationPointsCalculator.Graph {
+    static class SampleGraph implements Graph {
         private Integer [][] graph;
         
         /**

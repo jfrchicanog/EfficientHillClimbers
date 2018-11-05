@@ -1,54 +1,16 @@
 package neo.landscape.theory.apps.pseudoboolean.util;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.Graph;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class ArticulationPointsCalculator {
-    static public interface Graph {
-        public int numberOfAdjacentVertices(int vertex);
-        public int adjacentVertexNumber(int vertex, int index);
-        public int numberOfVertices();
-    }
-    
-    static public interface GraphV2 {
-        public Iterator<Integer> adjacentVertices(int vertex);
-        public int numberOfVertices();
-    }
-    
-    static public class GraphV2Adaptor implements GraphV2{
-        private Graph graph;
-        public GraphV2Adaptor(Graph g) {
-            this.graph=g;
-        }
-        @Override
-        public Iterator<Integer> adjacentVertices(int vertex) {
-            return new Iterator<Integer> () {
-                int i=0;
-                @Override
-                public boolean hasNext() {
-                    return i < graph.numberOfAdjacentVertices(vertex);
-                }
-
-                @Override
-                public Integer next() {
-                    return graph.adjacentVertexNumber(vertex, i++);
-                }
-                
-            };
-        }
-        @Override
-        public int numberOfVertices() {
-            return graph.numberOfVertices();
-        }
-    }
-    
     static private class VertexIndex {
         private int vertex;
         private int index;

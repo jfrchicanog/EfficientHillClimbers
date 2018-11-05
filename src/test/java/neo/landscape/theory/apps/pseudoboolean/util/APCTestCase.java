@@ -4,8 +4,8 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import neo.landscape.theory.apps.pseudoboolean.util.ArticulationPointsCalculator.Graph;
 import neo.landscape.theory.apps.pseudoboolean.util.ArticulationPointsCalculatorTest.SampleGraph;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.Graph;
 
 public class APCTestCase {
     protected Integer[][] graph;
