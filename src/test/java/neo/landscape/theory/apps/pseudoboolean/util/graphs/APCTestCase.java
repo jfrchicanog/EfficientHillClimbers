@@ -1,11 +1,11 @@
-package neo.landscape.theory.apps.pseudoboolean.util;
+package neo.landscape.theory.apps.pseudoboolean.util.graphs;
 
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import neo.landscape.theory.apps.pseudoboolean.util.ArticulationPointsCalculatorTest.SampleGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.Graph;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.SampleGraph;
 
 public class APCTestCase {
     protected Integer[][] graph;

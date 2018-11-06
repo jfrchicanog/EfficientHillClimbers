@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.util;
+package neo.landscape.theory.apps.pseudoboolean.util.graphs;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -6,7 +6,6 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import neo.landscape.theory.apps.pseudoboolean.util.graphs.Graph;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 

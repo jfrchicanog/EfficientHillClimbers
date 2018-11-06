@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.util;
+package neo.landscape.theory.apps.pseudoboolean.util.graphs;
 
 import java.util.Arrays;
 import java.util.List;
