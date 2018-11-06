@@ -7,44 +7,123 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 public class TriangularizationAlgorithm {
 	
+	public static class Graph {
+		private Map<Integer, List<Integer>> adjacencyMatrix;
+
+		public Graph() {
+			clearChordalGraph();
+		}
+
+		public void clearChordalGraph() {
+			if (adjacencyMatrix==null) {
+				adjacencyMatrix = new HashMap<>();
+			}
+			adjacencyMatrix.clear();
+		}
+
+		public void addNodeToChordalGraph(int from, int to) {
+			addArcToChordalGraph(from, to);
+			addArcToChordalGraph(to, from);
+		}
+
+		private void addArcToChordalGraph(int from, int to) {
+			List<Integer> adjacentVertices = adjacencyMatrix.get(from);
+			if (adjacentVertices==null) {
+				adjacentVertices = new ArrayList<>();
+				adjacencyMatrix.put(from, adjacentVertices);
+			}
+			adjacentVertices.add(to);
+		}
+		
+		public Iterable<Integer> getAdjacent(Integer vertex) {
+			if (adjacencyMatrix.get(vertex)==null) {
+				throw new IllegalArgumentException("This vertex is not in the graph: "+vertex);
+			} else {
+				return adjacencyMatrix.get(vertex);
+			}
+		}
+	}
+
+
+
+	public static class VariableClique {
+		private Set<Integer> variables;
+		private VariableClique parent;
+		private int id;
+		
+		public VariableClique(int id) {
+			this.id=id;
+		}
+		
+		public VariableClique getParent() {
+			return parent;
+		}
+		public void setParent(VariableClique parent) {
+			this.parent = parent;
+		}
+		public Set<Integer> getVariables() {
+			if (variables==null) {
+				variables = new HashSet<>();
+			}
+			return variables;
+		}
+		public int getId() {
+			return id;
+		}
+	}
+	
+	
 	private GraphV2 graph;
-	private Set<Integer> [] verticesWithNMarks;
-	private int [] marks;
+	
 	private int [] alpha;
 	private int [] alphaInverted;
-	// Chordal graph after fillIn
-	private Map<Integer, List<Integer>> chordalGraph;
+	private int topLabel;
+	private int initialLabel;
+	// Chordal graph
+	private Graph chordalGraph;
 	// Clique Tree
-	private Map<Integer, Set<Integer>> cliques;
-	private List<Integer> parentClique;
+	private List<VariableClique> cliques;
 	
 	
 	
 	public TriangularizationAlgorithm(GraphV2 graph) {
 		this.graph = graph;
-		verticesWithNMarks = new Set[graph.numberOfVertices()];
-		marks = new int [graph.numberOfVertices()];
-		alpha = new int [graph.numberOfVertices()];
-		alphaInverted = new int [graph.numberOfVertices()+1];
+		int n = graph.numberOfVertices();
+		alpha = new int [n];
+		topLabel = n-1;
+		alphaInverted = new int [topLabel+1];
 	}
 	
 	public void maximumCardinalitySearch() {
 		int n = graph.numberOfVertices();
-		for (int vertex=0; vertex < n; vertex++) {
-			verticesWithNMarks[vertex] = new HashSet<>();
+		int maxDegree = n;
+		
+		Set<Integer> [] verticesWithNMarks = new Set[maxDegree];
+		int [] marks = new int [n];
+		
+		for (int i=0; i < verticesWithNMarks.length; i++) {
+			verticesWithNMarks[i] = new HashSet<>();
+		}
+		
+		for (int vertex: IntStream.range(0, n).toArray()) {
 			marks[vertex] = 0;
 			verticesWithNMarks[0].add(vertex);
 		}
-		int i=n;
+		
+		if (n==0) return;
+		
+		int i=topLabel;
 		int j=0;
-		while (i>=1) {
+		while (j>=0) {
 			int vertex = verticesWithNMarks[j].iterator().next();
 			verticesWithNMarks[j].remove(vertex);
 			alpha[vertex] = i;
 			alphaInverted[i] = vertex;
+			initialLabel=i;
 			marks[vertex] = -1;
 			
 			Iterator<Integer> it = graph.adjacentVertices(vertex);
@@ -63,11 +142,11 @@ public class TriangularizationAlgorithm {
 	}
 	
 	public void fillIn() {
-		clearChordalGraph();
+		chordalGraph = new Graph();
 		int n = graph.numberOfVertices();
 		int [] f = new int[n];
 		int [] index = new int [n];
-		for (int i=1; i <= n; i++) {
+		for (int i=initialLabel; i <= topLabel; i++) {
 			int w = alphaInverted[i];
 			f[w] = w;
 			index[w] = i;
@@ -78,7 +157,7 @@ public class TriangularizationAlgorithm {
 					int x=v;
 					while (index[x] < i) {
 						index[x] = i;
-						addNodeToChordalGraph(x, w);
+						chordalGraph.addNodeToChordalGraph(x, w);
 						x = f[x];
 					}
 					if (f[x]==x) {
@@ -93,74 +172,45 @@ public class TriangularizationAlgorithm {
 		int n = graph.numberOfVertices();
 		
 		Set<Integer> [] mSets = new Set[n];
+		cliques = new ArrayList<>();
 		
 		for (int i=0; i <n; i++) mSets[i] = new HashSet<>();
 		
 		int [] mark = new int[n]; 
-		int [] clique = new int [n];
+		VariableClique [] clique = new VariableClique [n];
 		int previousMark = -1;
 		int [] last =  new int[n];
 		int j=0;
 		
-		for (int i=0; i < n; i++) last[i] = -1;
+		for (int vertex: IntStream.range(0, n).toArray()) last[vertex] = -1;
 		
-		parentClique = new ArrayList<>(); 
+		VariableClique currentClique=new VariableClique(j);
+		cliques.add(currentClique);
 		
-		Set<Integer> currentClique=new HashSet<>();
-		cliques = new HashMap<>();
-		cliques.put(j, currentClique);
-		
-		parentClique.add(-1); // First clique, without parent
-		
-		for (int i=n; i>=1; i--) {
+		for (int i=topLabel; i>=initialLabel; i--) {
 			int x = alphaInverted[i];
 			if (mark[x] <= previousMark) {
 				j++;
-				currentClique=new HashSet<>();
-				cliques.put(j, currentClique);
+				currentClique=new VariableClique(j);
+				cliques.add(currentClique);
 				
-				currentClique.addAll(mSets[x]);
-				currentClique.add(x);
+				currentClique.getVariables().addAll(mSets[x]);
+				currentClique.getVariables().add(x);
 				
-				if (last[x] < 0) {
-					parentClique.add(-1);
-				} else {
-					parentClique.add(clique[last[x]]);
+				if (last[x] >= 0) {
+					currentClique.setParent(clique[last[x]]);
 				}
 			} else {
-				currentClique.add(x);
+				currentClique.getVariables().add(x);
 			}
-			for (Integer y: chordalGraph.get(x)) {
+			for (Integer y: chordalGraph.getAdjacent(x)) {
 				mSets[y].add(x);
 				mark[y]++;
 				last[y] = x;
 			}
 			previousMark = mark[x];
-			clique[x] = j;
+			clique[x] = currentClique;
 		}
-	}
-	
-	
-	
-	private void clearChordalGraph() {
-		if (chordalGraph==null) {
-			chordalGraph = new HashMap<>();
-		}
-		chordalGraph.clear();
-	}
-	
-	private void addNodeToChordalGraph(int from, int to) {
-		addArcToChordalGraph(from, to);
-		addArcToChordalGraph(to, from);
-	}
-
-	protected void addArcToChordalGraph(int from, int to) {
-		List<Integer> adjacentVertices = chordalGraph.get(from);
-		if (adjacentVertices==null) {
-			adjacentVertices = new ArrayList<>();
-			chordalGraph.put(from, adjacentVertices);
-		}
-		adjacentVertices.add(to);
 	}
 	
 	public int [] getAlpha() {
@@ -171,29 +221,31 @@ public class TriangularizationAlgorithm {
 		return alphaInverted;
 	}
 
-	public Map<Integer, Set<Integer>> getCliques() {
+	public List<VariableClique> getCliques() {
 		return cliques;
 	}
 
-	public List<Integer> getParentClique() {
-		return parentClique;
-	}
+	
 	
 	public String getCliqueTree() {
 		String result = "";
-		for (int i=0; i < parentClique.size(); i++) {
-			Integer parent = parentClique.get(i);
+		for (VariableClique clique: cliques) {
 			Set<Integer> residue = new HashSet<>();
-			residue.addAll(cliques.get(i));
-			if (parent >= 0) {
-				residue.removeAll(cliques.get(parent));
+			residue.addAll(clique.getVariables());
+			
+			if (clique.getParent() != null) {
+				residue.removeAll(clique.getParent().getVariables());
 			}
 			Set<Integer> separator = new HashSet<>();
-			separator.addAll(cliques.get(i));
+			separator.addAll(clique.getVariables());
 			separator.removeAll(residue);
-			result += "Clique "+i+" (parent "+parent+"): separator="+separator+ ", residue="+residue+"\n";
+			result += "Clique "+clique.getId()+" (parent "+(clique.getParent()!=null?clique.getParent().getId():-1)+"): separator="+separator+ ", residue="+residue+"\n";
 		}
 		return result;
+	}
+
+	public int getInitialLabel() {
+		return initialLabel;
 	}
 	
 	
