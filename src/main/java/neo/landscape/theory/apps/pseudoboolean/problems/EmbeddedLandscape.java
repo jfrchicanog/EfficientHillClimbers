@@ -26,6 +26,7 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 	protected int[][] appearsIn;
 	protected int[][] interactions;
 	protected PBSolution sub;
+	protected int maximumDegreeOfVIG;
 
 	public EmbeddedLandscape() {
 		super();
@@ -120,7 +121,7 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 		}
 
 		interactions = new int[n][];
-
+		maximumDegreeOfVIG = 0;
 		Set<Integer> aux_inter = new HashSet<Integer>();
 		for (int i = 0; i < n; i++) {
 			aux_inter.clear();
@@ -136,6 +137,9 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 			for (int var : aux_inter) {
 				interactions[i][j] = var;
 				j++;
+			}
+			if (interactions.length > maximumDegreeOfVIG) {
+				maximumDegreeOfVIG = interactions.length;
 			}
 		}
 
@@ -183,5 +187,11 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 	public int getM() {
 		return m;
 	}
+
+	public int getMaximumDegreeOfVIG() {
+		return maximumDegreeOfVIG;
+	}
+	
+	
 
 }

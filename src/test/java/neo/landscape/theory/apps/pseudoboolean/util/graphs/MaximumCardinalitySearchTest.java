@@ -37,9 +37,24 @@ public class MaximumCardinalitySearchTest {
 		Integer [][] data = new Integer[][]{{1,2},{0,2,9},{0,1,9},{4,6},{3,6,5,8},{4,6,8},{3,4,5,8,7},{6,8,9},{4,5,6,7,9},{7,8,1,2},{11},{10,12},{11,13},{12}};
 		checkGraph(data);
 	}
+	
+	@Test
+	public void testCycle() {
+		Integer [][] data = new Integer[][]{{7,1},{0,2},{1,3},{2,4},{3,5},{4,6},{5,7},{6,0}};
+		checkGraph(data);
+	}
+	
+	@Test
+	public void testLongerCycle() {
+		checkGraph(APCTestCaseBuilder.cycleGraph(20).build().getGraph());
+	}
 
 	protected void checkGraph(Integer[][] data) {
 		Graph graph = new SampleGraph(data);
+		checkGraph(graph);
+	}
+	
+	protected void checkGraph(Graph graph) {
 		TriangularizationAlgorithm ta = new TriangularizationAlgorithm(new GraphV2Adaptor(graph));
 		ta.maximumCardinalitySearch();
 		System.out.println("Initial label: "+ta.getInitialLabel());

@@ -1,81 +1,13 @@
 package neo.landscape.theory.apps.pseudoboolean.util.graphs;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
 public class TriangularizationAlgorithm {
-	
-	public static class Graph {
-		private Map<Integer, List<Integer>> adjacencyMatrix;
-
-		public Graph() {
-			clearChordalGraph();
-		}
-
-		public void clearChordalGraph() {
-			if (adjacencyMatrix==null) {
-				adjacencyMatrix = new HashMap<>();
-			}
-			adjacencyMatrix.clear();
-		}
-
-		public void addNodeToChordalGraph(int from, int to) {
-			addArcToChordalGraph(from, to);
-			addArcToChordalGraph(to, from);
-		}
-
-		private void addArcToChordalGraph(int from, int to) {
-			List<Integer> adjacentVertices = adjacencyMatrix.get(from);
-			if (adjacentVertices==null) {
-				adjacentVertices = new ArrayList<>();
-				adjacencyMatrix.put(from, adjacentVertices);
-			}
-			adjacentVertices.add(to);
-		}
-		
-		public Iterable<Integer> getAdjacent(Integer vertex) {
-			if (adjacencyMatrix.get(vertex)==null) {
-				throw new IllegalArgumentException("This vertex is not in the graph: "+vertex);
-			} else {
-				return adjacencyMatrix.get(vertex);
-			}
-		}
-	}
-
-
-
-	public static class VariableClique {
-		private Set<Integer> variables;
-		private VariableClique parent;
-		private int id;
-		
-		public VariableClique(int id) {
-			this.id=id;
-		}
-		
-		public VariableClique getParent() {
-			return parent;
-		}
-		public void setParent(VariableClique parent) {
-			this.parent = parent;
-		}
-		public Set<Integer> getVariables() {
-			if (variables==null) {
-				variables = new HashSet<>();
-			}
-			return variables;
-		}
-		public int getId() {
-			return id;
-		}
-	}
-	
 	
 	private GraphV2 graph;
 	
@@ -84,7 +16,7 @@ public class TriangularizationAlgorithm {
 	private int topLabel;
 	private int initialLabel;
 	// Chordal graph
-	private Graph chordalGraph;
+	private UndirectedGraph chordalGraph;
 	// Clique Tree
 	private List<VariableClique> cliques;
 	
@@ -142,7 +74,7 @@ public class TriangularizationAlgorithm {
 	}
 	
 	public void fillIn() {
-		chordalGraph = new Graph();
+		chordalGraph = new UndirectedGraph();
 		int n = graph.numberOfVertices();
 		int [] f = new int[n];
 		int [] index = new int [n];
@@ -157,7 +89,7 @@ public class TriangularizationAlgorithm {
 					int x=v;
 					while (index[x] < i) {
 						index[x] = i;
-						chordalGraph.addNodeToChordalGraph(x, w);
+						chordalGraph.addNodeToGraph(x, w);
 						x = f[x];
 					}
 					if (f[x]==x) {
