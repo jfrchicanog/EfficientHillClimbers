@@ -19,7 +19,15 @@ public class UndirectedGraph {
 		adjacencyMatrix.clear();
 	}
 
-	public void addNodeToGraph(int from, int to) {
+	public void addNodeToGraph(int node) {
+		List<Integer> adjacentVertices = adjacencyMatrix.get(node);
+		if (adjacentVertices==null) {
+			adjacentVertices = new ArrayList<>();
+			adjacencyMatrix.put(node, adjacentVertices);
+		}
+	}
+	
+	public void addEdgeToGraph(int from, int to) {
 		addArcToGraph(from, to);
 		addArcToGraph(to, from);
 	}

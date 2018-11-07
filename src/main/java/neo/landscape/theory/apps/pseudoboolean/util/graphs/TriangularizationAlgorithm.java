@@ -89,7 +89,7 @@ public class TriangularizationAlgorithm {
 					int x=v;
 					while (index[x] < i) {
 						index[x] = i;
-						chordalGraph.addNodeToGraph(x, w);
+						chordalGraph.addEdgeToGraph(x, w);
 						x = f[x];
 					}
 					if (f[x]==x) {

@@ -1,5 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -46,6 +47,12 @@ public class DynasticPotentialCrossover {
 	private PBSolution red;
 	private PBSolution blue;
 	
+	protected VariableProcedence varProcedence;
+	protected PartitionComponent component;
+	
+	protected PrintStream ps;
+	protected boolean debug;
+	
 	public DynasticPotentialCrossover(EmbeddedLandscape el) {
 		int n = el.getN();
 		int maxDegree = el.getMaximumDegreeOfVIG();
@@ -72,6 +79,10 @@ public class DynasticPotentialCrossover {
 		if (el.getN() > VARIABLE_LIMIT) {
 		    throw new RuntimeException("Solution too large, the maximum allowed is "+VARIABLE_LIMIT);
 		}
+		
+		ComponentAndVariableMask componentAndVariableProcedence = new ComponentAndVariableMask(el.getN());
+		component = componentAndVariableProcedence;
+		varProcedence = componentAndVariableProcedence;
 	}
 	
 	private void maximumCardinalitySearch() {
@@ -83,13 +94,22 @@ public class DynasticPotentialCrossover {
 		
 		differentSolutions = false;
 		
+		for (int i=0; i < n; i++) {
+			varProcedence.markAsPurple(i);
+		}
+		
 		IntStream.range(0, n).filter(v -> (blue.getBit(v) != red.getBit(v))).forEach(vertex -> 
-			{marks[vertex] = 0; verticesWithNMarks[0].add(vertex); differentSolutions=true;}
+			{marks[vertex] = 0; 
+			verticesWithNMarks[0].add(vertex); 
+			differentSolutions=true;
+			varProcedence.markAsRed(vertex);
+			}
 		);
 		
 		if (!differentSolutions) return;
 		
 		int i=topLabel;
+		initialLabel = i;
 		int j=0;
 		while (j>=0) {
 			int vertex = verticesWithNMarks[j].iterator().next();
@@ -118,6 +138,7 @@ public class DynasticPotentialCrossover {
 		chordalGraph.clearGraph();
 		for (int i=initialLabel; i <= topLabel; i++) {
 			int w = alphaInverted[i];
+			chordalGraph.addNodeToGraph(w);
 			fFillin[w] = w;
 			indexFillin[w] = i;
 			for (int v : el.getInteractions()[w]) {
@@ -126,7 +147,7 @@ public class DynasticPotentialCrossover {
 						int x=v;
 						while (indexFillin[x] < i) {
 							indexFillin[x] = i;
-							chordalGraph.addNodeToGraph(x, w);
+							chordalGraph.addEdgeToGraph(x, w);
 							x = fFillin[x];
 						}
 						if (fFillin[x]==x) {
@@ -139,7 +160,7 @@ public class DynasticPotentialCrossover {
 	}
 	
 	private void cliqueTree() {
-		numberOfComponents=0;
+		numberOfComponents=1;
 		int n = el.getN();
 		cliques.clear();
 		for (int i=0; i <n; i++) {
@@ -188,15 +209,20 @@ public class DynasticPotentialCrossover {
 	    this.red = red;
 	    this.blue = blue;
 	    
+	    PBSolution child = new PBSolution(red); //child, copy of red
+	    
 	    maximumCardinalitySearch();
-	    fillIn();
-	    cliqueTree();
 	    
-	    System.out.println("Initial label: "+initialLabel);
-	    System.out.println("Number of components: "+numberOfComponents);
-	    System.out.println(getCliqueTree());
-	    
-		PBSolution child = new PBSolution(red); //child, copy of red
+	    if (differentSolutions) {
+	    	fillIn();
+		    cliqueTree();
+		    if (ps != null) {
+		    	ps.println("Initial label: "+initialLabel);
+		    	ps.println("Number of components: "+numberOfComponents);
+		    	ps.println(getCliqueTree());
+		    }
+	    }
+
 		lastRuntime = System.nanoTime() - initTime;
 		return child;
 	}
@@ -225,4 +251,13 @@ public class DynasticPotentialCrossover {
     public long getLastRuntime() {
         return lastRuntime;
     }
+    
+    public void setPrintStream(PrintStream ps) {
+    	this.ps = ps;
+    }
+
+	public void setDebug(boolean debug) {
+		this.debug = debug;
+	}
+    
 }
