@@ -1,8 +1,11 @@
 package neo.landscape.theory.apps.pseudoboolean.util.graphs;
 
-import static org.junit.Assert.fail;
-
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import junit.framework.Assert;
 
 import org.junit.Test;
 
@@ -61,7 +64,27 @@ public class MaximumCardinalitySearchTest {
 		System.out.println(Arrays.toString(ta.getAlpha()));
 		ta.fillIn();
 		ta.cliqueTree();
+		checkResidueAndSeparator(ta);
 		System.out.println(ta.getCliqueTree());
+	}
+
+	private void checkResidueAndSeparator(TriangularizationAlgorithm ta) {
+		for (VariableClique clique: ta.getCliques()) {
+			Set<Integer> residue = new HashSet<>();
+			residue.addAll(clique.getVariables());
+			if (clique.getParent() != null) {
+				residue.removeAll(clique.getParent().getVariables());
+			}
+			Set<Integer> separator = new HashSet<>();
+			separator.addAll(clique.getVariables());
+			separator.removeAll(residue);
+			
+			List<Integer> variables = clique.getVariables();
+			
+			Assert.assertEquals("Spearator is not identical", separator, new HashSet<>(variables.subList(0, clique.getVariablesOfSeparator())));
+			Assert.assertEquals("Residue is not identical", residue, new HashSet<>(variables.subList(clique.getVariablesOfSeparator(),variables.size())));
+			
+		}
 	}
 
 }

@@ -127,8 +127,9 @@ public class TriangularizationAlgorithm {
 				cliques.add(currentClique);
 				
 				currentClique.getVariables().addAll(mSets[x]);
+				currentClique.markSeparator();
 				currentClique.getVariables().add(x);
-				
+
 				if (last[x] >= 0) {
 					currentClique.setParent(clique[last[x]]);
 				}
@@ -157,21 +158,17 @@ public class TriangularizationAlgorithm {
 		return cliques;
 	}
 
-	
-	
 	public String getCliqueTree() {
 		String result = "";
 		for (VariableClique clique: cliques) {
-			Set<Integer> residue = new HashSet<>();
-			residue.addAll(clique.getVariables());
+			List<Integer> separator = clique.getVariables().subList(0, clique.getVariablesOfSeparator());
+			List<Integer> residue = clique.getVariables().subList(clique.getVariablesOfSeparator(),clique.getVariables().size());
 			
-			if (clique.getParent() != null) {
-				residue.removeAll(clique.getParent().getVariables());
-			}
-			Set<Integer> separator = new HashSet<>();
-			separator.addAll(clique.getVariables());
-			separator.removeAll(residue);
-			result += "Clique "+clique.getId()+" (parent "+(clique.getParent()!=null?clique.getParent().getId():-1)+"): separator="+separator+ ", residue="+residue+"\n";
+			result += "Clique "+clique.getId()
+					+" (parent "+(clique.getParent()!=null?clique.getParent().getId():-1)
+					+"): separator="+separator
+					+ ", residue="
+					+residue+"\n";
 		}
 		return result;
 	}

@@ -3,11 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -15,7 +11,6 @@ import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
-import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
@@ -34,6 +29,9 @@ public class DynasticPotentialCrossover {
 	private UndirectedGraph chordalGraph;
 	// Clique Tree
 	private List<VariableClique> cliques;
+	// Subfunctions
+	private List<Integer> [] subFunctionsPartition;
+	private TwoStatesIntegerSet subfunctions;
 	
     protected long lastRuntime;
 
@@ -73,6 +71,11 @@ public class DynasticPotentialCrossover {
 		cliques = new ArrayList<>();
 		cliqueOfVariable = new VariableClique [n];
 		last = new int[n];
+		subFunctionsPartition = new List[n];
+		for (int i=0; i < n; i++) {
+			subFunctionsPartition[i] = new ArrayList<>();
+		}
+		subfunctions = new TwoStatesISArrayImpl(n);
 		
 		this.el = el;
 		
@@ -131,6 +134,29 @@ public class DynasticPotentialCrossover {
 			i--;
 			j++;
 			for (;j>=0 && verticesWithNMarks[j].isEmpty();j--);
+		}
+	}
+	
+	private void computeSubfunctinsPartition() {
+		subfunctions.reset();
+		for (int i=initialLabel; i <= topLabel; i++) {
+			int vertex = alphaInverted[i];
+			subFunctionsPartition[vertex].clear();
+			for (int fn: el.getAppearsIn()[vertex]) {
+				if (!subfunctions.isExplored(fn)) {
+					/*
+					int minIndex = topLabel;
+					for (int var: el.getMasks()[fn]) {
+						if (blue.getBit(var) != red.getBit(var)) {
+							if (alpha[var] < minIndex) {
+								minIndex= alpha[var];
+							}
+						}
+					}*/
+					subFunctionsPartition[vertex].add(fn);
+					subfunctions.explored(fn);
+				}
+			}
 		}
 	}
 	
@@ -204,6 +230,69 @@ public class DynasticPotentialCrossover {
 		}
 	}
 	
+	private void applyDynamicProgramming() {
+		for (int i=cliques.size()-1; i>=0; i--) {
+			VariableClique clique = cliques.get(i);
+			clique.prepareStructuresForComputation();
+			
+			PBSolution solution = new PBSolution(red);
+			List<Integer> variableOrder = clique.getVariables();
+			int numVariablesOfSeparator = clique.getVariablesOfSeparator();
+			int separatorValueLimit = 1<<numVariablesOfSeparator;
+			int numVariablesOfResidue = variableOrder.size()-numVariablesOfSeparator;
+			int residueValueLimit = 1 << numVariablesOfResidue;
+			double[] summaryValue = clique.getSummaryValue();
+			int [] variablesValue = clique.getVariableValue();
+			
+			// Iterate over the variables in the separator 
+			for (int separatorValue=0; separatorValue < separatorValueLimit; separatorValue++) {
+				int auxSeparator=separatorValue;
+				for (int bit=0; bit < numVariablesOfSeparator; bit++) {
+					solution.setBit(variableOrder.get(bit), auxSeparator & 1);
+					auxSeparator >>>= 1;
+				}
+				
+				summaryValue[separatorValue]=Double.NEGATIVE_INFINITY;
+				
+				// Iterate over the variables in the residue
+				for (int residueValue=0; residueValue < residueValueLimit; residueValue++) {
+					int auxResidue=residueValue;
+					for (int bit=numVariablesOfSeparator; bit < variableOrder.size(); bit++) {
+						solution.setBit(variableOrder.get(bit), auxResidue & 1);
+						auxResidue >>>= 1;
+					}
+					// We have the solution here and we have to evaluate it
+					double value = clique.evaluateSolution(el, subFunctionsPartition, solution);
+					if (value > summaryValue[separatorValue]) {
+						summaryValue[separatorValue] = value;
+						variablesValue[separatorValue] = residueValue;
+					}
+				}
+			}
+		}
+	}
+	
+	private void reconstructOptimalChild(PBSolution child) {
+		for (VariableClique clique: cliques) {
+			List<Integer> variableOrder = clique.getVariables();
+			int numVariablesOfSeparator = clique.getVariablesOfSeparator();
+			int [] variablesValue = clique.getVariableValue();
+
+			int separatorValue = clique.getSeparatorValueFromSolution(child);
+						
+			int residueVariables = variablesValue[separatorValue];
+			for (int bit=numVariablesOfSeparator; bit < variableOrder.size(); bit++) {
+				Integer variable = variableOrder.get(bit);
+				child.setBit(variable, residueVariables & 1);
+				
+				if (red.getBit(variable) != (residueVariables & 1)) {
+					varProcedence.markAsBlue(variable);
+				}
+				residueVariables >>>= 1;
+			}
+		}
+	}
+	
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
 	    long initTime = System.nanoTime();
 	    this.red = red;
@@ -214,6 +303,7 @@ public class DynasticPotentialCrossover {
 	    maximumCardinalitySearch();
 	    
 	    if (differentSolutions) {
+	    	computeSubfunctinsPartition();
 	    	fillIn();
 		    cliqueTree();
 		    if (ps != null) {
@@ -221,6 +311,8 @@ public class DynasticPotentialCrossover {
 		    	ps.println("Number of components: "+numberOfComponents);
 		    	ps.println(getCliqueTree());
 		    }
+		    applyDynamicProgramming();
+		    reconstructOptimalChild(child);
 	    }
 
 		lastRuntime = System.nanoTime() - initTime;
