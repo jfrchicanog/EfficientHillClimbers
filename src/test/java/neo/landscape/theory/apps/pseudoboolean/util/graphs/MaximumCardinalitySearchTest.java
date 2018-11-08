@@ -63,6 +63,7 @@ public class MaximumCardinalitySearchTest {
 		System.out.println("Initial label: "+ta.getInitialLabel());
 		System.out.println(Arrays.toString(ta.getAlpha()));
 		ta.fillIn();
+		ta.updateLabellingBasedOnChordalGraph();
 		ta.cliqueTree();
 		checkResidueAndSeparator(ta);
 		System.out.println(ta.getCliqueTree());

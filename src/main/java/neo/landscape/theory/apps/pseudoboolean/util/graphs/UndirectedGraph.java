@@ -48,4 +48,8 @@ public class UndirectedGraph {
 			return adjacencyMatrix.get(vertex);
 		}
 	}
+	
+	public Iterable<Integer> getNodes() {
+		return adjacencyMatrix.keySet();
+	}
 }

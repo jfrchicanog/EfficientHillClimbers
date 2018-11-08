@@ -146,6 +146,11 @@ public class TriangularizationAlgorithm {
 		}
 	}
 	
+	public void updateLabellingBasedOnChordalGraph() {
+		// TODO
+		
+	}
+	
 	public int [] getAlpha() {
 		return alpha;
 	}

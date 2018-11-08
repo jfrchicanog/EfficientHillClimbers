@@ -70,7 +70,7 @@ public class VariableClique {
 	
 	public int getSeparatorValueFromSolution(PBSolution solution) {
 		int separatorValue = 0;
-		for (int bit=0; bit < variablesOfSeparator; bit++) {
+		for (int bit=variablesOfSeparator-1; bit >= 0; bit--) {
 			separatorValue <<= 1;
 			separatorValue += solution.getBit(variables.get(bit));
 		}

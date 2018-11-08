@@ -58,7 +58,7 @@ public class DynasticPotentialCrossover {
 		alpha = new int [n];
 		topLabel = n-1;
 		alphaInverted = new int [topLabel+1];
-		verticesWithNMarks = new Set[maxDegree];
+		verticesWithNMarks = new Set[maxDegree+1];
 		marks = new int [n];
 		for (int i=0; i < verticesWithNMarks.length; i++) {
 			verticesWithNMarks[i] = new HashSet<>();
@@ -129,6 +129,41 @@ public class DynasticPotentialCrossover {
 						marks[w]++;
 						verticesWithNMarks[marks[w]].add(w);
 					}
+				}
+			}
+			i--;
+			j++;
+			for (;j>=0 && verticesWithNMarks[j].isEmpty();j--);
+		}
+	}
+	
+	private void maximumCardinalitySearchBasedOnChordalGraph() {
+		int n = el.getN();
+		for (int i=0; i < verticesWithNMarks.length; i++) {
+			verticesWithNMarks[i].clear();
+		}
+		
+		for (int vertex: chordalGraph.getNodes()) {
+			marks[vertex] = 0; 
+			verticesWithNMarks[0].add(vertex);
+		}
+
+		int i=topLabel;
+		initialLabel = i;
+		int j=0;
+		while (j>=0) {
+			int vertex = verticesWithNMarks[j].iterator().next();
+			verticesWithNMarks[j].remove(vertex);
+			alpha[vertex] = i;
+			alphaInverted[i] = vertex;
+			initialLabel=i;
+			marks[vertex] = -1;
+			
+			for (int w : chordalGraph.getAdjacent(vertex)) {
+				if (marks[w] >= 0) {
+					verticesWithNMarks[marks[w]].remove(w);
+					marks[w]++;
+					verticesWithNMarks[marks[w]].add(w);
 				}
 			}
 			i--;
@@ -209,6 +244,7 @@ public class DynasticPotentialCrossover {
 				cliques.add(currentClique);
 				
 				currentClique.getVariables().addAll(mSets[x]);
+				currentClique.markSeparator();
 				currentClique.getVariables().add(x);
 				
 				if (last[x] >= 0) {
@@ -303,8 +339,9 @@ public class DynasticPotentialCrossover {
 	    maximumCardinalitySearch();
 	    
 	    if (differentSolutions) {
-	    	computeSubfunctinsPartition();
 	    	fillIn();
+	    	maximumCardinalitySearchBasedOnChordalGraph();
+	    	computeSubfunctinsPartition();
 		    cliqueTree();
 		    if (ps != null) {
 		    	ps.println("Initial label: "+initialLabel);

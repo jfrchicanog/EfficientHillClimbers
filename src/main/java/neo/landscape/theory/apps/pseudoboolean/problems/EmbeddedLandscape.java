@@ -26,7 +26,7 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 	protected int[][] appearsIn;
 	protected int[][] interactions;
 	protected PBSolution sub;
-	protected int maximumDegreeOfVIG;
+	protected int maximumDegreeOfVIG=-1;
 
 	public EmbeddedLandscape() {
 		super();
@@ -189,6 +189,9 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 	}
 
 	public int getMaximumDegreeOfVIG() {
+		if (maximumDegreeOfVIG < 0) {
+			prepareStructures();
+		}
 		return maximumDegreeOfVIG;
 	}
 	
