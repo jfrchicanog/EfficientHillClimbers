@@ -42,6 +42,8 @@ public class DynasticPotentialCrossover {
 	private VariableClique [] cliqueOfVariable;
 	private int [] last;
 	
+	private Set<Integer> articulationPoints;
+	
 	private PBSolution red;
 	private PBSolution blue;
 	
@@ -76,6 +78,7 @@ public class DynasticPotentialCrossover {
 			subFunctionsPartition[i] = new ArrayList<>();
 		}
 		subfunctions = new TwoStatesISArrayImpl(n);
+		articulationPoints = new HashSet<>();
 		
 		this.el = el;
 		
@@ -247,6 +250,10 @@ public class DynasticPotentialCrossover {
 				currentClique.markSeparator();
 				currentClique.getVariables().add(x);
 				
+				if (currentClique.getVariablesOfSeparator() == 1) {
+					articulationPoints.add(currentClique.getVariables().get(0));
+				}
+				
 				if (last[x] >= 0) {
 					currentClique.setParent(cliqueOfVariable[last[x]]);
 				} else {
@@ -343,7 +350,7 @@ public class DynasticPotentialCrossover {
 	    	maximumCardinalitySearchBasedOnChordalGraph();
 	    	computeSubfunctinsPartition();
 		    cliqueTree();
-		    if (ps != null) {
+		    if (debug && ps != null) {
 		    	ps.println("Initial label: "+initialLabel);
 		    	ps.println("Number of components: "+numberOfComponents);
 		    	ps.println(getCliqueTree());
