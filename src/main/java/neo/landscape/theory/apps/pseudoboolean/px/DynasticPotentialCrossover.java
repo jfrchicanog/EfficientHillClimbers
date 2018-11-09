@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,9 +16,12 @@ import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class DynasticPotentialCrossover {
+	private static final int DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE = 28;
 	protected static final int VARIABLE_LIMIT = 1<<29;
 	protected EmbeddedLandscape el;
     
+	private int maximumNumberOfVariableToExploreExhaustively = DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE;
+	
 	private int [] alpha;
 	private int [] alphaInverted;
 	private Set<Integer> [] verticesWithNMarks;
@@ -43,6 +47,7 @@ public class DynasticPotentialCrossover {
 	private int [] last;
 	
 	private Set<Integer> articulationPoints;
+	private Set<Integer> nonExhaustivelyExploredVariables;
 	
 	private PBSolution red;
 	private PBSolution blue;
@@ -79,6 +84,7 @@ public class DynasticPotentialCrossover {
 		}
 		subfunctions = new TwoStatesISArrayImpl(n);
 		articulationPoints = new HashSet<>();
+		nonExhaustivelyExploredVariables = new HashSet<>();
 		
 		this.el = el;
 		
@@ -224,6 +230,7 @@ public class DynasticPotentialCrossover {
 	}
 	
 	private void cliqueTree() {
+		articulationPoints.clear();
 		numberOfComponents=1;
 		int n = el.getN();
 		cliques.clear();
@@ -276,66 +283,17 @@ public class DynasticPotentialCrossover {
 	private void applyDynamicProgramming() {
 		for (int i=cliques.size()-1; i>=0; i--) {
 			VariableClique clique = cliques.get(i);
-			clique.prepareStructuresForComputation();
-			
-			PBSolution solution = new PBSolution(red);
-			List<Integer> variableOrder = clique.getVariables();
-			int numVariablesOfSeparator = clique.getVariablesOfSeparator();
-			int separatorValueLimit = 1<<numVariablesOfSeparator;
-			int numVariablesOfResidue = variableOrder.size()-numVariablesOfSeparator;
-			int residueValueLimit = 1 << numVariablesOfResidue;
-			double[] summaryValue = clique.getSummaryValue();
-			int [] variablesValue = clique.getVariableValue();
-			
-			// Iterate over the variables in the separator 
-			for (int separatorValue=0; separatorValue < separatorValueLimit; separatorValue++) {
-				int auxSeparator=separatorValue;
-				for (int bit=0; bit < numVariablesOfSeparator; bit++) {
-					solution.setBit(variableOrder.get(bit), auxSeparator & 1);
-					auxSeparator >>>= 1;
-				}
-				
-				summaryValue[separatorValue]=Double.NEGATIVE_INFINITY;
-				
-				// Iterate over the variables in the residue
-				for (int residueValue=0; residueValue < residueValueLimit; residueValue++) {
-					int auxResidue=residueValue;
-					for (int bit=numVariablesOfSeparator; bit < variableOrder.size(); bit++) {
-						solution.setBit(variableOrder.get(bit), auxResidue & 1);
-						auxResidue >>>= 1;
-					}
-					// We have the solution here and we have to evaluate it
-					double value = clique.evaluateSolution(el, subFunctionsPartition, solution);
-					if (value > summaryValue[separatorValue]) {
-						summaryValue[separatorValue] = value;
-						variablesValue[separatorValue] = residueValue;
-					}
-				}
-			}
+			clique.prepareStructuresForComputation(nonExhaustivelyExploredVariables);
+			clique.applyDynamicProgrammingToClique(red, el, subFunctionsPartition);
 		}
 	}
-	
+
 	private void reconstructOptimalChild(PBSolution child) {
 		for (VariableClique clique: cliques) {
-			List<Integer> variableOrder = clique.getVariables();
-			int numVariablesOfSeparator = clique.getVariablesOfSeparator();
-			int [] variablesValue = clique.getVariableValue();
-
-			int separatorValue = clique.getSeparatorValueFromSolution(child);
-						
-			int residueVariables = variablesValue[separatorValue];
-			for (int bit=numVariablesOfSeparator; bit < variableOrder.size(); bit++) {
-				Integer variable = variableOrder.get(bit);
-				child.setBit(variable, residueVariables & 1);
-				
-				if (red.getBit(variable) != (residueVariables & 1)) {
-					varProcedence.markAsBlue(variable);
-				}
-				residueVariables >>>= 1;
-			}
+			clique.reconstructSolutionInClique(child, red, varProcedence);
 		}
 	}
-	
+
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
 	    long initTime = System.nanoTime();
 	    this.red = red;
@@ -350,6 +308,7 @@ public class DynasticPotentialCrossover {
 	    	maximumCardinalitySearchBasedOnChordalGraph();
 	    	computeSubfunctinsPartition();
 		    cliqueTree();
+		    cliqueTreeAnalysis();
 		    if (debug && ps != null) {
 		    	ps.println("Initial label: "+initialLabel);
 		    	ps.println("Number of components: "+numberOfComponents);
@@ -363,6 +322,28 @@ public class DynasticPotentialCrossover {
 		return child;
 	}
 	
+	/**
+	 * This method analyzes the clique tree and put limit to the number of variables for which all the combinations are tested.
+	 */
+	private void cliqueTreeAnalysis() {
+		nonExhaustivelyExploredVariables.clear();
+		for (VariableClique clique: cliques) {
+			List<Integer> listOfVariables = clique.getVariables().subList(0,clique.getVariablesOfSeparator());
+			checkExplorationLimits(listOfVariables);
+			
+			listOfVariables = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
+			checkExplorationLimits(listOfVariables);
+		}
+	}
+
+	protected void checkExplorationLimits(List<Integer> listOfVariables) {
+		if (listOfVariables.size() > maximumNumberOfVariableToExploreExhaustively) {
+			listOfVariables.sort(Comparator.<Integer>comparingInt(variable -> articulationPoints.contains(variable)?0:1)
+					.thenComparing(Comparator.<Integer>naturalOrder()));
+			nonExhaustivelyExploredVariables.addAll(listOfVariables.subList(maximumNumberOfVariableToExploreExhaustively, listOfVariables.size()));
+		}
+	}
+
 	public String getCliqueTree() {
 		String result = "";
 		for (VariableClique clique: cliques) {
@@ -394,6 +375,13 @@ public class DynasticPotentialCrossover {
 
 	public void setDebug(boolean debug) {
 		this.debug = debug;
+	}
+	
+	public void setMaximumVariablesToExhaustivelyExplore(int numberOfVariables) {
+		if (numberOfVariables > DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE) {
+			throw new IllegalArgumentException("The number of variables to explore exhaustively is too large: "+numberOfVariables);
+		}
+		maximumNumberOfVariableToExploreExhaustively = numberOfVariables;
 	}
     
 }

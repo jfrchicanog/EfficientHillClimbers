@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import junit.framework.Assert;
@@ -117,6 +118,9 @@ public class DynasticPotentialCrossoverTest {
 			.filter(i->blue.getBit(i)!=red.getBit(i))
 			.boxed().collect(Collectors.toList());
 		
+		if (differingVariables.size() > 29) {
+			throw new IllegalArgumentException("Too many differing variables, I cannot do this test");
+		}
 		Set<PBSolution> result = new HashSet<>();
 		double maxValue = Double.NEGATIVE_INFINITY;
 		

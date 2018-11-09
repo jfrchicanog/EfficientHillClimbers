@@ -41,6 +41,7 @@ public class DrilsDpxExperiment implements Process {
     private static final String LON_MINIMUM_FITNESS_ARGUMENT = "lonmin";
     private static final String IMPROVING_LO = "improvingLo";
     private static final String DISABLE_CROSSOVER = "nopx";
+    private static final String MAX_EXHAUSTIVE_EXPLORATION = "exhexp";
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
@@ -103,6 +104,7 @@ public class DrilsDpxExperiment implements Process {
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(DISABLE_CROSSOVER, false, "disables the partition crossover");
         options.addOption(IMPROVING_LO, false, "accept only non disimproving local optima in ILS");
+        options.addOption(MAX_EXHAUSTIVE_EXPLORATION, true, "maximum number of variables to exhaustively explore in crossover (DPX)");
         
 	    return options;
 	}
@@ -176,6 +178,9 @@ public class DrilsDpxExperiment implements Process {
             px = new DPXForRBallHillClimber(pbf);
             px.setPrintStream(ps);
             px.setDebug(commandLine.hasOption(DEBUG_ARGUMENT));
+            if (commandLine.hasOption(MAX_EXHAUSTIVE_EXPLORATION)) {
+            	px.setMaximumVariablesToExhaustivelyExplore(Integer.parseInt(commandLine.getOptionValue(MAX_EXHAUSTIVE_EXPLORATION)));
+            }
         }
 
         timer.setStopTimeMilliseconds(time * 1000);
