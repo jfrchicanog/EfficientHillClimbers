@@ -128,7 +128,8 @@ public class DrilsDpxExperiment implements Process {
 		
 		EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(commandLine, ps);
 		
-		if (commandLine.hasOption(DEBUG_ARGUMENT)) {
+		boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
+		if (debug) {
 		    StringWriter sr = new StringWriter();
 		    if (pbf instanceof NKLandscapes) {
 		        ((NKLandscapes)pbf).writeTo(sr);
@@ -177,7 +178,7 @@ public class DrilsDpxExperiment implements Process {
         if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
             px = new DPXForRBallHillClimber(pbf);
             px.setPrintStream(ps);
-            px.setDebug(commandLine.hasOption(DEBUG_ARGUMENT));
+            px.setDebug(debug);
             if (commandLine.hasOption(MAX_EXHAUSTIVE_EXPLORATION)) {
             	px.setMaximumVariablesToExhaustivelyExplore(Integer.parseInt(commandLine.getOptionValue(MAX_EXHAUSTIVE_EXPLORATION)));
             }
@@ -220,6 +221,17 @@ public class DrilsDpxExperiment implements Process {
 		            child = nextSolution;
 		        } else {
 		            ps.println("* Success in PX: "+px.getNumberOfComponents());
+		            ps.println("* Number of components: "+px.getNumberOfComponents());
+					if (debug) {
+						int logarithmOfExploredSolutions = px.getLogarithmOfExploredSolutions();
+						ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
+						ps.println("* Full dynastic potential explored: "
+								+ (px.getDifferingVariables() == logarithmOfExploredSolutions));
+						ps.println("* No worse than APX: ");
+						ps.println("* Number of articulation points: " + px.getNumberOfArticulationPoints());
+						ps.println("* All articulation points exhaustively explored: "
+								+ px.allArticulationPointsExhaustivelyExplored());
+					}
 		            hillClimb(child);
 		            reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 		            reportLONEdge(nextSolution, child, TYPE_CROSSOVER);

@@ -23,6 +23,7 @@ public class VariableClique {
 	private VariableClique parent;
 	private int id;
 	private List<VariableClique> children;
+	private boolean sameGroupsOfNonExploredVariables;
 	
 	public VariableClique(int id) {
 		this.id=id;
@@ -48,7 +49,7 @@ public class VariableClique {
 		return id;
 	}
 	
-	public void prepareStructuresForComputation(Set<Integer> nonExhaustivelyExplored) {
+	public void prepareStructuresForComputation(Set<Integer> nonExhaustivelyExplored, int [] marks) {
 		List<Integer> separator = variables.subList(0, variablesOfSeparator);
 		variableSeparatorLimit = variableLimitFromList(nonExhaustivelyExplored, separator);
 		
@@ -66,6 +67,11 @@ public class VariableClique {
 		
 		summaryValue = new double [arraySize];
 		variableValue = new int [arraySize];
+		
+		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
+		sameGroupsOfNonExploredVariables = (variableResidueLimit < numVariablesOfResidue) &&
+				(variableSeparatorLimit < variablesOfSeparator) &&
+				(marks[variables.get(variableSeparatorLimit)] == marks[variables.get(variablesOfSeparator+variableResidueLimit)]);
 	}
 
 	protected int variableLimitFromList(Set<Integer> nonExhaustivelyExplored, List<Integer> separator) {
@@ -134,7 +140,8 @@ public class VariableClique {
 		int separatorValueLimit = summaryValue.length;
 		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
 		int residueValueLimit = 1 << variableResidueLimit;
-		if (variableResidueLimit < numVariablesOfResidue) {
+
+		if (variableResidueLimit < numVariablesOfResidue && !sameGroupsOfNonExploredVariables) {
 			residueValueLimit <<= 1;
 		}
 		
@@ -171,6 +178,10 @@ public class VariableClique {
 					auxResidue >>>= 1;
 				}
 				if (variableResidueLimit < numVariablesOfResidue) {
+					if (sameGroupsOfNonExploredVariables) {
+						auxResidue = auxSeparator;
+					}
+					
 					if ((auxResidue & 1) == 0) {
 						// Red solution
 						for (int bit=variableResidueLimit; bit < numVariablesOfResidue; bit++) {
@@ -199,7 +210,8 @@ public class VariableClique {
 	public void reconstructSolutionInClique(PBSolution child, PBSolution red, VariableProcedence variableProcedence) {
 		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
 		int separatorValue = getSeparatorValueFromSolution(child, red);
-		int residueVariables = variableValue[separatorValue];	
+		int residueVariables = variableValue[separatorValue];
+		
 		for (int bit=0; bit < variableResidueLimit; bit++) {
 			Integer variable = variables.get(variablesOfSeparator+bit);
 			child.setBit(variable, residueVariables & 1);
@@ -210,6 +222,9 @@ public class VariableClique {
 			residueVariables >>>= 1;
 		}
 		if (variableResidueLimit < numVariablesOfResidue) {
+			if (sameGroupsOfNonExploredVariables) {
+				residueVariables = ((separatorValue >>> variableSeparatorLimit) & 1);
+			}
 			if ((residueVariables & 1) == 0) {
 				// Red solution
 				for (int bit=variableResidueLimit; bit < numVariablesOfResidue; bit++) {

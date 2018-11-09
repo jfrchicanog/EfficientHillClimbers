@@ -4,8 +4,10 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
@@ -48,6 +50,7 @@ public class DynasticPotentialCrossover {
 	
 	private Set<Integer> articulationPoints;
 	private Set<Integer> nonExhaustivelyExploredVariables;
+	private int groupsOfNonExhaustivelyExploredVariables;
 	
 	private PBSolution red;
 	private PBSolution blue;
@@ -85,6 +88,7 @@ public class DynasticPotentialCrossover {
 		subfunctions = new TwoStatesISArrayImpl(n);
 		articulationPoints = new HashSet<>();
 		nonExhaustivelyExploredVariables = new HashSet<>();
+		
 		
 		this.el = el;
 		
@@ -283,7 +287,7 @@ public class DynasticPotentialCrossover {
 	private void applyDynamicProgramming() {
 		for (int i=cliques.size()-1; i>=0; i--) {
 			VariableClique clique = cliques.get(i);
-			clique.prepareStructuresForComputation(nonExhaustivelyExploredVariables);
+			clique.prepareStructuresForComputation(nonExhaustivelyExploredVariables, marks);
 			clique.applyDynamicProgrammingToClique(red, el, subFunctionsPartition);
 		}
 	}
@@ -334,6 +338,60 @@ public class DynasticPotentialCrossover {
 			listOfVariables = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
 			checkExplorationLimits(listOfVariables);
 		}
+		
+		analysisOfGroupsOfNonExhaustivelyExploredVariables();
+		
+	}
+
+	protected void analysisOfGroupsOfNonExhaustivelyExploredVariables() {
+		List<Set<Integer>> partitionOfNonExploredVariables = new ArrayList<>();
+		for (VariableClique clique: cliques) {
+			List<Integer> separator = clique.getVariables().subList(0, clique.getVariablesOfSeparator());
+			List<Integer> residue = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
+			for (List<Integer> listOfVariables : new List[] { separator, residue }) {
+				Set<Integer> newComponent = listOfVariables.stream().filter(nonExhaustivelyExploredVariables::contains)
+						.collect(Collectors.toSet());
+				
+				if (newComponent.isEmpty()) {
+					continue;
+				}
+				
+				Iterator<Set<Integer>> it = partitionOfNonExploredVariables.iterator();
+				Set<Integer> updatedComponent = null;
+				while (it.hasNext()) {
+					Set<Integer> previousComponent = it.next();
+					if (previousComponent.stream().filter(newComponent::contains).findFirst().isPresent()) {
+						if (updatedComponent == null) {
+							updatedComponent = previousComponent;
+							updatedComponent.addAll(newComponent);
+						} else {
+							updatedComponent.addAll(previousComponent);
+							it.remove();
+						}
+					}
+				}
+				if (updatedComponent == null) {
+					partitionOfNonExploredVariables.add(newComponent);
+				}
+			}
+		}
+		groupsOfNonExhaustivelyExploredVariables = partitionOfNonExploredVariables.size();
+		
+		if (debug) {
+			Set<Integer> auxiliar = new HashSet<>();
+			for (Set<Integer> component: partitionOfNonExploredVariables) {
+				assert auxiliar.stream().filter(component::contains).count()==0;
+				auxiliar.addAll(component);
+			}
+			assert auxiliar.equals(nonExhaustivelyExploredVariables);
+		}
+		
+		for (int i=0; i < partitionOfNonExploredVariables.size(); i++) {
+			Set<Integer> component = partitionOfNonExploredVariables.get(i);
+			for (int variable : component) {
+				marks[variable] = i;
+			}
+		}
 	}
 
 	protected void checkExplorationLimits(List<Integer> listOfVariables) {
@@ -383,5 +441,31 @@ public class DynasticPotentialCrossover {
 		}
 		maximumNumberOfVariableToExploreExhaustively = numberOfVariables;
 	}
+
+	public Set<Integer> getNonExhaustivelyExploredVariables() {
+		return nonExhaustivelyExploredVariables;
+	}
+
+	public int getGroupsOfNonExhaustivelyExploredVariables() {
+		return groupsOfNonExhaustivelyExploredVariables;
+	}
+	
+	public int getLogarithmOfExploredSolutions() {
+		return groupsOfNonExhaustivelyExploredVariables + ((topLabel-initialLabel+1)-nonExhaustivelyExploredVariables.size());
+	}
+	
+	public int getDifferingVariables() {
+		return (topLabel-initialLabel+1);
+	}
+	
+	public int getNumberOfArticulationPoints() {
+		return articulationPoints.size();
+	}
+	
+	public boolean allArticulationPointsExhaustivelyExplored() {
+		return nonExhaustivelyExploredVariables.stream().anyMatch(articulationPoints::contains);
+	}
+	
+	
     
 }
