@@ -104,7 +104,7 @@ public class DrilsDpxExperiment implements Process {
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(DISABLE_CROSSOVER, false, "disables the partition crossover");
         options.addOption(IMPROVING_LO, false, "accept only non disimproving local optima in ILS");
-        options.addOption(MAX_EXHAUSTIVE_EXPLORATION, true, "maximum number of variables to exhaustively explore in crossover (DPX)");
+        options.addOption(MAX_EXHAUSTIVE_EXPLORATION, true, "maximum number of variables to exhaustively explore in crossover (DPX): negative value is equivalent to no limit");
         
 	    return options;
 	}
@@ -157,9 +157,15 @@ public class DrilsDpxExperiment implements Process {
 			seed = Seeds.getSeed();
 		}
 		
+		int exhaustiveExploration = -1;
+		if (commandLine.hasOption(MAX_EXHAUSTIVE_EXPLORATION)) {
+        	exhaustiveExploration = Integer.parseInt(commandLine.getOptionValue(MAX_EXHAUSTIVE_EXPLORATION));
+        }
+		
 		ps.println("Perturbation factor: " + perturbFactor);
 		ps.println("R: " + r);
 		ps.println("Seed: " + seed);
+		ps.println("Exhexp: " + exhaustiveExploration);
 		
 
 		Properties rballConfig = new Properties();
@@ -179,9 +185,10 @@ public class DrilsDpxExperiment implements Process {
             px = new DPXForRBallHillClimber(pbf);
             px.setPrintStream(ps);
             px.setDebug(debug);
-            if (commandLine.hasOption(MAX_EXHAUSTIVE_EXPLORATION)) {
-            	px.setMaximumVariablesToExhaustivelyExplore(Integer.parseInt(commandLine.getOptionValue(MAX_EXHAUSTIVE_EXPLORATION)));
-            }
+			if (exhaustiveExploration >= 0) {
+				px.setMaximumVariablesToExhaustivelyExplore(exhaustiveExploration);
+			}
+
         }
 
         timer.setStopTimeMilliseconds(time * 1000);

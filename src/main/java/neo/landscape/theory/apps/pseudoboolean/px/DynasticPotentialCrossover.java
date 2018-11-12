@@ -463,7 +463,7 @@ public class DynasticPotentialCrossover {
 	}
 	
 	public boolean allArticulationPointsExhaustivelyExplored() {
-		return nonExhaustivelyExploredVariables.stream().anyMatch(articulationPoints::contains);
+		return !nonExhaustivelyExploredVariables.stream().anyMatch(articulationPoints::contains);
 	}
 	
 	
