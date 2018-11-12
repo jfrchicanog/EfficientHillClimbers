@@ -298,7 +298,7 @@ public class MAXSAT extends EmbeddedLandscape implements EmbeddedLandscapeSubfun
 		}
 
 		interactions = new int[n][];
-
+		maximumDegreeOfVIG = 0;
 		Set<Integer> aux_inter = new HashSet<Integer>();
 		for (int i = 0; i < n; i++) {
 			aux_inter.clear();
@@ -314,6 +314,9 @@ public class MAXSAT extends EmbeddedLandscape implements EmbeddedLandscapeSubfun
 			for (int var : aux_inter) {
 				interactions[i][j] = var;
 				j++;
+			}
+			if (interactions.length > maximumDegreeOfVIG) {
+				maximumDegreeOfVIG = interactions.length;
 			}
 		}
 
