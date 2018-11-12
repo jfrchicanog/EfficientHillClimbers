@@ -85,7 +85,7 @@ public class DynasticPotentialCrossover {
 		for (int i=0; i < n; i++) {
 			subFunctionsPartition[i] = new ArrayList<>();
 		}
-		subfunctions = new TwoStatesISArrayImpl(n);
+		subfunctions = new TwoStatesISArrayImpl(el.getM());
 		articulationPoints = new HashSet<>();
 		nonExhaustivelyExploredVariables = new HashSet<>();
 		
