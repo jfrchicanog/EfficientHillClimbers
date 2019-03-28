@@ -34,6 +34,7 @@ public class PartitionCrossoverParser implements Process {
     private boolean problemSeedSet;
     private boolean adjacent;
     private boolean noerror;
+    private int direction=1;
     
     private AveragedSample averagedSample = new AveragedSample();
     
@@ -50,7 +51,7 @@ public class PartitionCrossoverParser implements Process {
 
 	@Override
 	public String getInvocationInfo() {
-		return "Arguments: " + getID() + " [-noerror] <file>*";
+		return "Arguments: " + getID() + " [-noerror [-min]] <file>*";
 	}
 
 	@Override
@@ -62,7 +63,12 @@ public class PartitionCrossoverParser implements Process {
 		
 		noerror = args[0].equals("-noerror");
 		if (noerror) {
-		    args = Arrays.copyOfRange(args, 1, args.length);
+			if (args[1].equals("-min")) {
+				direction = -1;
+				args = Arrays.copyOfRange(args, 2, args.length);
+			} else {
+				args = Arrays.copyOfRange(args, 1, args.length);
+			}
 		}
 
 		prepareAndClearStructures();
@@ -128,7 +134,7 @@ public class PartitionCrossoverParser implements Process {
     private List<Sample> adjustTrace(List<Sample> aux) {
         double optimumQuality = computeOptimum(n, k, q, problemSeedSet?problemSeed:seed);
 		for (Sample s : aux) {
-			s.quality = (optimumQuality - s.quality) / optimumQuality;
+			s.quality = direction * (optimumQuality - s.quality) / optimumQuality;
 		}
 		return aux;
     }
@@ -139,7 +145,7 @@ public class PartitionCrossoverParser implements Process {
         List<Sample> aux = new ArrayList<Sample>();
 
         boolean write_it=false;
-        Sample last = new Sample(0, -Double.MAX_VALUE);
+        Sample last = new Sample(0, -direction*Double.MAX_VALUE);
         
         String[] strs;
         n = -1;
@@ -170,7 +176,7 @@ public class PartitionCrossoverParser implements Process {
 		    }  else if (line.startsWith("Solution")) {
 				strs = line.split(":");
 				double quality = Double.parseDouble(strs[1].trim());
-				if (write_it = (quality > last.quality)) {
+				if (write_it = (direction * quality > direction * last.quality)) {
 					last.quality = quality;
 				}
 			} else if (line.startsWith("Elapsed")) {
