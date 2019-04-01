@@ -1,6 +1,7 @@
 package neo.landscape.theory.apps.pseudoboolean.exactsolvers;
 
 import java.io.PrintStream;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ public class DPXEnumBasedExactSolver<P extends EmbeddedLandscape> implements Exa
 	}
 	
 	private int variablesToEnumerate;
+	private PBSolution fixedVariables;
 	private DynasticPotentialCrossover dpx;
 	private P problem;
 	private PrintStream ps;
@@ -26,6 +28,11 @@ public class DPXEnumBasedExactSolver<P extends EmbeddedLandscape> implements Exa
 	
 	public DPXEnumBasedExactSolver(int varsToEnum) {
 		variablesToEnumerate = varsToEnum;
+	}
+	
+	public DPXEnumBasedExactSolver(int varsToEnum, PBSolution fixedVariables) {
+		variablesToEnumerate = varsToEnum;
+		this.fixedVariables = fixedVariables;
 	}
 	
 	public void setPrintStream (PrintStream ps) {
@@ -45,6 +52,16 @@ public class DPXEnumBasedExactSolver<P extends EmbeddedLandscape> implements Exa
 		for (int i=0; i < variablesToEnumerate; i++) {
 			blue.flipBit(sortedVariables.get(i));
 		}
+		if (fixedVariables != null) {
+			for (int i=0; i < fixedVariables.getN(); i++) {
+				Integer variable = sortedVariables.get(variablesToEnumerate+i);
+				int value = fixedVariables.getBit(i);
+				red.setBit(variable, value);
+				blue.setBit(variable, value);
+			}
+		}
+		
+		
 		
 		SolutionQuality<P> solution = new SolutionQuality<>();
 		try {
@@ -69,7 +86,7 @@ public class DPXEnumBasedExactSolver<P extends EmbeddedLandscape> implements Exa
 	protected void exploreHyperplane(PBSolution red, PBSolution blue, SolutionQuality<P> solution) {
 		PBSolution optimum = dpx.recombine(red, blue);
 		double quality = problem.evaluate(optimum);
-		if (dpx.getLogarithmOfExploredSolutions()!=(problem.getN()-variablesToEnumerate)) {
+		if (dpx.getLogarithmOfExploredSolutions()!=(problem.getN()-variablesToEnumerate-((fixedVariables==null)?0:fixedVariables.getN()))) {
 			throw new IncompleteExplorationException();
 		} else if (solution.solution==null || solution.quality < quality) {
 			solution.solution = optimum;
@@ -88,8 +105,9 @@ public class DPXEnumBasedExactSolver<P extends EmbeddedLandscape> implements Exa
 			degreesOfVariables.put(i, interactions[i].length);
 		}
 		
+
 		return degreesOfVariables.entrySet().stream()
-			.sorted((e1,e2) -> e2.getValue().compareTo(e1.getValue()))
+			.sorted(((Comparator<Entry<Integer,Integer>>)((e1,e2) -> e2.getValue().compareTo(e1.getValue()))).thenComparingInt(Entry::getKey))
 			.collect(Collectors.mapping(Entry::getKey, Collectors.toList()));
 	}
 
