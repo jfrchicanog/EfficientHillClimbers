@@ -32,7 +32,7 @@ The instances were randomly generated using the options. The seed for generating
 java -jar <jarfile name> drils+dpx-maxsat  <options omitted>
 ```
 
-For the experiments of the paper some of the MAX-SAT weighted and unweighted incomplete benchmark was used. The ZIP files with the instances can be found at (http://mse17.cs.helsinki.fi/benchmarks.html). The MAX-SAT weighted instances used in the experiments are listed in file (maxsat-instances-weigthed-evocop2019.txt). The MAX-SAT unweighted instances used in the experiments are listed in file (maxsat-instances-unweigthed-evocop2019.txt).
+For the experiments of the paper some of the MAX-SAT weighted and unweighted incomplete benchmark was used. The ZIP files with the instances can be found at [http://mse17.cs.helsinki.fi/benchmarks.html](http://mse17.cs.helsinki.fi/benchmarks.html). The MAX-SAT weighted instances used in the experiments are listed in file [maxsat-instances-weigthed-evocop2019.txt](maxsat-instances-weigthed-evocop2019.txt). The MAX-SAT unweighted instances used in the experiments are listed in file [maxsat-instances-unweigthed-evocop2019.txt](maxsat-instances-unweigthed-evocop2019.txt).
 
 * For DRILS with PX or APX see the instructions below for the GECCO 2018 paper
 
