@@ -5,8 +5,17 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
@@ -22,13 +31,6 @@ import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-
 public class DrilsDpxExperiment implements Process {
 
 
@@ -42,9 +44,20 @@ public class DrilsDpxExperiment implements Process {
     private static final String IMPROVING_LO = "improvingLo";
     private static final String DISABLE_CROSSOVER = "nopx";
     private static final String MAX_EXHAUSTIVE_EXPLORATION = "exhexp";
+    private static final String PROBLEM="problem";
+    
+    private static final String MAXSAT_PROBLEM = "maxsat";
+    private static final String NK_PROBLEM = "nk";
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
+    
+    private final Map<String, EmbeddedLandscapeConfigurator> configurators = new HashMap<>();
+    {
+    	configurators.put(MAXSAT_PROBLEM, new MAXSATConfigurator());
+    	configurators.put(NK_PROBLEM, new NKLandscapeConfigurator());
+    }
+     
     
     private long seed;
 	private PrintStream ps;
@@ -61,6 +74,7 @@ public class DrilsDpxExperiment implements Process {
     private Double localOptimumFitnessFilter;
     private CommandLine commandLine;
     private EmbeddedLandscapeConfigurator problemConfigurator;
+    private String problem;
 
     
 	@Override
@@ -71,7 +85,7 @@ public class DrilsDpxExperiment implements Process {
 
     @Override
     public String getID() {
-        return "drils+dpx-nk";
+        return "drils+dpx";
     }
 
 	@Override
@@ -94,7 +108,6 @@ public class DrilsDpxExperiment implements Process {
 	private Options prepareOptions() {
 	    Options options = new Options();
 	    
-	    getProblemConfigurator().prepareOptionsForProblem(options);
 	    options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
 	    options.addOption(MOVES_FACTOR_ARGUMENT, true, "proportion of variables used for the random walk in the perturbation");
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
@@ -105,155 +118,169 @@ public class DrilsDpxExperiment implements Process {
         options.addOption(DISABLE_CROSSOVER, false, "disables the partition crossover");
         options.addOption(IMPROVING_LO, false, "accept only non disimproving local optima in ILS");
         options.addOption(MAX_EXHAUSTIVE_EXPLORATION, true, "maximum number of variables to exhaustively explore in crossover (DPX): negative value is equivalent to no limit");
+        options.addOption(PROBLEM, true, "problem to be solves: nk, maxsat");
         
 	    return options;
 	}
 
 	@Override
 	public void execute(String[] args) {
-	    
-		if (args.length == 0) {
-			HelpFormatter helpFormatter = new HelpFormatter();
-			helpFormatter.printHelp(getID(), getOptions());
-			return;
-		}
-		
-		commandLine = parseCommandLine(args);
-		
-		timer = new SingleThreadCPUTimer();
-		timer.startTimer();
-		
-		initializeStatistics();
-		initializeOutput();
-		
-		EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(commandLine, ps);
-		
-		boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
-		if (debug) {
-		    StringWriter sr = new StringWriter();
-		    if (pbf instanceof NKLandscapes) {
-		        ((NKLandscapes)pbf).writeTo(sr);
-		        ps.print(sr.toString());
-		    }
-		}
-		
-		if (commandLine.hasOption(LON_ARGUMENT)) {
-            initializeLONDataStructures(pbf);
-        }
-		
-		int r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
-		double perturbFactor;
-		if ("-".equals(commandLine.getOptionValue(MOVES_FACTOR_ARGUMENT))) {
-		    perturbFactor = -1;
-		} else {
-		    perturbFactor = Double.parseDouble(commandLine.getOptionValue(MOVES_FACTOR_ARGUMENT));
-		}
-		
-		int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
-		seed = 0;
-		if (commandLine.hasOption(ALGORITHM_SEED_ARGUMENT)) {
-			seed = Long.parseLong(commandLine.getOptionValue(ALGORITHM_SEED_ARGUMENT));
-		} else {
-			seed = Seeds.getSeed();
-		}
-		
-		int exhaustiveExploration = -1;
-		if (commandLine.hasOption(MAX_EXHAUSTIVE_EXPLORATION)) {
-        	exhaustiveExploration = Integer.parseInt(commandLine.getOptionValue(MAX_EXHAUSTIVE_EXPLORATION));
-        }
-		
-		ps.println("Perturbation factor: " + perturbFactor);
-		ps.println("R: " + r);
-		ps.println("Seed: " + seed);
-		ps.println("Exhexp: " + exhaustiveExploration);
-		
 
-		Properties rballConfig = new Properties();
 
-        //rballConfig.setProperty(RBallEfficientHillClimber.NEUTRAL_MOVES, "yes");
-        //rballConfig.setProperty(RBallEfficientHillClimber.MAX_NEUTRAL_PROBABILITY, "0.5");
-        rballConfig.setProperty(RBallEfficientHillClimber.RANDOM_MOVES, "yes");
-        rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
-        rballConfig.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
+		try {
+			commandLine = parseCommandLine(args);
+			recomputeOptions(commandLine);
+			commandLine = parseCommandLine(args);
 
-        RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) 
-                new RBallEfficientHillClimber(rballConfig).initialize(pbf);
-        
-        DPXForRBallHillClimber px = null;
-        
-        if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
-            px = new DPXForRBallHillClimber(pbf);
-            px.setPrintStream(ps);
-            px.setDebug(debug);
-			if (exhaustiveExploration >= 0) {
-				px.setMaximumVariablesToExhaustivelyExplore(exhaustiveExploration);
+			timer = new SingleThreadCPUTimer();
+			timer.startTimer();
+
+			initializeStatistics();
+			initializeOutput();
+
+			EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(commandLine, ps);
+
+			boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
+			if (debug) {
+				StringWriter sr = new StringWriter();
+				if (pbf instanceof NKLandscapes) {
+					((NKLandscapes)pbf).writeTo(sr);
+					ps.print(sr.toString());
+				}
 			}
 
-        }
+			if (commandLine.hasOption(LON_ARGUMENT)) {
+				initializeLONDataStructures(pbf);
+			}
 
-        timer.setStopTimeMilliseconds(time * 1000);
-        ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
+			int r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
+			double perturbFactor;
+			if ("-".equals(commandLine.getOptionValue(MOVES_FACTOR_ARGUMENT))) {
+				perturbFactor = -1;
+			} else {
+				perturbFactor = Double.parseDouble(commandLine.getOptionValue(MOVES_FACTOR_ARGUMENT));
+			}
 
-        try {
-            RBallEfficientHillClimberSnapshot currentSolution = createGenerationZeroSolution(rballfio);
-            notifyExploredSolution(currentSolution);
-            
-            int perturbMoves=20;
-            
-            while (!timer.shouldStop()) {               
-                RBallEfficientHillClimberSnapshot nextSolution = rballfio.initialize(new PBSolution(currentSolution.getSolution()), currentSolution);
-                
-                if (perturbFactor < 0) {
-                    if (moves > 0) {
-                        perturbMoves=moves;
-                    }
-                } else {
-                    perturbMoves = (int)(perturbFactor*pbf.getN());
-                }
-                
-                nextSolution.softRestart(perturbMoves);
-                ps.println("* Hamming distance after perturbation: "+nextSolution.getSolution().hammingDistance(currentSolution.getSolution()));
-                hillClimb(nextSolution);
-                notifyExploredSolution(nextSolution);
-                reportLONEdge(currentSolution, nextSolution, TYPE_PERTURBATION);
+			int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
+			seed = 0;
+			if (commandLine.hasOption(ALGORITHM_SEED_ARGUMENT)) {
+				seed = Long.parseLong(commandLine.getOptionValue(ALGORITHM_SEED_ARGUMENT));
+			} else {
+				seed = Seeds.getSeed();
+			}
 
-		        RBallEfficientHillClimberSnapshot child = null;
-		        
-		        if (px!= null && !timer.shouldStop()) {
-		            child = px.recombine(currentSolution, nextSolution);
-		            ps.println("Recombination time:"+px.getLastRuntime());
-		        }
-		        
-		        if (child == null) {
-		            child = nextSolution;
-		        } else {
-		            ps.println("* Success in PX: "+px.getNumberOfComponents());
-		            int logarithmOfExploredSolutions = px.getLogarithmOfExploredSolutions();
-					ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
-					ps.println("* Full dynastic potential explored: "
-							+ (px.getDifferingVariables() == logarithmOfExploredSolutions));
-					ps.println("* Number of articulation points: " + px.getNumberOfArticulationPoints());
-					ps.println("* All articulation points exhaustively explored: "
-							+ px.allArticulationPointsExhaustivelyExplored());
-					
-		            hillClimb(child);
-		            reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
-		            reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
-		            
-		            notifyExploredSolution(child);
-		        }
-		        currentSolution = acceptanceCriterion(currentSolution, child);
-		    }
-		} catch (Exception e) {
-		    ps.println("Exception: "+e.getMessage());
-		    e.printStackTrace(ps);
+			int exhaustiveExploration = -1;
+			if (commandLine.hasOption(MAX_EXHAUSTIVE_EXPLORATION)) {
+				exhaustiveExploration = Integer.parseInt(commandLine.getOptionValue(MAX_EXHAUSTIVE_EXPLORATION));
+			}
+
+			ps.println("Perturbation factor: " + perturbFactor);
+			ps.println("R: " + r);
+			ps.println("Seed: " + seed);
+			ps.println("Exhexp: " + exhaustiveExploration);
+
+
+			Properties rballConfig = new Properties();
+
+			//rballConfig.setProperty(RBallEfficientHillClimber.NEUTRAL_MOVES, "yes");
+			//rballConfig.setProperty(RBallEfficientHillClimber.MAX_NEUTRAL_PROBABILITY, "0.5");
+			rballConfig.setProperty(RBallEfficientHillClimber.RANDOM_MOVES, "yes");
+			rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
+			rballConfig.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
+
+			RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) 
+					new RBallEfficientHillClimber(rballConfig).initialize(pbf);
+
+			DPXForRBallHillClimber px = null;
+
+			if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
+				px = new DPXForRBallHillClimber(pbf);
+				px.setPrintStream(ps);
+				px.setDebug(debug);
+				if (exhaustiveExploration >= 0) {
+					px.setMaximumVariablesToExhaustivelyExplore(exhaustiveExploration);
+				}
+
+			}
+
+			timer.setStopTimeMilliseconds(time * 1000);
+			ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
+
+			try {
+				RBallEfficientHillClimberSnapshot currentSolution = createGenerationZeroSolution(rballfio);
+				notifyExploredSolution(currentSolution);
+
+				int perturbMoves=20;
+
+				while (!timer.shouldStop()) {               
+					RBallEfficientHillClimberSnapshot nextSolution = rballfio.initialize(new PBSolution(currentSolution.getSolution()), currentSolution);
+
+					if (perturbFactor < 0) {
+						if (moves > 0) {
+							perturbMoves=moves;
+						}
+					} else {
+						perturbMoves = (int)(perturbFactor*pbf.getN());
+					}
+
+					nextSolution.softRestart(perturbMoves);
+					ps.println("* Hamming distance after perturbation: "+nextSolution.getSolution().hammingDistance(currentSolution.getSolution()));
+					hillClimb(nextSolution);
+					notifyExploredSolution(nextSolution);
+					reportLONEdge(currentSolution, nextSolution, TYPE_PERTURBATION);
+
+					RBallEfficientHillClimberSnapshot child = null;
+
+					if (px!= null && !timer.shouldStop()) {
+						child = px.recombine(currentSolution, nextSolution);
+						ps.println("Recombination time:"+px.getLastRuntime());
+					}
+
+					if (child == null) {
+						child = nextSolution;
+					} else {
+						ps.println("* Success in PX: "+px.getNumberOfComponents());
+						int logarithmOfExploredSolutions = px.getLogarithmOfExploredSolutions();
+						ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
+						ps.println("* Full dynastic potential explored: "
+								+ (px.getDifferingVariables() == logarithmOfExploredSolutions));
+						ps.println("* Number of articulation points: " + px.getNumberOfArticulationPoints());
+						ps.println("* All articulation points exhaustively explored: "
+								+ px.allArticulationPointsExhaustivelyExplored());
+
+						hillClimb(child);
+						reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
+						reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
+
+						notifyExploredSolution(child);
+					}
+					currentSolution = acceptanceCriterion(currentSolution, child);
+				}
+			} catch (Exception e) {
+				ps.println("Exception: "+e.getMessage());
+				e.printStackTrace(ps);
+			}
+
+			writeLONInformation();
+			printOutput();
+
+		} catch (RuntimeException e) {
+			showOptios();
 		}
 
-        writeLONInformation();
-        printOutput();
-
     }
+
+	protected void showOptios() {
+		HelpFormatter helpFormatter = new HelpFormatter();
+		helpFormatter.printHelp(getID(), getOptions());
+		return;
+	}
 	
+	private void recomputeOptions(CommandLine commandLine) {
+		problem = commandLine.getOptionValue(PROBLEM);
+		getProblemConfigurator().prepareOptionsForProblem(getOptions());
+	}
+
 	protected RBallEfficientHillClimberSnapshot acceptanceCriterion(
             RBallEfficientHillClimberSnapshot currentSolution, 
             RBallEfficientHillClimberSnapshot child) {
@@ -374,7 +401,12 @@ public class DrilsDpxExperiment implements Process {
     }
     
     protected EmbeddedLandscapeConfigurator createEmbeddedLandscapeConfigurator() {
-        return new NKLandscapeConfigurator();
+    	EmbeddedLandscapeConfigurator elc =  configurators.get(problem);
+    	if (elc != null) {
+    		return elc;
+    	} else {
+    		throw new IllegalArgumentException("Problem "+problem+" is unknown");
+    	}
     }
 
 
