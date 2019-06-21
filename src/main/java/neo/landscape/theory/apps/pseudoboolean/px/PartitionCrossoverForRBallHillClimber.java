@@ -82,16 +82,5 @@ public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover  i
         return solution;
 	}
 
-	@Override
-	public void setPrintStream(PrintStream ps) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setDebug(boolean debug) {
-		// TODO Auto-generated method stub
-		
-	}
 
 }

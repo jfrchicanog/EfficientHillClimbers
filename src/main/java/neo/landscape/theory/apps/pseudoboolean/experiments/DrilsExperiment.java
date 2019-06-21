@@ -29,6 +29,7 @@ import neo.landscape.theory.apps.pseudoboolean.px.ArticulationPointsPartitionCro
 import neo.landscape.theory.apps.pseudoboolean.px.Crossover;
 import neo.landscape.theory.apps.pseudoboolean.px.CrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.DynasticPotentialCrossoverConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverConfigurator;
 import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
@@ -76,6 +77,7 @@ public class DrilsExperiment implements Process {
     {
     	crossoverConf.put(DPX, new DynasticPotentialCrossoverConfigurator());
     	crossoverConf.put(APX, new ArticulationPointsPartitionCrossoverConfigurator());
+    	crossoverConf.put(PX, new PartitionCrossoverConfigurator());
     }
      
     
@@ -183,7 +185,6 @@ public class DrilsExperiment implements Process {
 						commandLine.getOptionProperties(CROSSOVER_CHAR), pbf, ps);
 				px.setSeed(seed);
 				px.setPrintStream(ps);
-				px.setDebug(debug);
 			}
 			
 			if (debug) {

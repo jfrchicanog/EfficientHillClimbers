@@ -24,6 +24,7 @@ public class ArticulationPointsPartitionCrossoverConfigurator implements Crossov
 		PXAPForRBallHillClimber px = new PXAPForRBallHillClimber(el);
         px.enableArticulationPointsAnalysis(!properties.containsKey(NOAP_ARGUMENT));
         px.setShowDegreeOfArticulationPoints(properties.containsKey(DEGREE_ARGUMENT));
+        px.setDebug(properties.containsKey(DEBUG_ARGUMENT));
 
 		return px;
 	}

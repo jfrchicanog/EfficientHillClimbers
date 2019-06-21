@@ -8,7 +8,6 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 public interface Crossover {
 	RBallEfficientHillClimberSnapshot recombine(RBallEfficientHillClimberSnapshot blue, RBallEfficientHillClimberSnapshot red);
 	void setPrintStream(PrintStream ps);
-	void setDebug(boolean debug);
 	void setSeed(long seed);
 
 }

@@ -29,6 +29,8 @@ public class PartitionCrossover {
     protected long lastRuntime;
 
     private int numberOfComponents;
+    
+    private PrintStream ps;
 
     public PartitionCrossover(EmbeddedLandscape el) {
 		this.el = el;
@@ -161,6 +163,10 @@ public class PartitionCrossover {
 			numberOfComponents++;
 		}
 		lastRuntime = System.nanoTime() - initTime;
+		ps.println("Recombination time:"+getLastRuntime());
+		if (child != null) {
+			ps.println("* Success in PX: "+getNumberOfComponents());
+		}
 		return child;
 	}
 
@@ -171,5 +177,12 @@ public class PartitionCrossover {
     public long getLastRuntime() {
         return lastRuntime;
     }
+    
+	public void setPrintStream(PrintStream ps) {
+		this.ps = ps;
+	}
+	
+	public void setDebug(boolean debug) {
+	}
 
 }

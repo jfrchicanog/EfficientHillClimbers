@@ -201,13 +201,11 @@ public class ILSRBallPXExperiment implements Process {
 		        
 		        if (px!=null && !timer.shouldStop()) {
 		            child = px.recombine(currentSolution, nextSolution);
-		            ps.println("Recombination time:"+px.getLastRuntime());
 		        }
 		        
 		        if (child == null) {
 		            child = nextSolution;
 		        } else {
-		            ps.println("* Success in PX: "+px.getNumberOfComponents());
 		            hillClimb(child);
 		            reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 		            reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
