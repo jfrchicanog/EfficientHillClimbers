@@ -63,6 +63,7 @@ public class PartitionCrossoverArticulationPoints{
     protected PrintStream ps;
     
     private int numberOfComponents;
+    private boolean showDegreeOfArticulationPoints;
 
     public PartitionCrossoverArticulationPoints(EmbeddedLandscape el) {
 		this.el = el;
@@ -604,7 +605,17 @@ public class PartitionCrossoverArticulationPoints{
 		}
 		
 		lastRunTime = System.nanoTime() - lastInitTime; 
-
+		ps.println("Recombination time:"+getLastRuntime());
+		if (child != null) {
+			ps.println("* Success in PX: "+getNumberOfComponents());
+            ps.println("* Articulation Points: "+getNumberOfArticulationPoints());
+            ps.println("* Improvement by articulation points analysis: "+isArticulationPointAnalysisImprovement());
+            if (showDegreeOfArticulationPoints) {
+                ps.println("* Degrees of articulation points: "+degreeOfArticulationPoints());
+            }
+            printArticulationPointToFlipAndImprovement();
+		}
+		
 		return child;
 	}
 	
@@ -756,6 +767,14 @@ public class PartitionCrossoverArticulationPoints{
     public int getNumberOfEdgesJoiningArticulationPoints() {
         return edgesJoiningArticulationPoints;
     }
+
+	public boolean isShowDegreeOfArticulationPoints() {
+		return showDegreeOfArticulationPoints;
+	}
+
+	public void setShowDegreeOfArticulationPoints(boolean showDegreeOfArticulationPoints) {
+		this.showDegreeOfArticulationPoints = showDegreeOfArticulationPoints;
+	}
     
     
 }

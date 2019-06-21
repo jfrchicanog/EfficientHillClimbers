@@ -80,4 +80,8 @@ public class DPXForRBallHillClimber extends DynasticPotentialCrossover implement
 		return solution;
 	}
 
+	@Override
+	public void setSeed(long seed) {
+	}
+
 }

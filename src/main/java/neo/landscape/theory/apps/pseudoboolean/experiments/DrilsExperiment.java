@@ -25,6 +25,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
+import neo.landscape.theory.apps.pseudoboolean.px.ArticulationPointsPartitionCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.Crossover;
 import neo.landscape.theory.apps.pseudoboolean.px.CrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.DynasticPotentialCrossoverConfigurator;
@@ -34,7 +35,7 @@ import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
 
-public class DrilsDpxExperiment implements Process {
+public class DrilsExperiment implements Process {
 
 
 	private static final String DEBUG_ARGUMENT = "debug";
@@ -74,6 +75,7 @@ public class DrilsDpxExperiment implements Process {
     private final Map<String, CrossoverConfigurator> crossoverConf = new HashMap<>();
     {
     	crossoverConf.put(DPX, new DynasticPotentialCrossoverConfigurator());
+    	crossoverConf.put(APX, new ArticulationPointsPartitionCrossoverConfigurator());
     }
      
     
@@ -99,12 +101,12 @@ public class DrilsDpxExperiment implements Process {
     
 	@Override
 	public String getDescription() {
-		return "Implementation of DRILS with DPX";
+		return "Implementation of DRILS";
 	}
 
     @Override
     public String getID() {
-        return "drils+dpx";
+        return "drils";
     }
 
 	@Override
@@ -179,6 +181,7 @@ public class DrilsDpxExperiment implements Process {
 			if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
 				px = getCrossoverConfigurator().configureCrossover(
 						commandLine.getOptionProperties(CROSSOVER_CHAR), pbf, ps);
+				px.setSeed(seed);
 				px.setPrintStream(ps);
 				px.setDebug(debug);
 			}
