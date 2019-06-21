@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.experiments;
 
 import java.io.PrintStream;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
@@ -29,11 +30,21 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
     
     @Override
     public EmbeddedLandscape configureProblem(CommandLine commandLine, PrintStream ps) {
-        String n = commandLine.getOptionValue(NKLandscapeConfigurator.N_ARGUMENT);
-        String k = commandLine.getOptionValue(NKLandscapeConfigurator.K_ARGUMENT);
-        String q = commandLine.getOptionValue(NKLandscapeConfigurator.Q_ARGUMENT);
-        String circular = commandLine.getOptionValue(NKLandscapeConfigurator.MODEL_ARGUMENT);
-        long problemSeed = Long.parseLong(commandLine.getOptionValue(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT));
+    	Properties properties = new Properties();
+
+    	Stream.of(N_ARGUMENT, K_ARGUMENT, Q_ARGUMENT, MODEL_ARGUMENT, PROBLEM_SEED_ARGUMENT)
+    		.forEach(clave -> MAXSATConfigurator.moveProperty(commandLine, properties, clave));
+
+        return configureProblem(properties, ps);
+    }
+
+	@Override
+	public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
+		String n = properties.getProperty(NKLandscapeConfigurator.N_ARGUMENT);
+        String k = properties.getProperty(NKLandscapeConfigurator.K_ARGUMENT);
+        String q = properties.getProperty(NKLandscapeConfigurator.Q_ARGUMENT);
+        String circular = properties.getProperty(NKLandscapeConfigurator.MODEL_ARGUMENT);
+        long problemSeed = Long.parseLong(properties.getProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT));
         
     	NKLandscapes pbf = new NKLandscapes();
     	Properties prop = new Properties();
@@ -61,6 +72,7 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
     	ps.println("NK-model: "+circular);
     	ps.println("ProblemSeed: "+problemSeed);
         return pbf;
-    }
+	}
+
 
 }

@@ -1,5 +1,7 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
+import java.io.PrintStream;
+
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesAndSubFunctionInspectorFactory;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesAndSubFunctionsInspector;
@@ -7,7 +9,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
-public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover {
+public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover  implements Crossover  {
 
 	public PartitionCrossoverForRBallHillClimber(EmbeddedLandscape el) {
 		super(el);
@@ -78,6 +80,18 @@ public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover {
 		RBallEfficientHillClimberSnapshot solution = blue.getHillClimberForInstanceOf().initialize(res, inspectorFactory);
 		lastRuntime = System.nanoTime()-initTime;
         return solution;
+	}
+
+	@Override
+	public void setPrintStream(PrintStream ps) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setDebug(boolean debug) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

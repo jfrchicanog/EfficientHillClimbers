@@ -14,6 +14,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -24,7 +25,9 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.px.DPXForRBallHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.px.Crossover;
+import neo.landscape.theory.apps.pseudoboolean.px.CrossoverConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.px.DynasticPotentialCrossoverConfigurator;
 import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
@@ -43,11 +46,21 @@ public class DrilsDpxExperiment implements Process {
     private static final String LON_MINIMUM_FITNESS_ARGUMENT = "lonmin";
     private static final String IMPROVING_LO = "improvingLo";
     private static final String DISABLE_CROSSOVER = "nopx";
-    private static final String MAX_EXHAUSTIVE_EXPLORATION = "exhexp";
     private static final String PROBLEM="problem";
+    private static final String CROSSOVER="crossover";
+    private static final String CROSSOVER_CHAR = "X";
+    private static final String PROBLEM_CHAR = "P";
     
     private static final String MAXSAT_PROBLEM = "maxsat";
     private static final String NK_PROBLEM = "nk";
+    
+    private static final String DPX="dpx";
+    private static final String APX="apx";
+    private static final String PX="px";
+    private static final String NX="nx";
+    private static final String UX="ux";
+    private static final String SPX="spx";
+    private static final String TPX="tpx";
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
@@ -56,6 +69,11 @@ public class DrilsDpxExperiment implements Process {
     {
     	configurators.put(MAXSAT_PROBLEM, new MAXSATConfigurator());
     	configurators.put(NK_PROBLEM, new NKLandscapeConfigurator());
+    }
+    
+    private final Map<String, CrossoverConfigurator> crossoverConf = new HashMap<>();
+    {
+    	crossoverConf.put(DPX, new DynasticPotentialCrossoverConfigurator());
     }
      
     
@@ -75,12 +93,13 @@ public class DrilsDpxExperiment implements Process {
     private CommandLine commandLine;
     private EmbeddedLandscapeConfigurator problemConfigurator;
     private String problem;
+    private CrossoverConfigurator crossoverConfigurator;
+    private String crossover;
 
     
 	@Override
 	public String getDescription() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Implementation of DRILS with DPX";
 	}
 
     @Override
@@ -117,19 +136,29 @@ public class DrilsDpxExperiment implements Process {
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(DISABLE_CROSSOVER, false, "disables the partition crossover");
         options.addOption(IMPROVING_LO, false, "accept only non disimproving local optima in ILS");
-        options.addOption(MAX_EXHAUSTIVE_EXPLORATION, true, "maximum number of variables to exhaustively explore in crossover (DPX): negative value is equivalent to no limit");
-        options.addOption(PROBLEM, true, "problem to be solves: nk, maxsat");
+        options.addOption(PROBLEM, true, "problem to be solved: "+configurators.keySet());
+        options.addOption(CROSSOVER, true, "crossover operator to use: "+crossoverConf.keySet());
+        options.addOption(Option.builder(PROBLEM_CHAR)
+        		.numberOfArgs(2)
+        		.valueSeparator()
+        		.argName("property=value")
+        		.desc("properties for the problem")
+        		.build());
+
+        options.addOption(Option.builder(CROSSOVER_CHAR)
+        		.numberOfArgs(2)
+        		.valueSeparator()
+        		.argName("property=value")
+        		.desc("properties for the crossover operator")
+        		.build());
+
         
 	    return options;
 	}
 
 	@Override
 	public void execute(String[] args) {
-
-
 		try {
-			commandLine = parseCommandLine(args);
-			recomputeOptions(commandLine);
 			commandLine = parseCommandLine(args);
 
 			timer = new SingleThreadCPUTimer();
@@ -138,9 +167,22 @@ public class DrilsDpxExperiment implements Process {
 			initializeStatistics();
 			initializeOutput();
 
-			EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(commandLine, ps);
-
+			problem = commandLine.getOptionValue(PROBLEM);
+			crossover = commandLine.getOptionValue(CROSSOVER);
+			
+			EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(
+					commandLine.getOptionProperties(PROBLEM_CHAR), ps);
+			
 			boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
+
+			Crossover px = null; 
+			if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
+				px = getCrossoverConfigurator().configureCrossover(
+						commandLine.getOptionProperties(CROSSOVER_CHAR), pbf, ps);
+				px.setPrintStream(ps);
+				px.setDebug(debug);
+			}
+			
 			if (debug) {
 				StringWriter sr = new StringWriter();
 				if (pbf instanceof NKLandscapes) {
@@ -169,16 +211,9 @@ public class DrilsDpxExperiment implements Process {
 				seed = Seeds.getSeed();
 			}
 
-			int exhaustiveExploration = -1;
-			if (commandLine.hasOption(MAX_EXHAUSTIVE_EXPLORATION)) {
-				exhaustiveExploration = Integer.parseInt(commandLine.getOptionValue(MAX_EXHAUSTIVE_EXPLORATION));
-			}
-
 			ps.println("Perturbation factor: " + perturbFactor);
 			ps.println("R: " + r);
 			ps.println("Seed: " + seed);
-			ps.println("Exhexp: " + exhaustiveExploration);
-
 
 			Properties rballConfig = new Properties();
 
@@ -190,18 +225,6 @@ public class DrilsDpxExperiment implements Process {
 
 			RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) 
 					new RBallEfficientHillClimber(rballConfig).initialize(pbf);
-
-			DPXForRBallHillClimber px = null;
-
-			if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
-				px = new DPXForRBallHillClimber(pbf);
-				px.setPrintStream(ps);
-				px.setDebug(debug);
-				if (exhaustiveExploration >= 0) {
-					px.setMaximumVariablesToExhaustivelyExplore(exhaustiveExploration);
-				}
-
-			}
 
 			timer.setStopTimeMilliseconds(time * 1000);
 			ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
@@ -233,21 +256,11 @@ public class DrilsDpxExperiment implements Process {
 
 					if (px!= null && !timer.shouldStop()) {
 						child = px.recombine(currentSolution, nextSolution);
-						ps.println("Recombination time:"+px.getLastRuntime());
 					}
 
 					if (child == null) {
 						child = nextSolution;
 					} else {
-						ps.println("* Success in PX: "+px.getNumberOfComponents());
-						int logarithmOfExploredSolutions = px.getLogarithmOfExploredSolutions();
-						ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
-						ps.println("* Full dynastic potential explored: "
-								+ (px.getDifferingVariables() == logarithmOfExploredSolutions));
-						ps.println("* Number of articulation points: " + px.getNumberOfArticulationPoints());
-						ps.println("* All articulation points exhaustively explored: "
-								+ px.allArticulationPointsExhaustivelyExplored());
-
 						hillClimb(child);
 						reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 						reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
@@ -265,20 +278,31 @@ public class DrilsDpxExperiment implements Process {
 			printOutput();
 
 		} catch (RuntimeException e) {
-			showOptios();
+			System.err.println("Exception: "+e.getMessage());
+			e.printStackTrace(System.err);
+			showOptions();
 		}
 
     }
 
-	protected void showOptios() {
+	protected void showOptions() {
 		HelpFormatter helpFormatter = new HelpFormatter();
 		helpFormatter.printHelp(getID(), getOptions());
+		
+		try {
+			Options problemOptions = new Options();
+			getProblemConfigurator().prepareOptionsForProblem(problemOptions);
+			helpFormatter.printHelp("Problem: "+problem, problemOptions);
+		} catch (RuntimeException e) {
+		}
+		
+		try {
+			Options crossoverOptions = new Options();
+			getCrossoverConfigurator().prepareOptionsForCrossover(crossoverOptions);
+			helpFormatter.printHelp("Crossover: "+crossover, crossoverOptions);
+		} catch (RuntimeException e) {
+		}
 		return;
-	}
-	
-	private void recomputeOptions(CommandLine commandLine) {
-		problem = commandLine.getOptionValue(PROBLEM);
-		getProblemConfigurator().prepareOptionsForProblem(getOptions());
 	}
 
 	protected RBallEfficientHillClimberSnapshot acceptanceCriterion(
@@ -402,11 +426,25 @@ public class DrilsDpxExperiment implements Process {
     
     protected EmbeddedLandscapeConfigurator createEmbeddedLandscapeConfigurator() {
     	EmbeddedLandscapeConfigurator elc =  configurators.get(problem);
-    	if (elc != null) {
-    		return elc;
-    	} else {
+    	if (elc == null) {
     		throw new IllegalArgumentException("Problem "+problem+" is unknown");
     	}
+    	return elc;
+    }
+    
+    protected CrossoverConfigurator createCrossoverConfigurator() {
+    	CrossoverConfigurator xConf = crossoverConf.get(crossover);
+    	if (xConf == null) {
+    		throw new IllegalArgumentException("Crossover "+crossover+" is unknown");
+    	}
+    	return xConf;
+    }
+    
+    private CrossoverConfigurator getCrossoverConfigurator() {
+    	if (crossoverConfigurator==null) {
+    		crossoverConfigurator = createCrossoverConfigurator();
+    	}
+    	return crossoverConfigurator;
     }
 
 

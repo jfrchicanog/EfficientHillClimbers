@@ -7,7 +7,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
-public class PXAPForRBallHillClimber extends PartitionCrossoverArticulationPoints {
+public class PXAPForRBallHillClimber extends PartitionCrossoverArticulationPoints  implements Crossover  {
 
 	public PXAPForRBallHillClimber(EmbeddedLandscape el) {
 		super(el);

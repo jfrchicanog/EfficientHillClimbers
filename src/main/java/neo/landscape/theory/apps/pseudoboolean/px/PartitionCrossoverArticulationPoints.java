@@ -22,7 +22,7 @@ import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSetWithData;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSetWithData.DataFactory;
 
-public class PartitionCrossoverArticulationPoints {
+public class PartitionCrossoverArticulationPoints{
     
     public static enum FlippedSolution {
        BLUE, RED

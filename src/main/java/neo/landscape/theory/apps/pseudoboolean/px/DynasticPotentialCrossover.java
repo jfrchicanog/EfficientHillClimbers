@@ -323,7 +323,24 @@ public class DynasticPotentialCrossover {
 	    }
 
 		lastRuntime = System.nanoTime() - initTime;
+		
+		reportCrossoverInfo(child);
+		
 		return child;
+	}
+
+	protected void reportCrossoverInfo(PBSolution child) {
+		ps.println("Recombination time:"+getLastRuntime());
+		if (child != null) {
+			ps.println("* Success in PX: "+getNumberOfComponents());
+			int logarithmOfExploredSolutions = getLogarithmOfExploredSolutions();
+			ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
+			ps.println("* Full dynastic potential explored: "
+					+ (getDifferingVariables() == logarithmOfExploredSolutions));
+			ps.println("* Number of articulation points: " + getNumberOfArticulationPoints());
+			ps.println("* All articulation points exhaustively explored: "
+					+ allArticulationPointsExhaustivelyExplored());
+		}
 	}
 	
 	/**
@@ -427,7 +444,7 @@ public class DynasticPotentialCrossover {
         return lastRuntime;
     }
     
-    public void setPrintStream(PrintStream ps) {
+	public void setPrintStream(PrintStream ps) {
     	this.ps = ps;
     }
 

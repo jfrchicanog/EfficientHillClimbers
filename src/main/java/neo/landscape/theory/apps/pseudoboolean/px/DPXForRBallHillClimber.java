@@ -7,7 +7,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
-public class DPXForRBallHillClimber extends DynasticPotentialCrossover {
+public class DPXForRBallHillClimber extends DynasticPotentialCrossover implements Crossover  {
 
 	public DPXForRBallHillClimber(EmbeddedLandscape el) {
 		super(el);

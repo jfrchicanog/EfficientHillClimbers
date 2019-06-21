@@ -2,12 +2,13 @@ package neo.landscape.theory.apps.pseudoboolean.experiments;
 
 import java.io.PrintStream;
 import java.util.Properties;
-
-import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
-import neo.landscape.theory.apps.pseudoboolean.problems.MAXSAT;
+import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
+
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.problems.MAXSAT;
 
 public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
 
@@ -34,20 +35,39 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
 
     @Override
     public EmbeddedLandscape configureProblem(CommandLine commandLine, PrintStream ps) {
-        MAXSAT maxsat = new MAXSAT();
+    	Properties properties = new Properties();
+
+    	Stream.of(N_ARGUMENT, M_ARGUMENT, MAX_K_ARGUMENT, PSEED, 
+    			MIN_ARGUMENT, HPINIT_ARGUMENT, INSTANCE_ARGUMENT, 
+    			FORCED_UNWEIGHTED_ARGUMENT)
+    		.forEach(clave -> moveProperty(commandLine, properties, clave));
+
+        return configureProblem(properties, ps);
+    }
+
+    static public void moveProperty(CommandLine commandLine, Properties properties, String clave) {
+		String value = commandLine.getOptionValue(clave);
+    	if (value != null) {
+    		properties.setProperty(clave, value);
+    	}
+	}
+
+	@Override
+	public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
+		MAXSAT maxsat = new MAXSAT();
         Properties prop = new Properties();
-        if (commandLine.hasOption(INSTANCE_ARGUMENT)) {
-            String instance = commandLine.getOptionValue(INSTANCE_ARGUMENT);
+        if (properties.containsKey(INSTANCE_ARGUMENT)) {
+            String instance = properties.getProperty(INSTANCE_ARGUMENT);
             prop.setProperty(MAXSAT.INSTANCE_STRING, instance);
-            if (commandLine.hasOption(FORCED_UNWEIGHTED_ARGUMENT)) {
+            if (properties.containsKey(FORCED_UNWEIGHTED_ARGUMENT)) {
                 prop.setProperty(MAXSAT.FORCE_UNWEIGHTED, "");
             }
             ps.println("Intance: "+instance);
         } else {
-            long problemSeed = Long.parseLong(commandLine.getOptionValue(PSEED));
-            String n = commandLine.getOptionValue(N_ARGUMENT);
-            String m = commandLine.getOptionValue(M_ARGUMENT);
-            String maxk = commandLine.getOptionValue(MAX_K_ARGUMENT);
+            long problemSeed = Long.parseLong(properties.getProperty(PSEED));
+            String n = properties.getProperty(N_ARGUMENT);
+            String m = properties.getProperty(M_ARGUMENT);
+            String maxk = properties.getProperty(MAX_K_ARGUMENT);
             
             prop.setProperty(MAXSAT.N_STRING, n);
             prop.setProperty(MAXSAT.M_STRING, m);
@@ -60,14 +80,14 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
             
         }
         
-        if (commandLine.hasOption(MIN_ARGUMENT)) {
+        if (properties.containsKey(MIN_ARGUMENT)) {
             prop.setProperty(MAXSAT.MIN_STRING, "yes");
             ps.println("MINSAT: yes");
         } else {
             ps.println("MINSAT: no");
         }
         
-        if (commandLine.hasOption(HPINIT_ARGUMENT)) {
+        if (properties.containsKey(HPINIT_ARGUMENT)) {
             prop.setProperty(MAXSAT.HYPERPLANE_INIT, "yes");
             ps.println("HP init: yes");
         } else {
@@ -77,6 +97,6 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
         maxsat.setConfiguration(prop);
 
         return maxsat;
-    }
+	}
 
 }
