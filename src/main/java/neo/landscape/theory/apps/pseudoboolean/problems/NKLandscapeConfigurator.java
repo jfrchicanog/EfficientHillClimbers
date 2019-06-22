@@ -1,15 +1,13 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import java.io.PrintStream;
 import java.util.Properties;
 import java.util.stream.Stream;
 
-import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
-import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes.NKModel;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
+
+import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
 
 public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 
