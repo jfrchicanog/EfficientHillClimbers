@@ -181,8 +181,6 @@ public class PartitionCrossover {
 	public void setPrintStream(PrintStream ps) {
 		this.ps = ps;
 	}
-	
-	public void setDebug(boolean debug) {
-	}
+
 
 }
