@@ -7,14 +7,14 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesAndSubFunctionI
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 
-public class DPXForRBallHillClimber implements RBallCrossover  {
+public class RBallCrossoverAdaptor implements RBallCrossover  {
 	
 	private MovesAndSubFunctionInspectorFactory inspectorFactory;
-	private CrossoverInternal dpx;
+	private CrossoverInternal crossover;
 	private PrintStream ps;
 
-	public DPXForRBallHillClimber(EmbeddedLandscape el) {
-		dpx = new DynasticPotentialCrossover(el);
+	public RBallCrossoverAdaptor(CrossoverInternal crossover) {
+		this.crossover = crossover;
 	}
 
 	public RBallEfficientHillClimberSnapshot recombine(
@@ -25,7 +25,7 @@ public class DPXForRBallHillClimber implements RBallCrossover  {
 	    
 		PBSolution blueSolution = blue.getSolution();
 		PBSolution redSolution = red.getSolution();
-		PBSolution res = dpx.recombineInternal(blueSolution, redSolution);
+		PBSolution res = crossover.recombineInternal(blueSolution, redSolution);
 		
 		long lastRuntime = System.nanoTime()-initTime;
 
@@ -35,7 +35,7 @@ public class DPXForRBallHillClimber implements RBallCrossover  {
 		}
 		// else
 		
-		inspectorFactory = new InitializedMovesAndSubFunctionInspectorFactory(blue, red, dpx);
+		inspectorFactory = new InitializedMovesAndSubFunctionInspectorFactory(blue, red, crossover);
 		RBallEfficientHillClimberSnapshot solution = blue.getHillClimberForInstanceOf().initialize(res, inspectorFactory);
 		
 		lastRuntime = System.nanoTime()-initTime;
@@ -53,13 +53,13 @@ public class DPXForRBallHillClimber implements RBallCrossover  {
 
 	@Override
 	public void setSeed(long seed) {
-		dpx.setSeed(seed);
+		crossover.setSeed(seed);
 	}
 
 	@Override
 	public void setPrintStream(PrintStream ps) {
 		this.ps=ps;
-		dpx.setPrintStream(ps);
+		crossover.setPrintStream(ps);
 	}
 	
 	

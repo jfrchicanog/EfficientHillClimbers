@@ -18,7 +18,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 public class DPXForRBallHillClimberTest {
     
     private NKLandscapes nk;
-    private DPXForRBallHillClimber rballDPX;
+    private RBallCrossoverAdaptor rballDPX;
     private DynasticPotentialCrossover dpx;
     private Random rnd;
     private double alpha = 0.15;
@@ -58,7 +58,7 @@ public class DPXForRBallHillClimberTest {
     
     private void testSolutionPair(PBSolution red, PBSolution blue) {
         dpx = new DynasticPotentialCrossover(nk);
-        rballDPX = new DPXForRBallHillClimber(nk);
+        rballDPX = new RBallCrossoverAdaptor(new DynasticPotentialCrossover(nk));
         
         PBSolution result = dpx.recombine(blue, red);
         

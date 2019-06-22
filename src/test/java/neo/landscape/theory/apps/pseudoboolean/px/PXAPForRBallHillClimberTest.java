@@ -1,12 +1,9 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.stream.IntStream;
+
+import org.junit.Test;
 
 import junit.framework.Assert;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
@@ -14,14 +11,11 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverArticulationPoints.FlippedSolution;
-
-import org.junit.Test;
 
 public class PXAPForRBallHillClimberTest {
     
     private NKLandscapes nk;
-    private PXAPForRBallHillClimber rballPXAP;
+    private RBallCrossover rballPXAP;
     private PartitionCrossoverArticulationPoints pxap;
 
     @Test
@@ -56,7 +50,7 @@ public class PXAPForRBallHillClimberTest {
     
     private void testSolutionPair(PBSolution red, PBSolution blue) {
         pxap = new PartitionCrossoverArticulationPoints(nk);
-        rballPXAP = new PXAPForRBallHillClimber(nk);
+        rballPXAP = new RBallCrossoverAdaptor(new PartitionCrossoverArticulationPoints(nk));
         
         PBSolution result = pxap.recombine(blue, red);
         

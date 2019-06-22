@@ -32,7 +32,7 @@ import neo.landscape.theory.apps.pseudoboolean.px.CrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.CrossoverInternal;
 import neo.landscape.theory.apps.pseudoboolean.px.DynasticPotentialCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.RBallCroosoverAdaptor;
+import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossoverAdaptor;
 import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossover;
 import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
@@ -188,7 +188,7 @@ public class DrilsExperiment implements Process {
 				CrossoverInternal ci = getCrossoverConfigurator().configureCrossover(
 						commandLine.getOptionProperties(CROSSOVER_CHAR), pbf, ps);
 				
-				px = new RBallCroosoverAdaptor (ci);
+				px = new RBallCrossoverAdaptor (ci);
 				px.setSeed(seed);
 				px.setPrintStream(ps);
 			}
