@@ -66,7 +66,7 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
     	ps.println("K: " + pbf.getK());
     	ps.println("Q: " + pbf.getQ());
     	ps.println("Adjacent model?: "
-    			+ (NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));
+    			+ (NKLandscapes.NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));
     	ps.println("NK-model: "+circular);
     	ps.println("ProblemSeed: "+problemSeed);
         return pbf;
