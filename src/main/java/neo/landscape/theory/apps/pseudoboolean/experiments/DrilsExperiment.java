@@ -32,8 +32,10 @@ import neo.landscape.theory.apps.pseudoboolean.px.CrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.CrossoverInternal;
 import neo.landscape.theory.apps.pseudoboolean.px.DynasticPotentialCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossoverAdaptor;
 import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossover;
+import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossoverAdaptor;
+import neo.landscape.theory.apps.pseudoboolean.px.SinglePointCrossoverConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.px.UniformCrossoverConfigurator;
 import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
@@ -41,8 +43,7 @@ import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
 
 public class DrilsExperiment implements Process {
-
-
+	
 	private static final String DEBUG_ARGUMENT = "debug";
     private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
     private static final String TIME_ARGUMENT = "time";
@@ -51,7 +52,6 @@ public class DrilsExperiment implements Process {
     private static final String LON_ARGUMENT = "lon";
     private static final String LON_MINIMUM_FITNESS_ARGUMENT = "lonmin";
     private static final String IMPROVING_LO = "improvingLo";
-    private static final String DISABLE_CROSSOVER = "nopx";
     private static final String PROBLEM="problem";
     private static final String CROSSOVER="crossover";
     private static final String CROSSOVER_CHAR = "X";
@@ -66,7 +66,7 @@ public class DrilsExperiment implements Process {
     private static final String NX="nx";
     private static final String UX="ux";
     private static final String SPX="spx";
-    private static final String TPX="tpx";
+    private static final String CROSSOVER_NONE = "none";
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
@@ -82,6 +82,8 @@ public class DrilsExperiment implements Process {
     	crossoverConf.put(DPX, new DynasticPotentialCrossoverConfigurator());
     	crossoverConf.put(APX, new ArticulationPointsPartitionCrossoverConfigurator());
     	crossoverConf.put(PX, new PartitionCrossoverConfigurator());
+    	crossoverConf.put(UX, new UniformCrossoverConfigurator());
+    	crossoverConf.put(SPX, new SinglePointCrossoverConfigurator());
     }
      
     
@@ -142,7 +144,6 @@ public class DrilsExperiment implements Process {
 	    options.addOption(LON_ARGUMENT,false, "print the PX Local Optima Network");
         options.addOption(LON_MINIMUM_FITNESS_ARGUMENT,true, "minimum fitness to consider a LON (optional)");
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
-        options.addOption(DISABLE_CROSSOVER, false, "disables the partition crossover");
         options.addOption(IMPROVING_LO, false, "accept only non disimproving local optima in ILS");
         options.addOption(PROBLEM, true, "problem to be solved: "+configurators.keySet());
         options.addOption(CROSSOVER, true, "crossover operator to use: "+crossoverConf.keySet());
@@ -184,7 +185,7 @@ public class DrilsExperiment implements Process {
 			boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
 
 			RBallCrossover px = null; 
-			if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
+			if (!crossover.equals(CROSSOVER_NONE)) {
 				CrossoverInternal ci = getCrossoverConfigurator().configureCrossover(
 						commandLine.getOptionProperties(CROSSOVER_CHAR), pbf, ps);
 				
@@ -224,6 +225,7 @@ public class DrilsExperiment implements Process {
 			ps.println("Perturbation factor: " + perturbFactor);
 			ps.println("R: " + r);
 			ps.println("Seed: " + seed);
+			ps.println("Crossover: " + crossover);
 
 			Properties rballConfig = new Properties();
 
