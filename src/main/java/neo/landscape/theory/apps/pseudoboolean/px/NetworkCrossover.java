@@ -96,7 +96,10 @@ public class NetworkCrossover implements CrossoverInternal {
 		
 		while (toExplore.size() > 0 && sizeOfMask < maximumSizeOfMask) {
 			// Take one node to explore (randomly)
-			int var = toExplore.get(rnd.nextInt(toExplore.size()));
+			int index = rnd.nextInt(toExplore.size());
+			int var = toExplore.get(index);
+			toExplore.remove(index);
+			
 			if (bfsSet.isExplored(var)) {
 				continue;
 			}
