@@ -11,6 +11,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+
 // We need to fix this test, since it does not reflect the new wasy of expressing the NK Model
 @Ignore
 public class EfficientHillClimberTest {

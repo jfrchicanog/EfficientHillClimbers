@@ -9,5 +9,5 @@ import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 
 public interface CrossoverConfigurator {
     public void prepareOptionsForCrossover(Options options);
-    public Crossover configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps);
+    public CrossoverInternal configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps);
 }

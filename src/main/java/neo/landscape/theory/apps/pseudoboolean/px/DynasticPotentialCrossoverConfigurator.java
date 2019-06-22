@@ -18,8 +18,8 @@ public class DynasticPotentialCrossoverConfigurator implements CrossoverConfigur
 	}
 
 	@Override
-	public Crossover configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps) {
-		DPXForRBallHillClimber px = new DPXForRBallHillClimber(el);
+	public CrossoverInternal configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps) {
+		DynasticPotentialCrossover px = new DynasticPotentialCrossover(el);
 		boolean debug = properties.containsKey(DEBUG_ARGUMENT);
 		int exhaustiveExploration = -1;
 		if (properties.containsKey(MAX_EXHAUSTIVE_EXPLORATION)) {

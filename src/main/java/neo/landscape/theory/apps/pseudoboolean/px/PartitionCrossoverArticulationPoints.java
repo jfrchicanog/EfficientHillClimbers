@@ -22,7 +22,7 @@ import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSetWithData;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSetWithData.DataFactory;
 
-public class PartitionCrossoverArticulationPoints{
+public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
     
     public static enum FlippedSolution {
        BLUE, RED
@@ -528,8 +528,16 @@ public class PartitionCrossoverArticulationPoints{
 	}
 
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
-
-	    long lastInitTime = System.nanoTime();
+		PBSolution solution = recombineInternal(blue, red);
+		if (ps != null) {
+			ps.println("Recombination time:"+getLastRuntime());
+		}
+		return solution;
+	}
+	
+	@Override
+	public PBSolution recombineInternal(PBSolution blue, PBSolution red) {
+		long lastInitTime = System.nanoTime();
         bfsSet.reset();
         allArticulationPoints.clear();
         globalTime = 0;
@@ -546,8 +554,8 @@ public class PartitionCrossoverArticulationPoints{
         degreesOfArticulationPoints.clear();
         
         if (debug) {
-        reportDebugInformation("Red solution: "+red+"("+el.evaluate(red)+")");
-        reportDebugInformation("Blue solution:"+blue+"("+el.evaluate(blue)+")");
+        	reportDebugInformation("Red solution: "+red+"("+el.evaluate(red)+")");
+        	reportDebugInformation("Blue solution:"+blue+"("+el.evaluate(blue)+")");
         }
         
         
@@ -605,15 +613,15 @@ public class PartitionCrossoverArticulationPoints{
 		}
 		
 		lastRunTime = System.nanoTime() - lastInitTime; 
-		ps.println("Recombination time:"+getLastRuntime());
-		if (child != null) {
-			ps.println("* Success in PX: "+getNumberOfComponents());
-            ps.println("* Articulation Points: "+getNumberOfArticulationPoints());
-            ps.println("* Improvement by articulation points analysis: "+isArticulationPointAnalysisImprovement());
-            if (showDegreeOfArticulationPoints) {
-                ps.println("* Degrees of articulation points: "+degreeOfArticulationPoints());
-            }
-            printArticulationPointToFlipAndImprovement();
+		
+		if (ps!= null) {
+			ps.println("* Number of components: "+getNumberOfComponents());
+			ps.println("* Articulation Points: "+getNumberOfArticulationPoints());
+			ps.println("* Improvement by articulation points analysis: "+isArticulationPointAnalysisImprovement());
+			if (showDegreeOfArticulationPoints) {
+				ps.println("* Degrees of articulation points: "+degreeOfArticulationPoints());
+			}
+			printArticulationPointToFlipAndImprovement();
 		}
 		
 		return child;
@@ -775,6 +783,15 @@ public class PartitionCrossoverArticulationPoints{
 	public void setShowDegreeOfArticulationPoints(boolean showDegreeOfArticulationPoints) {
 		this.showDegreeOfArticulationPoints = showDegreeOfArticulationPoints;
 	}
-    
+
+	@Override
+	public EmbeddedLandscape getEmbddedLandscape() {
+		return el;
+	}
+
+	@Override
+	public VariableProcedence getVarProcedence() {
+		return varProcedence;
+	}
     
 }

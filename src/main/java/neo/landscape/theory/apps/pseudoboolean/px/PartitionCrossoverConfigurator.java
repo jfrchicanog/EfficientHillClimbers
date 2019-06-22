@@ -14,8 +14,8 @@ public class PartitionCrossoverConfigurator implements CrossoverConfigurator {
 	}
 
 	@Override
-	public Crossover configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps) {
-		PartitionCrossoverForRBallHillClimber px = new PartitionCrossoverForRBallHillClimber(el);
+	public CrossoverInternal configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps) {
+		PartitionCrossover px = new PartitionCrossover(el);
 		px.setPrintStream(ps);
 		return px;
 	}

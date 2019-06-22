@@ -17,7 +17,7 @@ import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
-public class DynasticPotentialCrossover {
+public class DynasticPotentialCrossover implements CrossoverInternal {
 	private static final int DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE = 28;
 	protected static final int VARIABLE_LIMIT = 1<<29;
 	protected EmbeddedLandscape el;
@@ -298,7 +298,7 @@ public class DynasticPotentialCrossover {
 		}
 	}
 
-	public PBSolution recombine(PBSolution blue, PBSolution red) {
+	public PBSolution recombineInternal(PBSolution blue, PBSolution red) {
 	    long initTime = System.nanoTime();
 	    this.red = red;
 	    this.blue = blue;
@@ -324,23 +324,24 @@ public class DynasticPotentialCrossover {
 
 		lastRuntime = System.nanoTime() - initTime;
 		
-		reportCrossoverInfo(child);
+		ps.println("* Number of components: "+getNumberOfComponents());
+		int logarithmOfExploredSolutions = getLogarithmOfExploredSolutions();
+		ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
+		ps.println("* Full dynastic potential explored: "
+				+ (getDifferingVariables() == logarithmOfExploredSolutions));
+		ps.println("* Number of articulation points: " + getNumberOfArticulationPoints());
+		ps.println("* All articulation points exhaustively explored: "
+				+ allArticulationPointsExhaustivelyExplored());
 		
 		return child;
 	}
-
-	protected void reportCrossoverInfo(PBSolution child) {
-		ps.println("Recombination time:"+getLastRuntime());
-		if (child != null) {
-			ps.println("* Success in PX: "+getNumberOfComponents());
-			int logarithmOfExploredSolutions = getLogarithmOfExploredSolutions();
-			ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
-			ps.println("* Full dynastic potential explored: "
-					+ (getDifferingVariables() == logarithmOfExploredSolutions));
-			ps.println("* Number of articulation points: " + getNumberOfArticulationPoints());
-			ps.println("* All articulation points exhaustively explored: "
-					+ allArticulationPointsExhaustivelyExplored());
-		}
+	
+	public PBSolution recombine(PBSolution blue, PBSolution red) {
+	    PBSolution solution = recombineInternal(blue, red);
+	    if (ps != null) {
+	    	ps.println("Recombination time:"+getLastRuntime());
+	    }
+	    return solution;
 	}
 	
 	/**
@@ -481,6 +482,18 @@ public class DynasticPotentialCrossover {
 	
 	public boolean allArticulationPointsExhaustivelyExplored() {
 		return !nonExhaustivelyExploredVariables.stream().anyMatch(articulationPoints::contains);
+	}
+
+	public EmbeddedLandscape getEmbddedLandscape() {
+		return el;
+	}
+
+	public VariableProcedence getVarProcedence() {
+		return varProcedence;
+	}
+
+	@Override
+	public void setSeed(long seed) {
 	}
 	
 	

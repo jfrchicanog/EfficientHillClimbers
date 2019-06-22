@@ -13,7 +13,7 @@ import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
-public class PartitionCrossover {
+public class PartitionCrossover implements CrossoverInternal {
 
 	protected static final int VARIABLE_LIMIT = 1<<29;
 	
@@ -141,7 +141,15 @@ public class PartitionCrossover {
 	}
 
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
-	    long initTime = System.nanoTime();
+	    PBSolution solution = recombineInternal(blue, red);
+	    ps.println("Recombination time:"+getLastRuntime());
+	    
+	    return solution;
+	}
+	
+	@Override
+	public PBSolution recombineInternal(PBSolution blue, PBSolution red) {
+		long initTime = System.nanoTime();
         bfsSet.reset();
         
 		PBSolution child = new PBSolution(red); //child, copy of red
@@ -163,10 +171,11 @@ public class PartitionCrossover {
 			numberOfComponents++;
 		}
 		lastRuntime = System.nanoTime() - initTime;
-		ps.println("Recombination time:"+getLastRuntime());
-		if (child != null) {
-			ps.println("* Success in PX: "+getNumberOfComponents());
+		
+		if (ps != null) {
+			ps.println("* Number of components: "+getNumberOfComponents());
 		}
+		
 		return child;
 	}
 
@@ -180,6 +189,16 @@ public class PartitionCrossover {
     
 	public void setPrintStream(PrintStream ps) {
 		this.ps = ps;
+	}
+
+	@Override
+	public EmbeddedLandscape getEmbddedLandscape() {
+		return el;
+	}
+
+	@Override
+	public VariableProcedence getVarProcedence() {
+		return varProcedence;
 	}
 
 

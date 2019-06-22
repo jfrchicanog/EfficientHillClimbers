@@ -5,7 +5,7 @@ import java.io.PrintStream;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 
-public interface Crossover {
+public interface RBallCrossover {
 	RBallEfficientHillClimberSnapshot recombine(RBallEfficientHillClimberSnapshot blue, RBallEfficientHillClimberSnapshot red);
 	void setPrintStream(PrintStream ps);
 	void setSeed(long seed);

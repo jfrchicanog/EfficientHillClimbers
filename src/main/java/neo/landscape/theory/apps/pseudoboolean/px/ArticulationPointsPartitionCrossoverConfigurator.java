@@ -20,8 +20,8 @@ public class ArticulationPointsPartitionCrossoverConfigurator implements Crossov
 	}
 
 	@Override
-	public Crossover configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps) {
-		PXAPForRBallHillClimber px = new PXAPForRBallHillClimber(el);
+	public CrossoverInternal configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps) {
+		PartitionCrossoverArticulationPoints px = new PartitionCrossoverArticulationPoints(el);
         px.enableArticulationPointsAnalysis(!properties.containsKey(NOAP_ARGUMENT));
         px.setShowDegreeOfArticulationPoints(properties.containsKey(DEGREE_ARGUMENT));
         px.setDebug(properties.containsKey(DEBUG_ARGUMENT));

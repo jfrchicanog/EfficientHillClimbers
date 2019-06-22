@@ -4,6 +4,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.stream.IntStream;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import junit.framework.Assert;
@@ -13,6 +14,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 
+@Ignore
 public class DPXForRBallHillClimberTest {
     
     private NKLandscapes nk;

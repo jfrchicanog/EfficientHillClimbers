@@ -28,10 +28,12 @@ import neo.landscape.theory.apps.pseudoboolean.problems.MAXSATConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.px.ArticulationPointsPartitionCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.Crossover;
 import neo.landscape.theory.apps.pseudoboolean.px.CrossoverConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.px.CrossoverInternal;
 import neo.landscape.theory.apps.pseudoboolean.px.DynasticPotentialCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.px.RBallCroosoverAdaptor;
+import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossover;
 import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
@@ -181,10 +183,12 @@ public class DrilsExperiment implements Process {
 			
 			boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
 
-			Crossover px = null; 
+			RBallCrossover px = null; 
 			if (!commandLine.hasOption(DISABLE_CROSSOVER)) {
-				px = getCrossoverConfigurator().configureCrossover(
+				CrossoverInternal ci = getCrossoverConfigurator().configureCrossover(
 						commandLine.getOptionProperties(CROSSOVER_CHAR), pbf, ps);
+				
+				px = new RBallCroosoverAdaptor (ci);
 				px.setSeed(seed);
 				px.setPrintStream(ps);
 			}
@@ -267,6 +271,7 @@ public class DrilsExperiment implements Process {
 					if (child == null) {
 						child = nextSolution;
 					} else {
+						ps.println("* Child different from parents");
 						hillClimb(child);
 						reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 						reportLONEdge(nextSolution, child, TYPE_CROSSOVER);

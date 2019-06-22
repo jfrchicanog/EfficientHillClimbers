@@ -8,13 +8,15 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.junit.Ignore;
+import org.junit.Test;
+
 import junit.framework.Assert;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverArticulationPoints.FlippedSolution;
 
-import org.junit.Test;
-
+@Ignore
 public class PartitionCrossoverArticulationPointsTest {
 
     private NKLandscapes nk;

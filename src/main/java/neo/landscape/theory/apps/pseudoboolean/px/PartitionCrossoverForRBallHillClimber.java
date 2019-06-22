@@ -9,7 +9,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 
-public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover  implements Crossover  {
+public class PartitionCrossoverForRBallHillClimber extends PartitionCrossover  implements RBallCrossover  {
 
 	public PartitionCrossoverForRBallHillClimber(EmbeddedLandscape el) {
 		super(el);
