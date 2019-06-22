@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.util;
 
 import java.util.Arrays;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.stream.IntStream;
 
 public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
@@ -9,7 +10,13 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
 	protected int[] variable;
 	protected int[] position;
 	protected int next;
+	protected Random rnd;
 
+	public TwoStatesISArrayImpl(int n, long seed) {
+		this(n);
+		rnd = new Random(seed);
+	}
+	
 	public TwoStatesISArrayImpl(int n) {
 		variable = new int[n];
 		position = new int[n];
@@ -18,6 +25,7 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
 			variable[i] = position[i] = i;
 		}
 		next = 0;
+		rnd = null;
 	}
 
 	@Override
@@ -121,5 +129,22 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
     public IntStream getUnexplored() {
         return Arrays.stream(variable, next,variable.length);
     }
+
+	@Override
+	public int getRandomUnexplored() {
+		if (next >= variable.length) {
+			throw new NoSuchElementException();
+		}
+		if (rnd == null) {
+			throw new IllegalStateException("No seed set to use random functions");
+		}
+		int var = rnd.nextInt(getNumberOfUnexploredElements());
+		return variable[next+var];
+	}
+
+	@Override
+	public int getNumberOfUnexploredElements() {
+		return variable.length-next;
+	}
 
 }

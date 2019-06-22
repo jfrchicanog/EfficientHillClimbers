@@ -5,6 +5,11 @@ public class TwoStatesISWithDataArrayImpl<T> extends TwoStatesISArrayImpl implem
     protected T [] data;
     protected DataFactory<T> factory;
     
+    public TwoStatesISWithDataArrayImpl(int n, long seed) {
+        super(n, seed);
+        data = (T [])new Object[n];
+    }
+    
     public TwoStatesISWithDataArrayImpl(int n) {
         super(n);
         data = (T [])new Object[n];

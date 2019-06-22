@@ -14,12 +14,14 @@ import java.util.stream.IntStream;
 public interface TwoStatesIntegerSet {
 	public void reset(); // All unexplored
 	public int getNextUnexplored();
+	public int getRandomUnexplored();
 	public boolean hasMoreUnexplored();
 	public void explored(int v);
 	public void unexplored(int v);
 	public boolean isExplored(int v);
 	public int getNumberOfElements();
 	public int getNumberOfExploredElements();
+	public int getNumberOfUnexploredElements();
 	public String exploredToString();
 	public String unexploredToString();
 	public IntStream getExplored();

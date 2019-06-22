@@ -5,10 +5,11 @@ import java.util.Random;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.util.Seeds;
 
 public class SinglePointCrossover implements CrossoverInternal {
 	private EmbeddedLandscape el;
-	private Random rnd = new Random();
+	private Random rnd = new Random(Seeds.getSeed());
 	private PrintStream ps;
 	private long lastRuntime;
 	private VariableProcedence varProcedence;

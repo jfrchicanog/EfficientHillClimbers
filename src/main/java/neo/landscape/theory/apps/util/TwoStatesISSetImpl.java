@@ -91,4 +91,14 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
         return unexplored.stream().mapToInt(Integer::intValue);
     }
 
+	@Override
+	public int getRandomUnexplored() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public int getNumberOfUnexploredElements() {
+		return unexplored.size();
+	}
+
 }
