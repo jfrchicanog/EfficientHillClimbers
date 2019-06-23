@@ -9,6 +9,7 @@ public interface CrossoverInternal {
 	public EmbeddedLandscape getEmbddedLandscape();
 	public VariableProcedence getVarProcedence();
 	public PBSolution recombineInternal(PBSolution blue, PBSolution red);
+	public PBSolution recombine(PBSolution blue, PBSolution red);
 	public void setPrintStream(PrintStream ps);
 	public void setSeed(long seed);
 }
