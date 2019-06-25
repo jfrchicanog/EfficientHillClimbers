@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 
@@ -20,10 +19,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.MAXSATConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapeConfigurator;
@@ -34,12 +29,8 @@ import neo.landscape.theory.apps.pseudoboolean.px.CrossoverInternal;
 import neo.landscape.theory.apps.pseudoboolean.px.DynasticPotentialCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.NetworkCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossover;
-import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossoverAdaptor;
 import neo.landscape.theory.apps.pseudoboolean.px.SinglePointCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.UniformCrossoverConfigurator;
-import neo.landscape.theory.apps.util.Graph;
-import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
@@ -53,6 +44,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     private static final String CROSSOVER="crossover";
     private static final String POPULATION_SIZE="population";
     private static final String MUTATION_PROB = "mutationProb";
+    private static final String ALPHA="alpha";
     private static final String CROSSOVER_CHAR = "X";
     private static final String PROBLEM_CHAR = "P";
     
@@ -102,6 +94,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     
     private Random rnd;
 	private int worstIndex;
+	private double mutationProbability;
 
     
 	@Override
@@ -138,7 +131,8 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(POPULATION_SIZE, true, "number of solution in the population");
-        options.addOption(MUTATION_PROB, true, "bit flip mutation probability");
+        options.addOption(MUTATION_PROB, true, "bit flip mutation probability (optional)");
+        options.addOption(ALPHA, true, "alpha/N is the mutation probability, except if it is stablished by " +MUTATION_PROB+ " (optional, default=1)");
         options.addOption(PROBLEM, true, "problem to be solved: "+configurators.keySet());
         options.addOption(CROSSOVER, true, "crossover operator to use: "+crossoverConf.keySet());
         options.addOption(Option.builder(PROBLEM_CHAR)
@@ -206,7 +200,8 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 			pbf.setSeed(rnd.nextLong());
 
 			int popSize = Integer.parseInt(commandLine.getOptionValue(POPULATION_SIZE));
-			double mutationProbability = Double.parseDouble(commandLine.getOptionValue(MUTATION_PROB));
+			
+			computeMutationProbability(pbf.getN());
 
 			population = new PBSolution[popSize];
 			fitness = new double [popSize];
@@ -265,6 +260,18 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 			showOptions();
 		}
 
+	}
+
+	protected void computeMutationProbability(int n) {
+		double alpha = 1;
+		if (commandLine.hasOption(ALPHA)) {
+			alpha = Double.parseDouble(commandLine.getOptionValue(ALPHA));
+		}
+		mutationProbability = alpha/n;
+		
+		if (commandLine.hasOption(MUTATION_PROB)) {
+			mutationProbability = Double.parseDouble(commandLine.getOptionValue(MUTATION_PROB));
+		}
 	}
 
 	protected void replacement(PBSolution child, double value) {
