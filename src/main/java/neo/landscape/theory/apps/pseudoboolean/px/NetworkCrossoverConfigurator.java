@@ -30,6 +30,9 @@ public class NetworkCrossoverConfigurator implements CrossoverConfigurator {
 		if (properties.containsKey(MAX_MASK_SIZE)) {
 			maxMaskSize = Integer.parseInt(properties.getProperty(MAX_MASK_SIZE));
 		}
+		if (ps!=null) {
+			ps.println("NX maxMaskSize: "+maxMaskSize);
+		}
 		
 		nx.setMaximumSizeOfMask(maxMaskSize);
 		return nx;
