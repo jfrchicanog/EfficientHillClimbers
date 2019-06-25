@@ -307,6 +307,11 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	    
 	    maximumCardinalitySearch();
 	    
+	    numberOfComponents = 0;
+	    groupsOfNonExhaustivelyExploredVariables = 0;
+    	nonExhaustivelyExploredVariables.clear();
+    	articulationPoints.clear();
+	    
 	    if (differentSolutions) {
 	    	fillIn();
 	    	maximumCardinalitySearchBasedOnChordalGraph();
@@ -469,11 +474,11 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	}
 	
 	public int getLogarithmOfExploredSolutions() {
-		return groupsOfNonExhaustivelyExploredVariables + ((topLabel-initialLabel+1)-nonExhaustivelyExploredVariables.size());
+		return groupsOfNonExhaustivelyExploredVariables + (getDifferingVariables()-nonExhaustivelyExploredVariables.size());
 	}
 	
 	public int getDifferingVariables() {
-		return (topLabel-initialLabel+1);
+		return differentSolutions?(topLabel-initialLabel+1):0;
 	}
 	
 	public int getNumberOfArticulationPoints() {
