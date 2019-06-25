@@ -13,6 +13,7 @@ import java.util.stream.IntStream;
 
 public interface TwoStatesIntegerSet {
 	public void reset(); // All unexplored
+	public void setAllToExplored();
 	public int getNextUnexplored();
 	public int getRandomUnexplored();
 	public boolean hasMoreUnexplored();

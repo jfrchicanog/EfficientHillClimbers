@@ -23,6 +23,12 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
 		unexplored.addAll(explored);
 		explored.clear();
 	}
+	
+	@Override
+	public void setAllToExplored() {
+		explored.addAll(unexplored);
+		unexplored.clear();
+	}
 
 	@Override
 	public int getNextUnexplored() {
@@ -100,5 +106,7 @@ public class TwoStatesISSetImpl implements TwoStatesIntegerSet {
 	public int getNumberOfUnexploredElements() {
 		return unexplored.size();
 	}
+
+	
 
 }

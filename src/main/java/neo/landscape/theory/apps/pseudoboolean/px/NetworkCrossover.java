@@ -22,6 +22,7 @@ public class NetworkCrossover implements CrossoverInternal {
 	protected TwoStatesIntegerSet bfsSet;
     protected Set<Integer> subfns;
     protected LinkedList<Integer> toExplore;
+    protected TwoStatesIntegerSet toExploreNew;
     
     protected PartitionComponent component;
     protected VariableProcedence varProcedence;
@@ -36,6 +37,7 @@ public class NetworkCrossover implements CrossoverInternal {
     
     private int baseSolution;
     private int sizeOfMask;
+   
 
     public NetworkCrossover(EmbeddedLandscape el) {
 		this.el = el;
@@ -50,13 +52,15 @@ public class NetworkCrossover implements CrossoverInternal {
 		ComponentAndVariableMask componentAndVariableProcedence = new ComponentAndVariableMask(el.getN());
 		component = componentAndVariableProcedence;
 		varProcedence = componentAndVariableProcedence;
-
 	}
 
     public void setSeed(long seed) {
 		rnd = new Random(seed);
 		bfsSet = new TwoStatesISArrayImpl(el.getN(), rnd.nextLong());
+		toExploreNew = new TwoStatesISArrayImpl(el.getN(), rnd.nextLong());
 	}
+    
+
 
 	protected void colorVariable(int v, PBSolution blue, PBSolution red) {
 		if (blue.getBit(v) != red.getBit(v)) {
@@ -88,33 +92,42 @@ public class NetworkCrossover implements CrossoverInternal {
 
     protected PartitionComponent bfs(Integer node, PBSolution blue, PBSolution red) {
 
-		toExplore.clear();		
+		//toExplore.clear();
+		toExploreNew.setAllToExplored();
+		
 		component.clearComponent();
 		
-		toExplore.add(node);
+		//toExplore.add(node);
+		toExploreNew.unexplored(node);
+
 		colorVariable(node, blue, red);
 		
-		while (toExplore.size() > 0 && sizeOfMask < maximumSizeOfMask) {
+		while (toExploreNew.hasMoreUnexplored() && sizeOfMask < maximumSizeOfMask) {
 			// Take one node to explore (randomly)
-			int index = rnd.nextInt(toExplore.size());
-			int var = toExplore.get(index);
-			toExplore.remove(index);
+			int var = toExploreNew.getRandomUnexplored();
+			
+			//int index = getNextInt(toExplore.size()); //rnd.nextInt(toExplore.size());
+			//int var = toExplore.get(index);
+			//toExplore.remove(index);
+			toExploreNew.explored(var);
 			
 			if (bfsSet.isExplored(var)) {
 				continue;
 			}
 
+			bfsSet.explored(var);
+			
 			component.addVarToComponent(var);
 			
 			// Enumerate the adjacent variables
 			for (int adj : el.getInteractions()[var]) {
 				colorVariable(adj, blue, red);
 				if (!bfsSet.isExplored(adj)) {
-					toExplore.add(adj);
+					toExploreNew.unexplored(adj);
+					//toExplore.add(adj);
 				}
 			}
 
-			bfsSet.explored(var);
 			sizeOfMask++;
 		}
 

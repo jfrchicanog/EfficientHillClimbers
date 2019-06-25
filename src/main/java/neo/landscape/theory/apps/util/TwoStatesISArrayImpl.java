@@ -6,15 +6,27 @@ import java.util.Random;
 import java.util.stream.IntStream;
 
 public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
+	
+	private static final int MAX_RANDOM_INTEGERS = 10000;
 
 	protected int[] variable;
 	protected int[] position;
 	protected int next;
 	protected Random rnd;
+	
+    private int [] randomIntegers;
+    private int randomIndex;
 
 	public TwoStatesISArrayImpl(int n, long seed) {
 		this(n);
+		
 		rnd = new Random(seed);
+		randomIntegers = new int [MAX_RANDOM_INTEGERS];
+		for (int i = 0; i < randomIntegers.length; i++) {
+			randomIntegers[i] = rnd.nextInt(n);
+		}
+		randomIndex=0;
+		
 	}
 	
 	public TwoStatesISArrayImpl(int n) {
@@ -27,6 +39,14 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
 		next = 0;
 		rnd = null;
 	}
+	
+    private int getNextInt(int bound) {
+    	int val = randomIntegers[randomIndex++] % bound;
+    	if (randomIndex >= randomIntegers.length) {
+    		randomIndex=0;
+    	}
+    	return val;
+    }
 
 	@Override
 	public void reset() {
@@ -138,13 +158,18 @@ public class TwoStatesISArrayImpl implements TwoStatesIntegerSet {
 		if (rnd == null) {
 			throw new IllegalStateException("No seed set to use random functions");
 		}
-		int var = rnd.nextInt(getNumberOfUnexploredElements());
+		int var = getNextInt(getNumberOfUnexploredElements());
 		return variable[next+var];
 	}
 
 	@Override
 	public int getNumberOfUnexploredElements() {
 		return variable.length-next;
+	}
+
+	@Override
+	public void setAllToExplored() {
+		next = variable.length;
 	}
 
 }
