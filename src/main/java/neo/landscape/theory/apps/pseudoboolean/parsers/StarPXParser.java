@@ -205,9 +205,13 @@ public class StarPXParser implements Process {
 
 		Sample[] past = new Sample[trs.length];
 		Set<Integer> indices;
+		Long lastTime = null; 
 		while (!(indices = findIndicesOfNextSamplesToConsider(trs)).isEmpty()) {
 			past = computeAveragedSample(trs, past, indices);
-			System.out.println(averagedSample);
+			if (lastTime == null || lastTime < averagedSample.minTime) {
+				System.out.println(averagedSample);
+				lastTime = averagedSample.minTime;
+			}
 		}
 
 		System.err.println("Total runs: " + trs.length);
