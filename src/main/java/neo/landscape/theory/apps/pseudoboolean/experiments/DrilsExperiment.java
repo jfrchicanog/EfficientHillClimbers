@@ -8,6 +8,7 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Predicate;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.cli.CommandLine;
@@ -48,6 +49,7 @@ public class DrilsExperiment implements Process {
 	private static final String DEBUG_ARGUMENT = "debug";
     private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
     private static final String TIME_ARGUMENT = "time";
+    private static final String EXPLORED_SOLUTIONS = "expSols";
     private static final String MOVES_FACTOR_ARGUMENT = "mf";
     private static final String RADIUS_ARGUMENT = "r";
     private static final String LON_ARGUMENT = "lon";
@@ -96,6 +98,7 @@ public class DrilsExperiment implements Process {
 	private SingleThreadCPUTimer timer;
 
     private int moves;
+    private int numberOfExploredSolutions=0;
 
     private Options options;
     
@@ -107,6 +110,7 @@ public class DrilsExperiment implements Process {
     private String problem;
     private CrossoverConfigurator crossoverConfigurator;
     private String crossover;
+	private Predicate<?> shouldIStop;
 
     
 	@Override
@@ -142,6 +146,7 @@ public class DrilsExperiment implements Process {
 	    options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
 	    options.addOption(MOVES_FACTOR_ARGUMENT, true, "proportion of variables used for the random walk in the perturbation");
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
+	    options.addOption(EXPLORED_SOLUTIONS, true, "explored solutions limit");
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
 	    options.addOption(LON_ARGUMENT,false, "print the PX Local Optima Network");
         options.addOption(LON_MINIMUM_FITNESS_ARGUMENT,true, "minimum fitness to consider a LON (optional)");
@@ -207,6 +212,23 @@ public class DrilsExperiment implements Process {
 			if (commandLine.hasOption(LON_ARGUMENT)) {
 				initializeLONDataStructures(pbf);
 			}
+			
+			if (!commandLine.hasOption(TIME_ARGUMENT) && !commandLine.hasOption(EXPLORED_SOLUTIONS)) {
+				System.err.println("A stopping condition must be set using "+TIME_ARGUMENT+" or "+EXPLORED_SOLUTIONS);
+				throw new IllegalArgumentException("A stopping condition must be set using "+TIME_ARGUMENT+" or "+EXPLORED_SOLUTIONS);
+			}
+			
+			shouldIStop = (x -> false);
+			if (commandLine.hasOption(TIME_ARGUMENT)) {
+				int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
+				timer.setStopTimeMilliseconds(time * 1000);
+				shouldIStop = shouldIStop.or(x->timer.shouldStop());
+			}
+			
+			if (commandLine.hasOption(EXPLORED_SOLUTIONS)) {
+				final int maxExploredSolutions = Integer.parseInt(commandLine.getOptionValue(EXPLORED_SOLUTIONS));
+				shouldIStop = shouldIStop.or(x->numberOfExploredSolutions >= maxExploredSolutions);
+			}
 
 			int r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
 			double perturbFactor;
@@ -216,7 +238,7 @@ public class DrilsExperiment implements Process {
 				perturbFactor = Double.parseDouble(commandLine.getOptionValue(MOVES_FACTOR_ARGUMENT));
 			}
 
-			int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
+			
 			seed = 0;
 			if (commandLine.hasOption(ALGORITHM_SEED_ARGUMENT)) {
 				seed = Long.parseLong(commandLine.getOptionValue(ALGORITHM_SEED_ARGUMENT));
@@ -240,7 +262,7 @@ public class DrilsExperiment implements Process {
 			RBallEfficientHillClimberForInstanceOf rballfio = (RBallEfficientHillClimberForInstanceOf) 
 					new RBallEfficientHillClimber(rballConfig).initialize(pbf);
 
-			timer.setStopTimeMilliseconds(time * 1000);
+			
 			ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
 
 			try {
@@ -249,7 +271,7 @@ public class DrilsExperiment implements Process {
 
 				int perturbMoves=20;
 
-				while (!timer.shouldStop()) {               
+				while (!shouldIStop.test(null)) {               
 					RBallEfficientHillClimberSnapshot nextSolution = rballfio.initialize(new PBSolution(currentSolution.getSolution()), currentSolution);
 
 					if (perturbFactor < 0) {
@@ -268,7 +290,7 @@ public class DrilsExperiment implements Process {
 
 					RBallEfficientHillClimberSnapshot child = null;
 
-					if (px!= null && !timer.shouldStop()) {
+					if (px!= null && !shouldIStop.test(null)) {
 						child = px.recombine(currentSolution, nextSolution);
 					}
 
@@ -364,6 +386,7 @@ public class DrilsExperiment implements Process {
 
     private void notifyExploredSolution(RBallEfficientHillClimberSnapshot exploredSolution) {
         double quality = exploredSolution.getSolutionQuality();
+        numberOfExploredSolutions++;
         ps.println("Solution quality: " + quality);
         ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
         ps.println("* Moves: "+moves);
@@ -391,7 +414,7 @@ public class DrilsExperiment implements Process {
             do {
                 rball.move();
                 moves++;
-            } while (!timer.shouldStop());
+            } while (!shouldIStop.test(null));
         } catch (NoImprovingMoveException e) {
 
         }
