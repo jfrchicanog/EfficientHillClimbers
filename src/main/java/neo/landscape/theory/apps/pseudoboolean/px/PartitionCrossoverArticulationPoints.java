@@ -264,6 +264,9 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
                     if (v!=root) {
                         markInternalArticulationPoint(v);
                     }
+                    
+                    int sizeOfBiconnectedComponent = 0;
+                    
                     if (!edgeStack.isEmpty()) {
                         deltaBlueRed = 0.0;
                         deltaGreenBlue = 0.0;
@@ -312,12 +315,15 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
                         analyzeArticulationPointFunctions(blue, red, v, component);
    
                         biconnectedComponents.add(component);
+                        sizeOfBiconnectedComponent = component.size();
                     }
                     if (articulationPointsOfBC.isExplored(w)) {
-                        edgesJoiningArticulationPoints++;
-                        if (v == root) {
-                            edgesJoiningArticulationPointWithRoot=true;
-                        }
+                    	if (sizeOfBiconnectedComponent==2) {
+                    		edgesJoiningArticulationPoints++;
+                    		if (v == root) {
+                                edgesJoiningArticulationPointWithRoot=true;
+                            }
+                    	}
                     }
                 }
             }
