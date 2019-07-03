@@ -8,6 +8,7 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Predicate;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.cli.CommandLine;
@@ -40,6 +41,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 	private static final String DEBUG_ARGUMENT = "debug";
     private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
     private static final String TIME_ARGUMENT = "time";
+    private static final String EXPLORED_SOLUTIONS = "expSols";
     private static final String PROBLEM="problem";
     private static final String CROSSOVER="crossover";
     private static final String POPULATION_SIZE="population";
@@ -88,6 +90,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     private String problem;
     private CrossoverConfigurator crossoverConfigurator;
     private String crossover;
+    private Predicate<?> shouldIStop;
     
     private PBSolution [] population;
     private double [] fitness;
@@ -95,6 +98,8 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     private Random rnd;
 	private int worstIndex;
 	private double mutationProbability;
+	
+	private int numberOfExploredSolutions=0;
 
     
 	@Override
@@ -128,6 +133,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 	    Options options = new Options();
 	   
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
+	    options.addOption(EXPLORED_SOLUTIONS, true, "explored solutions limit");
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(POPULATION_SIZE, true, "number of solution in the population");
@@ -187,7 +193,23 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 				}
 			}
 
-			int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
+			if (!commandLine.hasOption(TIME_ARGUMENT) && !commandLine.hasOption(EXPLORED_SOLUTIONS)) {
+				System.err.println("A stopping condition must be set using "+TIME_ARGUMENT+" or "+EXPLORED_SOLUTIONS);
+				throw new IllegalArgumentException("A stopping condition must be set using "+TIME_ARGUMENT+" or "+EXPLORED_SOLUTIONS);
+			}
+			
+			shouldIStop = (x -> false);
+			if (commandLine.hasOption(TIME_ARGUMENT)) {
+				int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
+				timer.setStopTimeMilliseconds(time * 1000);
+				shouldIStop = shouldIStop.or(x->timer.shouldStop());
+			}
+			
+			if (commandLine.hasOption(EXPLORED_SOLUTIONS)) {
+				final int maxExploredSolutions = Integer.parseInt(commandLine.getOptionValue(EXPLORED_SOLUTIONS));
+				shouldIStop = shouldIStop.or(x->numberOfExploredSolutions >= maxExploredSolutions);
+			}
+			
 			seed = 0;
 			if (commandLine.hasOption(ALGORITHM_SEED_ARGUMENT)) {
 				seed = Long.parseLong(commandLine.getOptionValue(ALGORITHM_SEED_ARGUMENT));
@@ -211,8 +233,6 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 			ps.println("Population size: "+popSize);
 			ps.println("Mutation probability: "+mutationProbability);
 
-
-			timer.setStopTimeMilliseconds(time * 1000);
 			ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
 
 			try {
@@ -229,7 +249,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 					notifyExploredSolution(population[i], fitness[i]);
 				}
 				// Main loop of EA
-				while (!timer.shouldStop()) {
+				while (!shouldIStop.test(null)) {
 
 					PBSolution red  = tournamentSelection();
 					PBSolution blue = tournamentSelection();
@@ -364,6 +384,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     }
 
     private void notifyExploredSolution(PBSolution exploredSolution, double quality) {
+    	numberOfExploredSolutions++;
         ps.println("Solution quality: " + quality);
         ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
         if (quality > bestSoFar) {
