@@ -2,16 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo;
 
 import java.util.Properties;
 
-<<<<<<< HEAD
-import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
-
 import org.junit.Before;
-=======
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
->>>>>>> 4a79125... Crossover refactored to adapt them to RBallHillClimber
 
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
