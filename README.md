@@ -29,7 +29,7 @@ java -jar <jarfile name> drils -problem maxsat -crossover none -Pn=40 -Ppseed=<m
 
 where `<m>` is the number of clauses. The previous command can be repeated 100 times to generate the 100 independent runts. Use the `-aseed` option to establish the algorithm random seed.
 
-* For maxcut MAX-SAt instances
+* For maxcut instances
 
 ```
 java -jar <jarfile name> drils -problem maxsat -crossover none -Pinstances=<instance> -time 60 -r 1 -mf 0.05 -lon -improvingLo
