@@ -10,6 +10,8 @@ import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 
 public class PBSolutionDigest {
+	public final static int MIN_SIZE = 160;
+	
     private ByteBuffer temporaryStoreForSolution;
     private IntBuffer intViewOfSolutionBuffer;
     private MessageDigest digest;
@@ -19,7 +21,9 @@ public class PBSolutionDigest {
         try {
             temporaryStoreForSolution = ByteBuffer.allocate(size/8+4);
             intViewOfSolutionBuffer = temporaryStoreForSolution.asIntBuffer();
-            digest = MessageDigest.getInstance("SHA-1");
+            if (size > MIN_SIZE) {
+            	digest = MessageDigest.getInstance("SHA-1");
+            }
             hexBinaryAdapter = new HexBinaryAdapter();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException (e);
@@ -29,7 +33,11 @@ public class PBSolutionDigest {
     public String getHashOfSolution(RBallEfficientHillClimberSnapshot solution) {
         intViewOfSolutionBuffer.clear();
         intViewOfSolutionBuffer.put(solution.getSolution().getData());
-        String hash = hexBinaryAdapter.marshal(digest.digest(temporaryStoreForSolution.array()));
+        byte[] data = temporaryStoreForSolution.array();
+        if (digest != null) {
+        	data = digest.digest(data);
+        }
+		String hash = hexBinaryAdapter.marshal(data);
         return hash.toLowerCase();
     }
 }

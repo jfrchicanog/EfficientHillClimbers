@@ -156,12 +156,14 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 
 		ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
 		targetReached = false;
+		long iteration = 0;
 
 		try {
 		    while (!timer.shouldStop() && !targetReached) {
+		    	iteration++;
 		        // Create a generation-0 solution
 		        ExploredSolution currentSolution = createGenerationZeroSolution(rballfio);
-		        notifyExploredSolution(currentSolution);
+		        notifyExploredSolution(currentSolution, iteration);
 		        if (targetReached) {
 		            continue;
 		        }
@@ -188,13 +190,13 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 		                } else {
 		                    hillClimb(result);
 		                    
-		                    reportLONEdge(popedSolution.solution, result);
-                            reportLONEdge(currentSolution.solution, result);    
+		                    reportLONEdge(popedSolution.solution, result, iteration);
+                            reportLONEdge(currentSolution.solution, result, iteration);    
                             
 		                    currentSolution = ExploredSolution
 		                            .createExploredSolution(result,
 		                                    currentSolution.generation + 1);
-		                    notifyExploredSolution(currentSolution);
+		                    notifyExploredSolution(currentSolution, iteration);
 		                }
 
 		            }
@@ -218,21 +220,21 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 	}
 
     private void reportLONEdge(RBallEfficientHillClimberSnapshot solution,
-            RBallEfficientHillClimberSnapshot result) {
+            RBallEfficientHillClimberSnapshot result, long iteration) {
         if (graph != null) {
             if (localOptimumFitnessFilter==null || 
                     (solution.getSolutionQuality() >= localOptimumFitnessFilter &&
                     result.getSolutionQuality() >= localOptimumFitnessFilter)) {
                 graph.addEdge(solutionDigest.getHashOfSolution(solution), 
-                        solutionDigest.getHashOfSolution(result), "");
+                        solutionDigest.getHashOfSolution(result), "", iteration);
             }
         }
     }
     
-    private void reportLONNode(RBallEfficientHillClimberSnapshot solution) {
+    private void reportLONNode(RBallEfficientHillClimberSnapshot solution, long iteration) {
         if (graph != null) {
             if (localOptimumFitnessFilter==null || solution.getSolutionQuality() >= localOptimumFitnessFilter) {
-                graph.addNode(solutionDigest.getHashOfSolution(solution), solution.getSolutionQuality());
+                graph.addNode(solutionDigest.getHashOfSolution(solution), solution.getSolutionQuality(), iteration);
             }
         }
     }
@@ -290,7 +292,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 		}
 	}
 
-	private void notifyExploredSolution(ExploredSolution exploredSolution) {
+	private void notifyExploredSolution(ExploredSolution exploredSolution, long iteration) {
 		double quality = exploredSolution.solution.getSolutionQuality();
 		ps.println("Generation level:" + exploredSolution.generation);
 		ps.println("Solution quality: " + quality);
@@ -300,7 +302,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 			ps.println("* Best so far solution");
 		}
 		
-		reportLONNode(exploredSolution.solution);
+		reportLONNode(exploredSolution.solution, iteration);
 		
 		targetReached = (targetObjectiveValue != null && bestSoFar >= targetObjectiveValue);
 	}

@@ -5,28 +5,35 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
 import com.google.gson.Gson;
 
 public class Graph {
-    private Map<String, Double> nodes;
-    private Set<Triple<String, String, String>> edges;
+    private Map<String, Pair<Double, Long>> nodes;
+    private Map<Triple<String, String, String>, Long> edges;
     private Gson gson;
     
     public Graph() {
-        nodes = new HashMap<String, Double>();
-        edges = new HashSet<Triple<String,String,String>>();
+        nodes = new HashMap<String, Pair<Double, Long>>();
+        edges = new HashMap<Triple<String,String,String>,Long>();
         gson = new Gson();
     }
     
     
-    public void addNode(String hash, Double value) {
-        nodes.put(hash, value);
+    public void addNode(String hash, Double value, Long timestamp) {
+    	Pair<Double, Long> pair = Pair.of(value,  timestamp);
+    	if (!nodes.containsKey(hash)) {
+    		nodes.put(hash, pair);
+    	}
     }
     
-    public void addEdge(String from, String to, String kind) {
-        edges.add(Triple.of(from, to, kind));
+    public void addEdge(String from, String to, String kind, Long timestamp) {
+    	Triple<String,String,String> triple = Triple.of(from, to, kind);
+    	if (!edges.containsKey(triple)) {
+    		edges.put(triple, timestamp);
+    	}
     }
     
     public String printNodes() {

@@ -98,7 +98,7 @@ public class DrilsExperiment implements Process {
 	private SingleThreadCPUTimer timer;
 
     private int moves;
-    private int numberOfExploredSolutions=0;
+    private long numberOfExploredSolutions=0;
 
     private Options options;
     
@@ -271,7 +271,8 @@ public class DrilsExperiment implements Process {
 
 				int perturbMoves=20;
 
-				while (!shouldIStop.test(null)) {               
+				while (!shouldIStop.test(null)) { 
+					
 					RBallEfficientHillClimberSnapshot nextSolution = rballfio.initialize(new PBSolution(currentSolution.getSolution()), currentSolution);
 
 					if (perturbFactor < 0) {
@@ -427,7 +428,7 @@ public class DrilsExperiment implements Process {
                     (solution.getSolutionQuality() >= localOptimumFitnessFilter &&
                     result.getSolutionQuality() >= localOptimumFitnessFilter)) {
                 graph.addEdge(solutionDigest.getHashOfSolution(solution), 
-                        solutionDigest.getHashOfSolution(result), kind);
+                        solutionDigest.getHashOfSolution(result), kind, numberOfExploredSolutions);
             }
         }
     }
@@ -435,7 +436,7 @@ public class DrilsExperiment implements Process {
     private void reportLONNode(RBallEfficientHillClimberSnapshot solution) {
         if (graph != null) {
             if (localOptimumFitnessFilter==null || solution.getSolutionQuality() >= localOptimumFitnessFilter) {
-                graph.addNode(solutionDigest.getHashOfSolution(solution), solution.getSolutionQuality());
+                graph.addNode(solutionDigest.getHashOfSolution(solution), solution.getSolutionQuality(), numberOfExploredSolutions);
             }
         }
     }
