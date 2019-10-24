@@ -19,6 +19,7 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverForRBallHillClimber;
 import neo.landscape.theory.apps.util.Graph;

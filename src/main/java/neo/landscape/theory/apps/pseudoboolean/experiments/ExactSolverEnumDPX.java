@@ -19,6 +19,7 @@ import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution.BitsOrder;
 import neo.landscape.theory.apps.pseudoboolean.exactsolvers.DPXEnumBasedExactSolver;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.MAXSATConfigurator;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.SingleThreadCPUTimer;

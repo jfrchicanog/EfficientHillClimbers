@@ -7,13 +7,12 @@ import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
-
 public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
 
     public static final String N_ARGUMENT = "n";
     public static final String M_ARGUMENT = "m";
     public static final String MAX_K_ARGUMENT = "maxk";
+    public static final String MIN_K_ARGUMENT = "mink";
     public static final String PSEED = "pseed";
     public static final String MIN_ARGUMENT = "min";
     public static final String HPINIT_ARGUMENT = "hp";
@@ -26,6 +25,7 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
         options.addOption(N_ARGUMENT, true, "number of variables (optional, required if no instance given)");
         options.addOption(M_ARGUMENT, true, "number of clauses (optional, required if no instance given)");
         options.addOption(MAX_K_ARGUMENT, true, "max number of literals per clause (optional, required if no instance given)");
+        options.addOption(MIN_K_ARGUMENT, true, "min number of literals per clause (optional)");
         options.addOption(MIN_ARGUMENT, false, "is minsat (optional)");
         options.addOption(HPINIT_ARGUMENT, false, "use hyperplane initialization (optional)");
         options.addOption(INSTANCE_ARGUMENT, true, "file with the instance to load (optional)");
@@ -36,7 +36,7 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
     public EmbeddedLandscape configureProblem(CommandLine commandLine, PrintStream ps) {
     	Properties properties = new Properties();
 
-    	Stream.of(N_ARGUMENT, M_ARGUMENT, MAX_K_ARGUMENT, PSEED, 
+    	Stream.of(N_ARGUMENT, M_ARGUMENT, MAX_K_ARGUMENT, MIN_K_ARGUMENT, PSEED, 
     			MIN_ARGUMENT, HPINIT_ARGUMENT, INSTANCE_ARGUMENT, 
     			FORCED_UNWEIGHTED_ARGUMENT)
     		.forEach(clave -> moveProperty(commandLine, properties, clave));
@@ -71,6 +71,10 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
             prop.setProperty(MAXSAT.N_STRING, n);
             prop.setProperty(MAXSAT.M_STRING, m);
             prop.setProperty(MAXSAT.MAX_K_STRING, maxk);
+            
+            if (properties.containsKey(MIN_K_ARGUMENT)) {
+            	prop.setProperty(MAXSAT.MIN_K_STRING, properties.getProperty(MIN_K_ARGUMENT));
+            }
             
             ps.println("Problem seed: "+problemSeed);
             ps.println("N: "+n);

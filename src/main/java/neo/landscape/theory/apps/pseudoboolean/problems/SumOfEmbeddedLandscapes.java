@@ -1,5 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.problems;
 
+import java.io.Writer;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -50,6 +51,11 @@ public class SumOfEmbeddedLandscapes extends EmbeddedLandscape {
 		}
 		
 		return nkLandscapes[l].evaluateSubfunction(sf, subSolution);
+	}
+
+	@Override
+	public void writeTo(Writer wr) {
+		throw new UnsupportedOperationException();
 	}
 
 }

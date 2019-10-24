@@ -1,8 +1,11 @@
 package neo.landscape.theory.apps.pseudoboolean.problems;
 
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -20,7 +23,6 @@ import neo.landscape.theory.apps.pseudoboolean.PBSolution;
  */
 
 public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
-
 	protected int m;
 	protected int[][] masks;
 	protected int[][] appearsIn;
@@ -195,6 +197,6 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 		return maximumDegreeOfVIG;
 	}
 	
-	
+	public abstract void writeTo(Writer wr);
 
 }

@@ -21,6 +21,7 @@ import org.apache.commons.cli.ParseException;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.MAXSATConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
