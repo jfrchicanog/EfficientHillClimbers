@@ -12,6 +12,8 @@ import org.apache.commons.cli.ParseException;
 
 public class MAXSATWriter {
 	
+	public static final String CNF_OPTION="cnf";
+	
 	private Options options;
 	private CommandLine commandLine;
 	private EmbeddedLandscapeConfigurator problemConfigurator;
@@ -30,6 +32,7 @@ public class MAXSATWriter {
 	private Options prepareOptions() {
 	    Options options = new Options();
 	    problemConfigurator.prepareOptionsForProblem(options);
+	    options.addOption(CNF_OPTION, "write output in CNF format");
 	    return options;
 	}
 	
@@ -52,10 +55,14 @@ public class MAXSATWriter {
 			commandLine = parseCommandLine(args);
 			PrintStream ps = System.err;
 			
-			EmbeddedLandscape problem = problemConfigurator.configureProblem(commandLine, ps);
+			MAXSAT problem = (MAXSAT) problemConfigurator.configureProblem(commandLine, ps);
 			
 			PrintWriter pw = new PrintWriter(System.out);
-			problem.writeTo(pw);
+			if (commandLine.hasOption(CNF_OPTION)) {
+				problem.writeInCNFFormat(pw);
+			} else {
+				problem.writeTo(pw);
+			}
 			pw.close();
 			
 		} catch (RuntimeException e) {
