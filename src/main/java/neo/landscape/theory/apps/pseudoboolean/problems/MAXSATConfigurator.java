@@ -64,6 +64,8 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
             ps.println("Intance: "+instance);
         } else {
             long problemSeed = Long.parseLong(properties.getProperty(PSEED));
+            maxsat.setSeed(problemSeed);
+            
             String n = properties.getProperty(N_ARGUMENT);
             String m = properties.getProperty(M_ARGUMENT);
             String maxk = properties.getProperty(MAX_K_ARGUMENT);
@@ -98,6 +100,7 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
         }
         
         maxsat.setConfiguration(prop);
+        
 
         return maxsat;
 	}
