@@ -146,9 +146,12 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
     protected long lastRunTime;
     protected boolean articulationPointsAnalysisEnabled=true;
     protected List<Integer> degreesOfArticulationPoints;
-    protected int edgesJoiningArticulationPoints;
+    protected int biconnectedComponentsOfSizeTwo;
+    private double logarithmOfExploredSolutions;
 
     private double totalBlueRedDifference;
+
+	private long factor;
     
     static private class VertexIndex {
         private int vertex;
@@ -220,7 +223,7 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
         component.clearComponent();
         
         boolean edgesJoiningArticulationPointWithRoot = false;
-        edgesJoiningArticulationPoints=0;
+        biconnectedComponentsOfSizeTwo=0;
         parent[root] = -1;
         int rootChildren = 0;
         articulationPointsOfBC.reset();
@@ -319,7 +322,7 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
                     }
                     if (articulationPointsOfBC.isExplored(w)) {
                     	if (sizeOfBiconnectedComponent==2) {
-                    		edgesJoiningArticulationPoints++;
+                    		biconnectedComponentsOfSizeTwo++;
                     		if (v == root) {
                                 edgesJoiningArticulationPointWithRoot=true;
                             }
@@ -335,7 +338,7 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
         }
         
         if (edgesJoiningArticulationPointWithRoot && rootChildren == 1) {
-            edgesJoiningArticulationPoints--;
+            biconnectedComponentsOfSizeTwo--;
         }
         
         if (rootChildren > 0) {
@@ -558,6 +561,8 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
         articulationPointsDecisions.clear();
         articulationPointAnalysisImprovement = false;
         degreesOfArticulationPoints.clear();
+        logarithmOfExploredSolutions=0;
+        factor = 0;
         
         if (debug) {
         	reportDebugInformation("Red solution: "+red+"("+el.evaluate(red)+")");
@@ -593,8 +598,12 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
 		    articulationPointsOfBC.getExplored().forEach(ap->{
 		        allArticulationPoints.add(ap);
 		        degreesOfArticulationPoints.add(degree[ap]);
+		        factor += ((1 << (degree[ap]+1))-2);
 		    });
-		    degreesOfArticulationPoints.add(-edgesJoiningArticulationPoints);
+		    degreesOfArticulationPoints.add(-biconnectedComponentsOfSizeTwo);
+		    factor += 2*((1-biconnectedComponentsOfSizeTwo));
+		    logarithmOfExploredSolutions += Math.log(factor)/Math.log(2.0);
+		    factor=0;
 		    
 		    if (debug) {
 		        Set<Integer> varsInComponent = new HashSet<>();
@@ -623,6 +632,7 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
 		if (ps!= null) {
 			ps.println("* Number of components: "+getNumberOfComponents());
 			ps.println("* Articulation Points: "+getNumberOfArticulationPoints());
+			ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
 			ps.println("* Improvement by articulation points analysis: "+isArticulationPointAnalysisImprovement());
 			if (showDegreeOfArticulationPoints) {
 				ps.println("* Degrees of articulation points: "+degreeOfArticulationPoints());
@@ -778,8 +788,8 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
         articulationPointsAnalysisEnabled = val;
     }
     
-    public int getNumberOfEdgesJoiningArticulationPoints() {
-        return edgesJoiningArticulationPoints;
+    public int getBiconnectedComponentsOfSizeTwo() {
+        return biconnectedComponentsOfSizeTwo;
     }
 
 	public boolean isShowDegreeOfArticulationPoints() {
@@ -798,6 +808,10 @@ public class PartitionCrossoverArticulationPoints implements CrossoverInternal{
 	@Override
 	public VariableProcedence getVarProcedence() {
 		return varProcedence;
+	}
+
+	public double getLogarithmOfExploredSolutions() {
+		return logarithmOfExploredSolutions;
 	}
     
 }
