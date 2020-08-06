@@ -148,11 +148,11 @@ public class MAXSAT extends EmbeddedLandscape implements EmbeddedLandscapeSubfun
         		case "wcnf":
         		    weightedInstance = true;
         		    break;
-        		case "cnf:":
+        		case "cnf":
         		    weightedInstance = false;
         		    break;
         		default:
-        		    throw new IllegalArgumentException("nrecognized format "+parts[1]);
+        		    throw new IllegalArgumentException("Unrecognized format "+parts[1]);
         		}
         		n = Integer.parseInt(parts[2]);
         		m = Integer.parseInt(parts[3]);
