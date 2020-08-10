@@ -42,7 +42,8 @@ import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
-import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
+import neo.landscape.theory.apps.util.Timer;
+import neo.landscape.theory.apps.util.Timers;
 
 public class DrilsExperiment implements Process {
 	
@@ -59,6 +60,7 @@ public class DrilsExperiment implements Process {
     private static final String CROSSOVER="crossover";
     private static final String CROSSOVER_CHAR = "X";
     private static final String PROBLEM_CHAR = "P";
+    private static final String TIMER_ARGUMENT="timer";
     
     private static final String MAXSAT_PROBLEM = "maxsat";
     private static final String NK_PROBLEM = "nk";
@@ -95,7 +97,7 @@ public class DrilsExperiment implements Process {
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
 	private double bestSoFar;
-	private SingleThreadCPUTimer timer;
+	private Timer timer;
 
     private int moves;
     private int numberOfExploredSolutions=0;
@@ -146,6 +148,7 @@ public class DrilsExperiment implements Process {
 	    options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
 	    options.addOption(MOVES_FACTOR_ARGUMENT, true, "proportion of variables used for the random walk in the perturbation");
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
+	    options.addOption(TIMER_ARGUMENT, true, "timer to use ["+Timers.SINGLE_THREAD_CPU+","+Timers.CPU_CLOCK+"], default: "+Timers.getNameOfDefaultTimer());
 	    options.addOption(EXPLORED_SOLUTIONS, true, "explored solutions limit");
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
 	    options.addOption(LON_ARGUMENT,false, "print the PX Local Optima Network");
@@ -176,8 +179,9 @@ public class DrilsExperiment implements Process {
 	public void execute(String[] args) {
 		try {
 			commandLine = parseCommandLine(args);
-
-			timer = new SingleThreadCPUTimer();
+			
+			configureTimer();
+			
 			timer.startTimer();
 
 			initializeStatistics();
@@ -321,6 +325,13 @@ public class DrilsExperiment implements Process {
 		}
 
     }
+
+	protected void configureTimer() {
+		timer = Timers.getDefaultTimer();
+		if (commandLine.hasOption(TIMER_ARGUMENT)) {
+			timer = Timers.getTimer(commandLine.getOptionValue(TIMER_ARGUMENT));
+		}
+	}
 
 	protected void showOptions() {
 		HelpFormatter helpFormatter = new HelpFormatter();

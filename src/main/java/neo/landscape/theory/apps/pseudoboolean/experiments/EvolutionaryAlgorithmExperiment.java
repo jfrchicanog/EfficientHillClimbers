@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +12,6 @@ import java.util.Random;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.cli.CommandLine;
@@ -39,13 +37,15 @@ import neo.landscape.theory.apps.pseudoboolean.px.SinglePointCrossoverConfigurat
 import neo.landscape.theory.apps.pseudoboolean.px.UniformCrossoverConfigurator;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
-import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
+import neo.landscape.theory.apps.util.Timer;
+import neo.landscape.theory.apps.util.Timers;
 
 public class EvolutionaryAlgorithmExperiment implements Process {
 	
 	private static final String DEBUG_ARGUMENT = "debug";
     private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
     private static final String TIME_ARGUMENT = "time";
+    private static final String TIMER_ARGUMENT="timer";
     private static final String EXPLORED_SOLUTIONS = "expSols";
     private static final String PROBLEM="problem";
     private static final String CROSSOVER="crossover";
@@ -93,7 +93,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
 	private double bestSoFar;
-	private SingleThreadCPUTimer timer;
+	private Timer timer;
 
     private Options options;
     
@@ -148,6 +148,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 	    Options options = new Options();
 	   
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
+	    options.addOption(TIMER_ARGUMENT, true, "timer to use ["+Timers.SINGLE_THREAD_CPU+","+Timers.CPU_CLOCK+"], default: "+Timers.getNameOfDefaultTimer());
 	    options.addOption(EXPLORED_SOLUTIONS, true, "explored solutions limit");
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
@@ -180,7 +181,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 		try {
 			commandLine = parseCommandLine(args);
 
-			timer = new SingleThreadCPUTimer();
+			configureTimer();
 			timer.startTimer();
 
 			initializeStatistics();
@@ -299,6 +300,13 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 			showOptions();
 		}
 
+	}
+	
+	protected void configureTimer() {
+		timer = Timers.getDefaultTimer();
+		if (commandLine.hasOption(TIMER_ARGUMENT)) {
+			timer = Timers.getTimer(commandLine.getOptionValue(TIMER_ARGUMENT));
+		}
 	}
 
 	private Selection configureSelection() {

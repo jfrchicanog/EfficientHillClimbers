@@ -5,10 +5,7 @@ import java.util.Random;
 
 import neo.landscape.theory.apps.efficienthc.mo.MultiobjectiveHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveSelector;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.VectorPBMove;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveSelector.KindOfMove;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.ConstrainedVectorMovesSelector.MoveClass;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.ConstrainedVectorMovesSelector.Region;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.HillClimberListener.Reason;
@@ -16,6 +13,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKSubfunctionTranslator;
 import neo.landscape.theory.apps.pseudoboolean.util.SetOfVars;
 import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
+import neo.landscape.theory.apps.util.Timer;
 
 public class MultiObjectiveConstrainedHammingBallHillClimberSnapshot implements
 		MultiobjectiveHillClimberSnapshot<VectorMKLandscape> {
@@ -180,7 +178,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberSnapshot implements
 	    return feasible;
 	}
 	
-	public void hillClimb(SingleThreadCPUTimer timer, HillClimberListener listener) {
+	public void hillClimb(Timer timer, HillClimberListener listener) {
         if (!feasibleSolution()) {
             throw new IllegalArgumentException("The initial solution of the hill climber should be feasible");
         }
@@ -226,7 +224,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberSnapshot implements
         listener.finished((stopReason==null)?Reason.TIME_LIMIT:stopReason, statistics.getTotalMoves());
 	}
 
-	private Reason exploreUnfeasibleRegion(SingleThreadCPUTimer timer, HillClimberListener listener) {
+	private Reason exploreUnfeasibleRegion(Timer timer, HillClimberListener listener) {
 	    VectorPBMove move;
 	    while ((move = movesSelector.selectMove(MoveClass.FEASIBLE_STRONG_IMPROVING_Y))==null &&
 	            (move = movesSelector.selectMove(MoveClass.FEASIBLE_WIMPROVING_Y))==null) {
@@ -268,7 +266,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberSnapshot implements
         }
     }
 
-    private void exploreFeasibleRegion(SingleThreadCPUTimer timer, HillClimberListener listener) {
+    private void exploreFeasibleRegion(Timer timer, HillClimberListener listener) {
         boolean wimproving = true;
         while (!timer.shouldStop() && wimproving) {
             VectorPBMove move = movesSelector.selectMove(MoveClass.FEASIBLE_STRONG_IMPROVING_F);

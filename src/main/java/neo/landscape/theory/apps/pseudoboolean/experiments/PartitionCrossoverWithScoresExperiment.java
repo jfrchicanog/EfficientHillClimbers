@@ -14,6 +14,13 @@ import java.util.Properties;
 import java.util.Stack;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
@@ -26,13 +33,8 @@ import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import neo.landscape.theory.apps.util.Timer;
+import neo.landscape.theory.apps.util.Timers;
 
 public class PartitionCrossoverWithScoresExperiment implements Process {
     
@@ -65,7 +67,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
 	private ByteArrayOutputStream ba;
 	private double bestSoFar;
 	private Map<Integer, Integer> crossoverFailsInGeneration;
-	private SingleThreadCPUTimer timer;
+	private Timer timer;
 	private int maxPlateauMoves;
     private EmbeddedLandscapeConfigurator problemConfigurator;
     protected CommandLine commandLine;
@@ -380,7 +382,7 @@ public class PartitionCrossoverWithScoresExperiment implements Process {
     }
 
     protected void initializeTimer() {
-        timer = new SingleThreadCPUTimer();
+        timer = Timers.getDefaultTimer();
         timer.startTimer();
         if (commandLine.hasOption(TIME_ARGUMENT)) {
             int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));

@@ -19,12 +19,13 @@ import neo.landscape.theory.apps.pseudoboolean.exactsolvers.DPXBasedExactSolver;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.MAXSATConfigurator;
 import neo.landscape.theory.apps.util.Process;
-import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
+import neo.landscape.theory.apps.util.Timer;
+import neo.landscape.theory.apps.util.Timers;
 
 public class ExactSolverDPX implements Process {
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
-	private SingleThreadCPUTimer timer;
+	private Timer timer;
     private CommandLine commandLine;
 
 	
@@ -85,7 +86,7 @@ public class ExactSolverDPX implements Process {
 		}
 		commandLine = parseCommandLine(args);
 		
-		timer = new SingleThreadCPUTimer();
+		timer = Timers.getDefaultTimer();
 		timer.startTimer();
 		
 		initializeOutput();

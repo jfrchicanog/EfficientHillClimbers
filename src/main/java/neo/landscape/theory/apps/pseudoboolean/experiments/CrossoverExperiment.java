@@ -20,8 +20,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.MAXSATConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapeConfigurator;
@@ -34,16 +32,16 @@ import neo.landscape.theory.apps.pseudoboolean.px.NetworkCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.SinglePointCrossoverConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.UniformCrossoverConfigurator;
-import neo.landscape.theory.apps.util.Graph;
-import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
-import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
+import neo.landscape.theory.apps.util.Timer;
+import neo.landscape.theory.apps.util.Timers;
 
 public class CrossoverExperiment implements Process {
 	
 	private static final String DEBUG_ARGUMENT = "debug";
     private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
+    private static final String TIMER_ARGUMENT="timer";
     private static final String TIME_ARGUMENT = "time";
     private static final String EXPLORED_SOLUTIONS = "expSols";
     private static final String HAMMING_DISTANCE_ARGUMENT = "hd";
@@ -82,7 +80,7 @@ public class CrossoverExperiment implements Process {
     private long seed;
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
-	private SingleThreadCPUTimer timer;
+	private Timer timer;
 
     private int numberOfCrossovers=0;
 
@@ -131,6 +129,7 @@ public class CrossoverExperiment implements Process {
 	    
 	    options.addOption(HAMMING_DISTANCE_ARGUMENT, true, "Fraction of variables differing between the parent solutions");
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
+	    options.addOption(TIMER_ARGUMENT, true, "timer to use ["+Timers.SINGLE_THREAD_CPU+","+Timers.CPU_CLOCK+"], default: "+Timers.getNameOfDefaultTimer());
 	    options.addOption(EXPLORED_SOLUTIONS, true, "explored solutions limit");
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
@@ -158,7 +157,7 @@ public class CrossoverExperiment implements Process {
 		try {
 			commandLine = parseCommandLine(args);
 
-			timer = new SingleThreadCPUTimer();
+			configureTimer();
 			timer.startTimer();
 
 			initializeOutput();
@@ -229,6 +228,13 @@ public class CrossoverExperiment implements Process {
 		}
 
     }
+	
+	protected void configureTimer() {
+		timer = Timers.getDefaultTimer();
+		if (commandLine.hasOption(TIMER_ARGUMENT)) {
+			timer = Timers.getTimer(commandLine.getOptionValue(TIMER_ARGUMENT));
+		}
+	}
 
 	protected PBSolution getSecondParent(final int perturbMoves, PBSolution redParent) {
 		PBSolution blueParent = new PBSolution(redParent);

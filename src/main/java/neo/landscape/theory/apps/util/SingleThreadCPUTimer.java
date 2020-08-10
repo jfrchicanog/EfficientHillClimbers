@@ -3,7 +3,7 @@ package neo.landscape.theory.apps.util;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 
-public class SingleThreadCPUTimer {
+public class SingleThreadCPUTimer implements Timer {
     
     private ThreadMXBean threadMXBean;
     private long initTime;
@@ -12,12 +12,13 @@ public class SingleThreadCPUTimer {
     private long stopTime;
     private boolean stopSet=false;
     
-    public SingleThreadCPUTimer() {
+    protected SingleThreadCPUTimer() {
         threadMXBean = ManagementFactory.getThreadMXBean();
         threadID = Thread.currentThread().getId();
     }
     
-    public void startTimer() {
+    @Override
+	public void startTimer() {
         checkThread();
         initTime = threadMXBean.getCurrentThreadCpuTime();
         started=true;
@@ -29,7 +30,8 @@ public class SingleThreadCPUTimer {
         }
     }
     
-    public long elapsedTime() {
+    @Override
+	public long elapsedTime() {
         if (!started) {
             throw new RuntimeException("Timer not started");
         }
@@ -37,27 +39,32 @@ public class SingleThreadCPUTimer {
         return threadMXBean.getCurrentThreadCpuTime()-initTime;
     }
     
-    public void setStopTimeInNanoseconds(long stopNanoseconds) {
+    @Override
+	public void setStopTimeInNanoseconds(long stopNanoseconds) {
         stopTime = initTime + stopNanoseconds;
         stopSet = true;
     }
     
-    public void setStopTimeMilliseconds(long stopMilliseconds) {
+    @Override
+	public void setStopTimeMilliseconds(long stopMilliseconds) {
         setStopTimeInNanoseconds(stopMilliseconds*1000000);
     }
     
-    public boolean shouldStop() {
+    @Override
+	public boolean shouldStop() {
         if (!stopSet) {
             return false;
         }
         return elapsedTime() >= stopTime;
     }
     
-    public long elapsedTimeInMilliseconds() {
+    @Override
+	public long elapsedTimeInMilliseconds() {
         return elapsedTime()/1000000;
     }
 
-    public boolean isStopSet() {
+    @Override
+	public boolean isStopSet() {
         return stopSet;
     }
 

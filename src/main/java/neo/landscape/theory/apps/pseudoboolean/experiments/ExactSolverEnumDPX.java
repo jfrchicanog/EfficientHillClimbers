@@ -21,7 +21,8 @@ import neo.landscape.theory.apps.pseudoboolean.exactsolvers.DPXEnumBasedExactSol
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.MAXSATConfigurator;
 import neo.landscape.theory.apps.util.Process;
-import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
+import neo.landscape.theory.apps.util.Timer;
+import neo.landscape.theory.apps.util.Timers;
 
 public class ExactSolverEnumDPX implements Process {
 	
@@ -31,7 +32,7 @@ public class ExactSolverEnumDPX implements Process {
 	
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
-	private SingleThreadCPUTimer timer;
+	private Timer timer;
     private CommandLine commandLine;
     private int variablesToEnumerate;
     private PBSolution fixedVariables;
@@ -98,7 +99,7 @@ public class ExactSolverEnumDPX implements Process {
 		}
 		commandLine = parseCommandLine(args);
 		
-		timer = new SingleThreadCPUTimer();
+		timer = Timers.getDefaultTimer();
 		timer.startTimer();
 		
 		initializeOutput();

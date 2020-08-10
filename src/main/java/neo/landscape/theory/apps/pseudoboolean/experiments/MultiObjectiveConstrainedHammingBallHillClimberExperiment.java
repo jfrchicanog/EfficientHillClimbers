@@ -9,33 +9,28 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 
-import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveHammingBallHillClimberSnapshot;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveSelector;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveSelector.KindOfMove;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.VectorPBMove;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.HillClimberListener;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.MultiObjectiveConstrainedHammingBallHillClimber;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.MultiObjectiveConstrainedHammingBallHillClimberForInstanceOf;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.MultiObjectiveConstrainedHammingBallHillClimberSnapshot;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.ConstrainedVectorMovesSelector.Region;
-import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.HillClimberListener.Reason;
-import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.ConstrainedMNKLandscape;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscape;
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
-import neo.landscape.theory.apps.util.Process;
-import neo.landscape.theory.apps.util.Seeds;
-import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.ConstrainedVectorMovesSelector.Region;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.HillClimberListener;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.MultiObjectiveConstrainedHammingBallHillClimber;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.MultiObjectiveConstrainedHammingBallHillClimberForInstanceOf;
+import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.constrained.MultiObjectiveConstrainedHammingBallHillClimberSnapshot;
+import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
+import neo.landscape.theory.apps.pseudoboolean.problems.mo.ConstrainedMNKLandscape;
+import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscape;
+import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
+import neo.landscape.theory.apps.util.Process;
+import neo.landscape.theory.apps.util.Seeds;
+import neo.landscape.theory.apps.util.Timer;
+import neo.landscape.theory.apps.util.Timers;
 
 public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implements Process {
 
@@ -54,7 +49,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
     
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
-	private SingleThreadCPUTimer timer;
+	private Timer timer;
 	
 	private Random random;
 
@@ -121,7 +116,7 @@ public class MultiObjectiveConstrainedHammingBallHillClimberExperiment implement
 		
 		CommandLine commandLine = parseCommandLine(args);
 		
-		timer = new SingleThreadCPUTimer();
+		timer = Timers.getDefaultTimer();
 		timer.startTimer();
 		
 		initializeDataHolders();
