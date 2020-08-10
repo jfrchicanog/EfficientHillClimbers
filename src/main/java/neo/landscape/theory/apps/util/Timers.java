@@ -18,8 +18,7 @@ public class Timers {
 	}
 	
 	public static Timer getCpuClockTimer() {
-		// TODO
-		return null;
+		return new CpuClockTimer();
 	}
 	
 	public static Timer getTimer(String name) {
