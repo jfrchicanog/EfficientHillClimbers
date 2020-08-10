@@ -5,10 +5,15 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.cli.CommandLine;
@@ -46,6 +51,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     private static final String CROSSOVER="crossover";
     private static final String POPULATION_SIZE="population";
     private static final String MUTATION_PROB = "mutationProb";
+    private static final String SELECTION = "selection";
     private static final String ALPHA="alpha";
     private static final String CROSSOVER_CHAR = "X";
     private static final String PROBLEM_CHAR = "P";
@@ -59,6 +65,12 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     private static final String NX="nx";
     private static final String UX="ux";
     private static final String SPX="spx";
+    
+    private static final String BINARY_TOURNAMENT = "tournament";
+    private static final String ROULETTE_WHEEL = "roulette";
+    private static final String RANK_SELECTION = "rank";
+    
+    private enum Selection {BINARY_TOURNAMENT, ROULETTE_WHEEL, RANK_SELECTION};
    
     private final Map<String, EmbeddedLandscapeConfigurator> configurators = new HashMap<>();
     {
@@ -94,10 +106,13 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     
     private PBSolution [] population;
     private double [] fitness;
+    private List<Integer> individualIndices;
+    private int [] rank;
     
     private Random rnd;
 	private int worstIndex;
 	private double mutationProbability;
+	private Selection selectionOperator;
 	
 	private int numberOfExploredSolutions=0;
 
@@ -138,6 +153,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(POPULATION_SIZE, true, "number of solution in the population");
         options.addOption(MUTATION_PROB, true, "bit flip mutation probability (optional)");
+        options.addOption(SELECTION, true, "selection operator: "+BINARY_TOURNAMENT+", "+ROULETTE_WHEEL+", "+RANK_SELECTION);
         options.addOption(ALPHA, true, "alpha/N is the mutation probability, except if it is stablished by " +MUTATION_PROB+ " (optional, default=1)");
         options.addOption(PROBLEM, true, "problem to be solved: "+configurators.keySet());
         options.addOption(CROSSOVER, true, "crossover operator to use: "+crossoverConf.keySet());
@@ -177,6 +193,8 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 					commandLine.getOptionProperties(PROBLEM_CHAR), ps);
 
 			boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
+			
+			selectionOperator = configureSelection();
 
 			CrossoverInternal px = getCrossoverConfigurator().configureCrossover(
 					commandLine.getOptionProperties(CROSSOVER_CHAR), pbf, ps);
@@ -229,6 +247,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 			fitness = new double [popSize];
 
 			ps.println("Seed: " + seed);
+			ps.println("Selection: "+selectionOperator);
 			ps.println("Crossover: " + crossover);
 			ps.println("Population size: "+popSize);
 			ps.println("Mutation probability: "+mutationProbability);
@@ -250,9 +269,9 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 				}
 				// Main loop of EA
 				while (!shouldIStop.test(null)) {
-
-					PBSolution red  = tournamentSelection();
-					PBSolution blue = tournamentSelection();
+					PBSolution [] parents  = selection(2);
+					PBSolution red = parents[0];
+					PBSolution blue = parents[1];
 
 					PBSolution child = px.recombine(blue, red);
 
@@ -280,6 +299,29 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 			showOptions();
 		}
 
+	}
+
+	private Selection configureSelection() {
+		Selection result = null;
+		if (commandLine.hasOption(SELECTION)) {
+			String selectionString = commandLine.getOptionValue(SELECTION);
+			switch (selectionString) {
+			case BINARY_TOURNAMENT:
+				result = Selection.BINARY_TOURNAMENT;
+				break;
+			case ROULETTE_WHEEL:
+				result = Selection.ROULETTE_WHEEL;
+				break;
+			case RANK_SELECTION:
+				result = Selection.RANK_SELECTION;
+				break;
+			default:
+				throw new IllegalArgumentException("Unrecognized selection operator: "+selectionString);
+			}
+		} else {
+			throw new IllegalArgumentException("No selection operator configured");
+		}
+		return result;
 	}
 
 	protected void computeMutationProbability(int n) {
@@ -320,16 +362,105 @@ public class EvolutionaryAlgorithmExperiment implements Process {
 			}
 		}
 	}
-
-	private PBSolution tournamentSelection() {
-		int index1 = rnd.nextInt(population.length);
-		int index2 = rnd.nextInt(population.length);
-		
-		if (fitness[index1] > fitness[index2]) {
-			return population[index1];
-		} else {
-			return population[index2];
+	
+	private PBSolution [] selection(int individuals) {
+		switch (selectionOperator) {
+		case ROULETTE_WHEEL:
+			return rouletteWheelSelection(individuals);
+		case BINARY_TOURNAMENT:
+			return tournamentSelection(individuals);
+		case RANK_SELECTION:
+			return rankSelection(individuals);
 		}
+		return null;
+	}
+
+	private PBSolution [] tournamentSelection(int individuals) {
+		PBSolution [] result = new PBSolution[individuals];
+		
+		for (int i =0; i < individuals; i++) {		
+			int index1 = rnd.nextInt(population.length);
+			int index2 = rnd.nextInt(population.length);
+
+			if (fitness[index1] > fitness[index2]) {
+				result[i] = population[index1];
+			} else {
+				result[i] = population[index2];
+			}
+		}
+		
+		return result;
+	}
+	
+	private PBSolution [] rouletteWheelSelection(int individuals) {
+		PBSolution [] result = new PBSolution[individuals];
+		
+		double sumFitness =0.0;
+		int i;
+		for (i=0; i < population.length; i++) {
+			sumFitness += fitness[i];
+		}
+		
+		for (int j = 0; j < individuals; j++) {
+			double val = rnd.nextDouble()*sumFitness;
+			double auxFitness = fitness[0];
+			i=0;
+			while (val >= auxFitness) {
+				auxFitness += fitness[++i];
+			}
+			result[j] = population[i];
+		}
+		
+		return result;
+	}
+	
+	private PBSolution [] rankSelection(int individuals) {
+		PBSolution [] result = new PBSolution[individuals];
+		
+		List<Integer> indices = getListOfIndividualIndices();
+		int [] rank = getRankArray();
+		
+		indices.sort((i1,i2)->{return Double.compare(fitness[i1], fitness[i2]);});
+		int maxRank=1;
+		rank[indices.get(0)]=maxRank;
+		double sumRank = maxRank;
+		double previousFitness = fitness[indices.get(0)];
+		for (int i=1; i < population.length; i++) {
+			double currentFitness = fitness[indices.get(i)];
+			if (currentFitness != previousFitness) {
+				maxRank++;
+			}
+			rank[indices.get(i)]=maxRank;
+			sumRank += maxRank;
+			previousFitness = currentFitness;
+		}
+		
+		for (int j=0; j < individuals; j++) {
+			double val = rnd.nextDouble()*sumRank;
+			int auxRank = rank[0];
+			int i=0;
+			while (val >= auxRank) {
+				auxRank += rank[++i];
+			}
+			result[j] = population[i];
+		}
+		return result;
+	}
+	
+	private List<Integer> getListOfIndividualIndices() {
+		if (individualIndices==null) {
+			individualIndices = IntStream.range(0, population.length)
+					.boxed()
+					.collect(Collectors.toList());
+		}
+		return individualIndices;
+	}
+	
+	private int [] getRankArray() {
+		if (rank == null) {
+			rank=new int [population.length];
+		}
+		return rank;
 	}
 
 	protected void showOptions() {
