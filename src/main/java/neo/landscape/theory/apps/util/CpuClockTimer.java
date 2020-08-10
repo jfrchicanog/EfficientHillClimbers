@@ -26,7 +26,7 @@ public class CpuClockTimer implements Timer {
     
     @Override
 	public void setStopTimeInNanoseconds(long stopNanoseconds) {
-        stopTime = initTime + stopNanoseconds;
+        stopTime = stopNanoseconds;
         stopSet = true;
     }
     
@@ -40,7 +40,8 @@ public class CpuClockTimer implements Timer {
         if (!stopSet) {
             return false;
         }
-        return elapsedTime() >= stopTime;
+        long elapsedTime = elapsedTime();
+		return elapsedTime >= stopTime;
     }
     
     @Override

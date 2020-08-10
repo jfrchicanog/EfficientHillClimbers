@@ -41,7 +41,7 @@ public class SingleThreadCPUTimer implements Timer {
     
     @Override
 	public void setStopTimeInNanoseconds(long stopNanoseconds) {
-        stopTime = initTime + stopNanoseconds;
+        stopTime = stopNanoseconds;
         stopSet = true;
     }
     
