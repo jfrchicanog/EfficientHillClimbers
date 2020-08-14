@@ -12,6 +12,7 @@ import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.MapBasedUndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
@@ -73,7 +74,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		for (int i=0; i < verticesWithNMarks.length; i++) {
 			verticesWithNMarks[i] = new HashSet<>();
 		}
-		chordalGraph = new UndirectedGraph();
+		chordalGraph = new MapBasedUndirectedGraph();
 		fFillin = new int[n];
 		indexFillin = new int [n];
 		mSets = new Set[n];

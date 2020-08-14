@@ -74,7 +74,7 @@ public class TriangularizationAlgorithm {
 	}
 	
 	public void fillIn() {
-		chordalGraph = new UndirectedGraph();
+		chordalGraph = new MapBasedUndirectedGraph();
 		int n = graph.numberOfVertices();
 		int [] f = new int[n];
 		int [] index = new int [n];
