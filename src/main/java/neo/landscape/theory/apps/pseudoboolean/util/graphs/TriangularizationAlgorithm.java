@@ -19,15 +19,21 @@ public class TriangularizationAlgorithm {
 	private UndirectedGraph chordalGraph;
 	// Clique Tree
 	private List<VariableClique> cliques;
+	private UndirectedGraphFactory ugFactory;
 	
 	
 	
-	public TriangularizationAlgorithm(GraphV2 graph) {
+	public TriangularizationAlgorithm(GraphV2 graph, UndirectedGraphFactory ugFactory) {
 		this.graph = graph;
 		int n = graph.numberOfVertices();
 		alpha = new int [n];
 		topLabel = n-1;
 		alphaInverted = new int [topLabel+1];
+		this.ugFactory=ugFactory;
+	}
+	
+	public TriangularizationAlgorithm(GraphV2 graph) {
+		this(graph, MapBasedUndirectedGraph.FACTORY);
 	}
 	
 	public void maximumCardinalitySearch() {
@@ -74,12 +80,13 @@ public class TriangularizationAlgorithm {
 	}
 	
 	public void fillIn() {
-		chordalGraph = new MapBasedUndirectedGraph();
 		int n = graph.numberOfVertices();
+		chordalGraph = ugFactory.createGraph(graph.numberOfVertices());
 		int [] f = new int[n];
 		int [] index = new int [n];
 		for (int i=initialLabel; i <= topLabel; i++) {
 			int w = alphaInverted[i];
+			chordalGraph.addNodeToGraph(w);
 			f[w] = w;
 			index[w] = i;
 			Iterator<Integer> it = graph.adjacentVertices(w);

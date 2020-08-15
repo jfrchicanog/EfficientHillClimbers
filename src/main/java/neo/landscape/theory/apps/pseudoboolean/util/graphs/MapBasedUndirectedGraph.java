@@ -6,6 +6,14 @@ import java.util.List;
 import java.util.Map;
 
 public class MapBasedUndirectedGraph implements UndirectedGraph {
+	
+	public static final UndirectedGraphFactory FACTORY = new UndirectedGraphFactory() {
+		@Override
+		public UndirectedGraph createGraph(int maxNodes) {
+			return new MapBasedUndirectedGraph();
+		}
+	}; 
+	
 	private Map<Integer, List<Integer>> adjacencyMatrix;
 
 	public MapBasedUndirectedGraph() {
