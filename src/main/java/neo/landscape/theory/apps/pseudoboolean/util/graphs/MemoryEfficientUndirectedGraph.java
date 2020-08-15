@@ -93,16 +93,26 @@ public class MemoryEfficientUndirectedGraph implements UndirectedGraph {
 
 	private void ensureCapacity() {
 		if (numberOfNodes >= nodes.length) {
-			nodes = Arrays.copyOf(nodes, nodes.length+(nodes.length>>1));
-			adjacencyListIndex = Arrays.copyOf(adjacencyListIndex, adjacencyListIndex.length+(adjacencyListIndex.length>>1));
+			nodes = expandArray(nodes);
+			adjacencyListIndex = expandArray(adjacencyListIndex);
 		}
 		ensureCapacityForEdgeEntries();
 	}
 
 	private void ensureCapacityForEdgeEntries() {
 		if (numberOfEdgeEntries >= edgeEntries.length) {
-			edgeEntries = Arrays.copyOf(edgeEntries, edgeEntries.length+(edgeEntries.length >> 1));
+			edgeEntries = expandArray(edgeEntries);
 		}
+	}
+	
+	private int [] expandArray(int [] array) {
+		int newSize;
+		if (array.length <= 1) {
+			newSize=2;
+		} else {
+			newSize = array.length+(array.length >> 1);
+		}
+		return Arrays.copyOf(array, newSize);
 	}
 	
 	@Override
