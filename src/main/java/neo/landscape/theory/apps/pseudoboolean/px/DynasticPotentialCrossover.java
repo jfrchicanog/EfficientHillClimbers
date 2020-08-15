@@ -7,12 +7,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
-import neo.landscape.theory.apps.pseudoboolean.util.graphs.MapBasedUndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.MemoryEfficientUndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraphFactory;
@@ -21,6 +21,26 @@ import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class DynasticPotentialCrossover implements CrossoverInternal {
+	
+	private static class IndexAssigner implements Function<Integer,Integer> {
+		private int index=0;
+		@Override
+		public Integer apply(Integer arraySize) {
+			int thisIndex = index;
+			index += arraySize;
+			return thisIndex;
+		}
+		public int getIndex() {
+			return index;
+		}
+		
+		public void clearIndex() {
+			index=0;
+		}
+	}
+	
+	private final IndexAssigner indexAssigner = new IndexAssigner();
+	
 	private static final int DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE = 28;
 	protected static final int VARIABLE_LIMIT = 1<<29;
 	protected EmbeddedLandscape el;
@@ -39,6 +59,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private UndirectedGraphFactory graphFactory = MemoryEfficientUndirectedGraph.FACTORY;
 	// Clique Tree
 	private List<VariableClique> cliques;
+	private double [] summaryValue;
+	private int [] variableValue;
 	// Subfunctions
 	private List<Integer> [] subFunctionsPartition;
 	private TwoStatesIntegerSet subfunctions;
@@ -288,17 +310,27 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		}
 	}
 	
+	private void ensureSizeOfCliqueArrays(int size) {
+		if (summaryValue == null || summaryValue.length < size) {
+			summaryValue = new double [size];
+			variableValue = new int [size];
+		}
+	}
+	
 	private void applyDynamicProgramming() {
+		indexAssigner.clearIndex();
 		for (int i=cliques.size()-1; i>=0; i--) {
-			VariableClique clique = cliques.get(i);
-			clique.prepareStructuresForComputation(nonExhaustivelyExploredVariables, marks);
-			clique.applyDynamicProgrammingToClique(red, el, subFunctionsPartition);
+			cliques.get(i).prepareStructuresForComputation(nonExhaustivelyExploredVariables, marks, indexAssigner);
+		}
+		ensureSizeOfCliqueArrays(indexAssigner.getIndex());
+		for (int i=cliques.size()-1; i>=0; i--) {
+			cliques.get(i).applyDynamicProgrammingToClique(red, el, subFunctionsPartition, summaryValue, variableValue);
 		}
 	}
 
 	private void reconstructOptimalChild(PBSolution child) {
 		for (VariableClique clique: cliques) {
-			clique.reconstructSolutionInClique(child, red, varProcedence);
+			clique.reconstructSolutionInClique(child, red, varProcedence, variableValue);
 		}
 	}
 

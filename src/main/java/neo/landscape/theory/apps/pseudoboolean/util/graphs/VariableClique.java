@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
@@ -13,8 +14,8 @@ public class VariableClique {
 	
 	private static final int DYNP_ITERATION_LIMIT = 29;
 	private int variablesOfSeparator;
-	private double [] summaryValue;
-	private int [] variableValue;
+	private int arraySize;
+	private int arrayIndex=0;
 	
 	private int variableSeparatorLimit;
 	private int variableResidueLimit;
@@ -49,7 +50,7 @@ public class VariableClique {
 		return id;
 	}
 	
-	public void prepareStructuresForComputation(Set<Integer> nonExhaustivelyExplored, int [] marks) {
+	public void prepareStructuresForComputation(Set<Integer> nonExhaustivelyExplored, int [] marks, Function<Integer,Integer> indexAssignment) {
 		List<Integer> separator = variables.subList(0, variablesOfSeparator);
 		variableSeparatorLimit = variableLimitFromList(nonExhaustivelyExplored, separator);
 		
@@ -60,13 +61,12 @@ public class VariableClique {
 			throw new RuntimeException("I cannot reduce this clique because it is too large (Reduce the exhaustive exploration)");
 		}
 		
-		int arraySize = 1<<variableSeparatorLimit;
+		arraySize = 1<<variableSeparatorLimit;
 		if (variableSeparatorLimit < variablesOfSeparator) {
 			arraySize <<= 1;
 		}
 		
-		summaryValue = new double [arraySize];
-		variableValue = new int [arraySize];
+		arrayIndex = indexAssignment.apply(arraySize);
 		
 		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
 		sameGroupsOfNonExploredVariables = (variableResidueLimit < numVariablesOfResidue) &&
@@ -83,14 +83,6 @@ public class VariableClique {
 
 	public int getVariablesOfSeparator() {
 		return variablesOfSeparator;
-	}
-
-	public double[] getSummaryValue() {
-		return summaryValue;
-	}
-
-	public int[] getVariableValue() {
-		return variableValue;
 	}
 	
 	public Iterable<VariableClique> getChildren() {
@@ -115,11 +107,11 @@ public class VariableClique {
 		return separatorValue;
 	}
 
-	public double evaluateSolution(EmbeddedLandscape el, List<Integer>[] subFunctionsPartition, PBSolution solution, PBSolution red) {
+	public double evaluateSolution(EmbeddedLandscape el, List<Integer>[] subFunctionsPartition, PBSolution solution, PBSolution red, double [] summaryValue) {
 		double value = 0;
 		for (VariableClique child: children) {
 			int separatorValue = child.getSeparatorValueFromSolution(solution, red);
-			value += child.summaryValue[separatorValue];
+			value += summaryValue[child.arrayIndex + separatorValue];
 		}
 		for (int i = variablesOfSeparator; i < variables.size(); i++) {
 			int residueVariable = variables.get(i);
@@ -134,10 +126,10 @@ public class VariableClique {
 		variablesOfSeparator = variables.size();
 	}
 
-	public void applyDynamicProgrammingToClique(PBSolution red, EmbeddedLandscape embeddedLandscape, List<Integer>[] subFunctionPartitions) {
+	public void applyDynamicProgrammingToClique(PBSolution red, EmbeddedLandscape embeddedLandscape, List<Integer>[] subFunctionPartitions, double[] summaryValue, int[] variableValue) {
 		PBSolution solution = new PBSolution(red);
 		
-		int separatorValueLimit = summaryValue.length;
+		int separatorValueLimit = arraySize;
 		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
 		int residueValueLimit = 1 << variableResidueLimit;
 
@@ -168,7 +160,7 @@ public class VariableClique {
 				}
 			}
 			
-			summaryValue[separatorValue]=Double.NEGATIVE_INFINITY;
+			summaryValue[arrayIndex+separatorValue]=Double.NEGATIVE_INFINITY;
 			
 			// Iterate over the variables in the residue
 			for (int residueValue=0; residueValue < residueValueLimit; residueValue++) {
@@ -198,19 +190,19 @@ public class VariableClique {
 				}
 				
 				// We have the solution here and we have to evaluate it
-				double value = evaluateSolution(embeddedLandscape, subFunctionPartitions, solution, red);
-				if (value > summaryValue[separatorValue]) {
-					summaryValue[separatorValue] = value;
-					variableValue[separatorValue] = residueValue;
+				double value = evaluateSolution(embeddedLandscape, subFunctionPartitions, solution, red, summaryValue);
+				if (value > summaryValue[arrayIndex+separatorValue]) {
+					summaryValue[arrayIndex+separatorValue] = value;
+					variableValue[arrayIndex + separatorValue] = residueValue;
 				}
 			}
 		}
 	}
 
-	public void reconstructSolutionInClique(PBSolution child, PBSolution red, VariableProcedence variableProcedence) {
+	public void reconstructSolutionInClique(PBSolution child, PBSolution red, VariableProcedence variableProcedence, int [] variableValue) {
 		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
 		int separatorValue = getSeparatorValueFromSolution(child, red);
-		int residueVariables = variableValue[separatorValue];
+		int residueVariables = variableValue[arrayIndex+separatorValue];
 		
 		for (int bit=0; bit < variableResidueLimit; bit++) {
 			Integer variable = variables.get(variablesOfSeparator+bit);
