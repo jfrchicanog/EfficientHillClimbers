@@ -70,7 +70,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
     private int numberOfComponents;
 	private int [] fFillin;
 	private int [] indexFillin;
-	private Set<Integer> [] mSets;
+	private List<Integer> [] mSets;
 	private VariableClique [] cliqueOfVariable;
 	private int [] last;
 	
@@ -102,8 +102,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		chordalGraph = graphFactory.createGraph(n);
 		fFillin = new int[n];
 		indexFillin = new int [n];
-		mSets = new Set[n];
-		for (int i=0; i <n; i++) mSets[i] = new HashSet<>();
+		mSets = new List[n];
+		for (int i=0; i <n; i++) mSets[i] = new ArrayList<>();
 		cliques = new ArrayList<>();
 		cliqueOfVariable = new VariableClique [n];
 		last = new int[n];
@@ -265,7 +265,6 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		int n = el.getN();
 		cliques.clear();
 		for (int i=0; i <n; i++) {
-			mSets[i].clear();
 			marks[i]=0;
 			last[i] = -1;
 		}
@@ -308,6 +307,12 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 			previousMark = marks[x];
 			cliqueOfVariable[x] = currentClique;
 		}
+		for (int i=topLabel; i>=initialLabel; i--) {
+			// Cleaning memory, for the GC to work well
+			int x = alphaInverted[i];
+			cliqueOfVariable[x]=null;
+			mSets[x].clear();
+		}
 	}
 	
 	private void ensureSizeOfCliqueArrays(int size) {
@@ -336,12 +341,14 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 
 	public PBSolution recombineInternal(PBSolution blue, PBSolution red) {
 	    long initTime = System.nanoTime();
+	    System.out.println("DPX starts: "+0);
 	    this.red = red;
 	    this.blue = blue;
 	    
 	    PBSolution child = new PBSolution(red); //child, copy of red
 	    
 	    maximumCardinalitySearch();
+	    System.out.println("Maximum cardinality search finished at: "+(System.nanoTime()-initTime));
 	    
 	    numberOfComponents = 0;
 	    groupsOfNonExhaustivelyExploredVariables = 0;
@@ -350,20 +357,27 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	    
 	    if (differentSolutions) {
 	    	fillIn();
+	    	System.out.println("Fill in finished at: "+(System.nanoTime()-initTime));
 	    	maximumCardinalitySearchBasedOnChordalGraph();
+	    	System.out.println("New MCS finished at: "+(System.nanoTime()-initTime));
 	    	computeSubfunctinsPartition();
+	    	System.out.println("Subfunctions organization finished at: "+(System.nanoTime()-initTime));
 		    cliqueTree();
+		    System.out.println("Clique tree computation finished at: "+(System.nanoTime()-initTime));
 		    cliqueTreeAnalysis();
+		    System.out.println("Clique tree analysis finished at: "+(System.nanoTime()-initTime));
 		    if (debug && ps != null) {
 		    	ps.println("Initial label: "+initialLabel);
 		    	ps.println("Number of components: "+numberOfComponents);
 		    	ps.println(getCliqueTree());
 		    }
 		    applyDynamicProgramming();
+		    System.out.println("Dynamic programming finished at: "+(System.nanoTime()-initTime));
 		    reconstructOptimalChild(child);
 	    }
 
 		lastRuntime = System.nanoTime() - initTime;
+		System.out.println("DPX finishes at: "+lastRuntime);
 		
 		ps.println("* Number of components: "+getNumberOfComponents());
 		int logarithmOfExploredSolutions = getLogarithmOfExploredSolutions();
