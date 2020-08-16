@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -17,29 +16,11 @@ import neo.landscape.theory.apps.pseudoboolean.util.graphs.MemoryEfficientUndire
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraphFactory;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableCliqueImplementation;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class DynasticPotentialCrossover implements CrossoverInternal {
-	
-	private static class IndexAssigner implements Function<Integer,Integer> {
-		private int index=0;
-		@Override
-		public Integer apply(Integer arraySize) {
-			int thisIndex = index;
-			index += arraySize;
-			return thisIndex;
-		}
-		public int getIndex() {
-			return index;
-		}
-		
-		public void clearIndex() {
-			index=0;
-		}
-	}
-	
-	private final IndexAssigner indexAssigner = new IndexAssigner();
 	
 	private static final int DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE = 28;
 	protected static final int VARIABLE_LIMIT = 1<<29;
@@ -57,12 +38,11 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	// Chordal graph
 	private UndirectedGraph chordalGraph;
 	private UndirectedGraphFactory graphFactory = MemoryEfficientUndirectedGraph.FACTORY;
-	// Clique Tree
-	private List<VariableClique> cliques;
-	private double [] summaryValue;
-	private int [] variableValue;
+	// Clique tree 
+	private CliqueManagementFactory cmFactory = CliqueManagementBasicImplementation.FACTORY;
+	private CliqueManagement cliqueManagement;
 	// Subfunctions
-	private List<Integer> [] subFunctionsPartition;
+	List<Integer> [] subFunctionsPartition;
 	private TwoStatesIntegerSet subfunctions;
 	
     protected long lastRuntime;
@@ -71,14 +51,14 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private int [] fFillin;
 	private int [] indexFillin;
 	private List<Integer> [] mSets;
-	private VariableClique [] cliqueOfVariable;
+	private int [] cliqueOfVariable;
 	private int [] last;
 	
 	private Set<Integer> articulationPoints;
-	private Set<Integer> nonExhaustivelyExploredVariables;
+	Set<Integer> nonExhaustivelyExploredVariables;
 	private int groupsOfNonExhaustivelyExploredVariables;
 	
-	private PBSolution red;
+	PBSolution red;
 	private PBSolution blue;
 	
 	protected VariableProcedence varProcedence;
@@ -86,7 +66,6 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	
 	protected PrintStream ps;
 	protected boolean debug;
-	
 	public DynasticPotentialCrossover(EmbeddedLandscape el) {
 		int n = el.getN();
 		int maxDegree = el.getMaximumDegreeOfVIG();
@@ -104,8 +83,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		indexFillin = new int [n];
 		mSets = new List[n];
 		for (int i=0; i <n; i++) mSets[i] = new ArrayList<>();
-		cliques = new ArrayList<>();
-		cliqueOfVariable = new VariableClique [n];
+		cliqueOfVariable = new int [n];
+		cliqueManagement = cmFactory.createCliqueManagement();
 		last = new int[n];
 		subFunctionsPartition = new List[n];
 		for (int i=0; i < n; i++) {
@@ -126,7 +105,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		component = componentAndVariableProcedence;
 		varProcedence = componentAndVariableProcedence;
 	}
-	
+
 	private void maximumCardinalitySearch() {
 		int n = el.getN();
 		
@@ -263,35 +242,31 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		articulationPoints.clear();
 		numberOfComponents=1;
 		int n = el.getN();
-		cliques.clear();
-		for (int i=0; i <n; i++) {
-			marks[i]=0;
-			last[i] = -1;
+		cliqueManagement.clearCliqueTree();
+		for (int i=topLabel; i>=initialLabel; i--) {
+			int x = alphaInverted[i];
+			marks[x]=0;
+			last[x] = -1;
 		}
 		
 		int previousMark = -1;
-		int j=0;
 		
-		VariableClique currentClique=new VariableClique(j);
-		cliques.add(currentClique);
+		VariableClique currentClique=cliqueManagement.addNewVariableClique();
 		
 		for (int i=topLabel; i>=initialLabel; i--) {
 			int x = alphaInverted[i];
 			if (marks[x] <= previousMark) {
-				j++;
-				currentClique=new VariableClique(j);
-				cliques.add(currentClique);
-				
-				currentClique.getVariables().addAll(mSets[x]);
+				currentClique=cliqueManagement.addNewVariableClique();
+				currentClique.addAllVariables(mSets[x]);
 				currentClique.markSeparator();
-				currentClique.getVariables().add(x);
+				currentClique.addVariable(x);
 				
 				if (currentClique.getVariablesOfSeparator() == 1) {
 					articulationPoints.add(currentClique.getVariables().get(0));
 				}
 				
 				if (last[x] >= 0) {
-					currentClique.setParent(cliqueOfVariable[last[x]]);
+					cliqueManagement.setVariableCliqueParent(currentClique.getId(), cliqueOfVariable[last[x]]);
 				} else {
 					numberOfComponents++;
 				}
@@ -305,37 +280,12 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 				last[y] = x;
 			}
 			previousMark = marks[x];
-			cliqueOfVariable[x] = currentClique;
+			cliqueOfVariable[x] = currentClique.getId();
 		}
 		for (int i=topLabel; i>=initialLabel; i--) {
 			// Cleaning memory, for the GC to work well
 			int x = alphaInverted[i];
-			cliqueOfVariable[x]=null;
 			mSets[x].clear();
-		}
-	}
-	
-	private void ensureSizeOfCliqueArrays(int size) {
-		if (summaryValue == null || summaryValue.length < size) {
-			summaryValue = new double [size];
-			variableValue = new int [size];
-		}
-	}
-	
-	private void applyDynamicProgramming() {
-		indexAssigner.clearIndex();
-		for (int i=cliques.size()-1; i>=0; i--) {
-			cliques.get(i).prepareStructuresForComputation(nonExhaustivelyExploredVariables, marks, indexAssigner);
-		}
-		ensureSizeOfCliqueArrays(indexAssigner.getIndex());
-		for (int i=cliques.size()-1; i>=0; i--) {
-			cliques.get(i).applyDynamicProgrammingToClique(red, el, subFunctionsPartition, summaryValue, variableValue);
-		}
-	}
-
-	private void reconstructOptimalChild(PBSolution child) {
-		for (VariableClique clique: cliques) {
-			clique.reconstructSolutionInClique(child, red, varProcedence, variableValue);
 		}
 	}
 
@@ -371,9 +321,9 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		    	ps.println("Number of components: "+numberOfComponents);
 		    	ps.println(getCliqueTree());
 		    }
-		    applyDynamicProgramming();
+		    cliqueManagement.applyDynamicProgramming(nonExhaustivelyExploredVariables, marks, red, el, subFunctionsPartition);
 		    System.out.println("Dynamic programming finished at: "+(System.nanoTime()-initTime));
-		    reconstructOptimalChild(child);
+		    cliqueManagement.reconstructOptimalChild(child, red, varProcedence);
 	    }
 
 		lastRuntime = System.nanoTime() - initTime;
@@ -404,7 +354,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	 */
 	private void cliqueTreeAnalysis() {
 		nonExhaustivelyExploredVariables.clear();
-		for (VariableClique clique: cliques) {
+		for (VariableClique clique: cliqueManagement.getCliques()) {
 			List<Integer> listOfVariables = clique.getVariables().subList(0,clique.getVariablesOfSeparator());
 			checkExplorationLimits(listOfVariables);
 			
@@ -418,7 +368,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 
 	protected void analysisOfGroupsOfNonExhaustivelyExploredVariables() {
 		List<Set<Integer>> partitionOfNonExploredVariables = new ArrayList<>();
-		for (VariableClique clique: cliques) {
+		for (VariableClique clique: cliqueManagement.getCliques()) {
 			List<Integer> separator = clique.getVariables().subList(0, clique.getVariablesOfSeparator());
 			List<Integer> residue = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
 			for (List<Integer> listOfVariables : new List[] { separator, residue }) {
@@ -477,7 +427,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 
 	public String getCliqueTree() {
 		String result = "";
-		for (VariableClique clique: cliques) {
+		for (VariableClique clique: cliqueManagement.getCliques()) {
 			Set<Integer> residue = new HashSet<>();
 			residue.addAll(clique.getVariables());
 			

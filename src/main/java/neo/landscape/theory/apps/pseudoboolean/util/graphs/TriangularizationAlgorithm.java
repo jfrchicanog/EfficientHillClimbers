@@ -7,6 +7,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagement;
+import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagementBasicImplementation;
+import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagementFactory;
+
 public class TriangularizationAlgorithm {
 	
 	private GraphV2 graph;
@@ -18,7 +22,8 @@ public class TriangularizationAlgorithm {
 	// Chordal graph
 	private UndirectedGraph chordalGraph;
 	// Clique Tree
-	private List<VariableClique> cliques;
+	private CliqueManagement cliqueManagement;
+	private CliqueManagementFactory cmFactory = CliqueManagementBasicImplementation.FACTORY;
 	private UndirectedGraphFactory ugFactory;
 	
 	
@@ -30,6 +35,7 @@ public class TriangularizationAlgorithm {
 		topLabel = n-1;
 		alphaInverted = new int [topLabel+1];
 		this.ugFactory=ugFactory;
+		cliqueManagement = cmFactory.createCliqueManagement();
 	}
 	
 	public TriangularizationAlgorithm(GraphV2 graph) {
@@ -110,35 +116,30 @@ public class TriangularizationAlgorithm {
 	public void cliqueTree() {
 		int n = graph.numberOfVertices();
 		
-		Set<Integer> [] mSets = new Set[n];
-		cliques = new ArrayList<>();
+		List<Integer> [] mSets = new List[n];
 		
-		for (int i=0; i <n; i++) mSets[i] = new HashSet<>();
+		for (int i=0; i <n; i++) mSets[i] = new ArrayList<>();
 		
 		int [] mark = new int[n]; 
-		VariableClique [] clique = new VariableClique [n];
+		int [] clique = new int [n];
 		int previousMark = -1;
 		int [] last =  new int[n];
-		int j=0;
 		
 		for (int vertex: IntStream.range(0, n).toArray()) last[vertex] = -1;
 		
-		VariableClique currentClique=new VariableClique(j);
-		cliques.add(currentClique);
+		VariableClique currentClique=cliqueManagement.addNewVariableClique();
 		
 		for (int i=topLabel; i>=initialLabel; i--) {
 			int x = alphaInverted[i];
 			if (mark[x] <= previousMark) {
-				j++;
-				currentClique=new VariableClique(j);
-				cliques.add(currentClique);
+				currentClique=cliqueManagement.addNewVariableClique();
 				
-				currentClique.getVariables().addAll(mSets[x]);
+				currentClique.addAllVariables(mSets[x]);
 				currentClique.markSeparator();
-				currentClique.getVariables().add(x);
+				currentClique.addVariable(x);
 
 				if (last[x] >= 0) {
-					currentClique.setParent(clique[last[x]]);
+					cliqueManagement.setVariableCliqueParent(currentClique.getId(), clique[last[x]]);
 				}
 			} else {
 				currentClique.getVariables().add(x);
@@ -149,7 +150,7 @@ public class TriangularizationAlgorithm {
 				last[y] = x;
 			}
 			previousMark = mark[x];
-			clique[x] = currentClique;
+			clique[x] = currentClique.getId();
 		}
 	}
 	
@@ -167,12 +168,12 @@ public class TriangularizationAlgorithm {
 	}
 
 	public List<VariableClique> getCliques() {
-		return cliques;
+		return cliqueManagement.getCliques();
 	}
 
 	public String getCliqueTree() {
 		String result = "";
-		for (VariableClique clique: cliques) {
+		for (VariableClique clique: cliqueManagement.getCliques()) {
 			List<Integer> separator = clique.getVariables().subList(0, clique.getVariablesOfSeparator());
 			List<Integer> residue = clique.getVariables().subList(clique.getVariablesOfSeparator(),clique.getVariables().size());
 			
