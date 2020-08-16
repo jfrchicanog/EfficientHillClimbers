@@ -7,10 +7,11 @@ import java.util.Set;
 
 import junit.framework.Assert;
 import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagementBasicImplementation;
+import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagementMemoryEfficient;
 
 import org.junit.Test;
 
-public class MaximumCardinalitySearchEfficientTest {
+public class MaximumCardinalitySearchDoubleEfficientTest {
 
 	@Test
 	public void test() {
@@ -59,7 +60,7 @@ public class MaximumCardinalitySearchEfficientTest {
 	}
 	
 	protected void checkGraph(Graph graph) {
-		TriangularizationAlgorithm ta = new TriangularizationAlgorithm(new GraphV2Adaptor(graph), MemoryEfficientUndirectedGraph.FACTORY, CliqueManagementBasicImplementation.FACTORY);
+		TriangularizationAlgorithm ta = new TriangularizationAlgorithm(new GraphV2Adaptor(graph), MemoryEfficientUndirectedGraph.FACTORY, CliqueManagementMemoryEfficient.FACTORY);
 		ta.maximumCardinalitySearch();
 		System.out.println("Initial label: "+ta.getInitialLabel());
 		System.out.println(Arrays.toString(ta.getAlpha()));

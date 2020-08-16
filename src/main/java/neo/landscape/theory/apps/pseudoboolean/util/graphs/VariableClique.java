@@ -13,6 +13,8 @@ public interface VariableClique {
 	VariableClique getParent();
 	void setParent(VariableClique parent);
 	List<Integer> getVariables();
+	int getNumberOfVariables();
+	int getVariable(int index);
 	void addVariable(int var);
 	void addAllVariables(Collection<Integer> vars);
 	int getId();

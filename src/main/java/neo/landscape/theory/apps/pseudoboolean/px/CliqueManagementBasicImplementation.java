@@ -10,27 +10,10 @@ import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableCliqueImplementation;
 
-public class CliqueManagementBasicImplementation implements CliqueManagement {
-	private static class IndexAssigner implements Function<Integer,Integer> {
-		private int index=0;
-		@Override
-		public Integer apply(Integer arraySize) {
-			int thisIndex = index;
-			index += arraySize;
-			return thisIndex;
-		}
-		public int getIndex() {
-			return index;
-		}
-		
-		public void clearIndex() {
-			index=0;
-		}
-	}
-	
+public class CliqueManagementBasicImplementation implements CliqueManagement {	
 	public static final CliqueManagementFactory FACTORY = new CliqueManagementFactory() {
 		@Override
-		public CliqueManagement createCliqueManagement() {
+		public CliqueManagement createCliqueManagement(int estimatedSize) {
 			return new CliqueManagementBasicImplementation();
 		}
 	};
@@ -41,7 +24,7 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 	private final IndexAssigner indexAssigner = new IndexAssigner();
 	private int numCliques;
 
-	public CliqueManagementBasicImplementation() {
+	private CliqueManagementBasicImplementation() {
 		cliques = new ArrayList<>();
 	}
 

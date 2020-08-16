@@ -1,53 +1,181 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
-import java.util.ArrayList;
+import java.util.AbstractList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
-import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableCliqueImplementation;
 
 public class CliqueManagementMemoryEfficient implements CliqueManagement {
-	private static class IndexAssigner implements Function<Integer,Integer> {
-		private int index=0;
+	public static final CliqueManagementFactory FACTORY = new CliqueManagementFactory() {
 		@Override
-		public Integer apply(Integer arraySize) {
-			int thisIndex = index;
-			index += arraySize;
-			return thisIndex;
+		public CliqueManagement createCliqueManagement(int estimatedSize) {
+			return new CliqueManagementMemoryEfficient(estimatedSize);
 		}
-		public int getIndex() {
-			return index;
+	};
+	
+	private enum State {BUILD, QUERY};
+	
+	private class InternalVariableClique extends AbstractVariableClique {
+		private int cliqueIndex;
+		
+		private InternalVariableClique (int cliqueId) {
+			cliqueIndex = cliqueId;
+		}
+
+		@Override
+		public int getNumberOfVariables() {
+			return getNumberOfVariablesOfClique(cliqueIndex);
 		}
 		
-		public void clearIndex() {
-			index=0;
+		@Override
+		public int getVariable(int index) {
+			return getVariableOfClique(cliqueIndex, index);
+		}
+		
+		@Override
+		public List<Integer> getVariables() {
+			// TODO: source of inefficiency
+			return getVariablesOfClique(cliqueIndex);
+		}
+		
+		@Override
+		public VariableClique getParent() {
+			// TODO source of ineficcency
+			if (parent[cliqueIndex] < 0) {
+				return null;
+			}
+			return new InternalVariableClique(parent[cliqueIndex]);
+		}
+
+		@Override
+		public int getId() {
+			return cliqueIndex;
+		}
+
+		@Override
+		public int getVariablesOfSeparator() {
+			return variablesOfSeparator[cliqueIndex];
 		}
 	}
 	
-	public static final CliqueManagementFactory FACTORY = new CliqueManagementFactory() {
+	private class LastVariableClique extends AbstractVariableClique {
 		@Override
-		public CliqueManagement createCliqueManagement() {
-			return new CliqueManagementMemoryEfficient();
+		public int getNumberOfVariables() {
+			return getNumberOfVariablesOfClique(numCliques-1);
 		}
-	};
+		
+		@Override
+		public int getVariable(int index) {
+			return getVariableOfClique(numCliques-1, index);
+		}
 
-	private List<VariableClique> cliques;
+		@Override
+		public int getId() {
+			return numCliques-1;
+		}
+
+		@Override
+		public int getVariablesOfSeparator() {
+			return variablesOfSeparator[numCliques-1];
+		}
+		
+		@Override
+		public void addAllVariables(Collection<Integer> vars) {
+			int newRequiredSize = vars.size()+variableIndex[numCliques-1]+1;
+			if (newRequiredSize > variables.length) {
+				variables = expandArray(variables, newRequiredSize);
+			}
+			for (int var: vars) {
+				variables[++variableIndex[numCliques-1]]=var;
+			}
+		}
+		
+		@Override
+		public void addVariable(int var) {
+			int newRequiredSize = variableIndex[numCliques-1]+2;
+			if (newRequiredSize > variables.length) {
+				variables = expandArray(variables, newRequiredSize);
+			}
+			variables[++variableIndex[numCliques-1]]=var;
+		}
+		
+		@Override
+		public void markSeparator() {
+			variablesOfSeparator[numCliques-1] = getNumberOfVariables();
+		}
+	}
+	
+	private static final int DYNP_ITERATION_LIMIT = 29;
+	
 	private double [] summaryValue;
 	private int [] variableValue;
 	private final IndexAssigner indexAssigner = new IndexAssigner();
 	private int numCliques;
+	
+	private int [] variablesOfSeparator;
+	private int [] arraySize;
+	private int [] arrayIndex;
+	
+	private int [] variableSeparatorLimit;
+	private int [] variableResidueLimit;
+	
+	private int [] variables;  // this can be larger than the number of cliques
+	private int [] variableIndex; // this is the last index of a variable of this VariableClique
+	
+	private int [] parent;
+	private int [] children;
+	private int [] childrenIndex;
+	private BitSet sameGroupsOfNonExploredVariables;
+	
+	private State state;
+	
+	private final LastVariableClique lastVariableClique = new LastVariableClique();
 
-	public CliqueManagementMemoryEfficient() {
-		cliques = new ArrayList<>();
+	private CliqueManagementMemoryEfficient(int initialCliqueSize) {
+		variablesOfSeparator = new int [initialCliqueSize];
+		arraySize = new int [initialCliqueSize];
+		arrayIndex = new int [initialCliqueSize];
+		variableSeparatorLimit = new int [initialCliqueSize];
+		variableResidueLimit = new int [initialCliqueSize];
+		variables = new int [initialCliqueSize];
+		variableIndex = new int [initialCliqueSize];
+		parent = new int [initialCliqueSize];
+		children = new int [initialCliqueSize];
+		childrenIndex = new int [initialCliqueSize];
+		sameGroupsOfNonExploredVariables = new BitSet(initialCliqueSize);
+		clearCliqueTree();
+	}
+	
+	private static int [] expandArray(int [] array, int minNewSize) {
+		int newSize;
+		if (array.length <= 1) {
+			newSize=2;
+		} else {
+			newSize = array.length+(array.length >> 1);
+		}
+		if (newSize < minNewSize) {
+			newSize = minNewSize;
+		}
+		return Arrays.copyOf(array, newSize);
 	}
 
 	@Override
 	public List<VariableClique> getCliques() {
-		return cliques;
+		ensureQueryState();
+		// TODO: this methods should be removed, to avoid many variables in the heap
+		return IntStream.range(0, numCliques)
+				.mapToObj(InternalVariableClique::new)
+				.collect(Collectors.toList());
 	}
 
 	private void ensureSizeOfCliqueArrays(int size) {
@@ -59,38 +187,329 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 
 	@Override
 	public void applyDynamicProgramming(Set<Integer> nonExhaustivelyExploredVariables, int[] marks, PBSolution red, EmbeddedLandscape el, List<Integer> [] subFunctionsPartition) {
+		ensureQueryState();
 		indexAssigner.clearIndex();
 		for (int i=numCliques-1; i>=0; i--) {
-			cliques.get(i).prepareStructuresForComputation(nonExhaustivelyExploredVariables, marks, indexAssigner);
+			prepareStructuresForComputation(i, nonExhaustivelyExploredVariables, marks, indexAssigner);
 		}
 		ensureSizeOfCliqueArrays(indexAssigner.getIndex());
 		for (int i=numCliques-1; i>=0; i--) {
-			cliques.get(i).applyDynamicProgrammingToClique(red, el, subFunctionsPartition, summaryValue, variableValue);
+			applyDynamicProgrammingToClique(i, red, el, subFunctionsPartition, summaryValue, variableValue);
 		}
 	}
 
 	@Override
 	public void reconstructOptimalChild(PBSolution child, PBSolution red, VariableProcedence varProcedence) {
-		for (VariableClique clique: cliques) {
-			clique.reconstructSolutionInClique(child, red, varProcedence, variableValue);
+		ensureQueryState();
+		for (int clique=0; clique < numCliques; clique++) {
+			reconstructSolutionInClique(clique, child, red, varProcedence, variableValue);
 		}
 	}
 
 	@Override
 	public void clearCliqueTree() {
-		cliques.clear();
 		numCliques=0;
+		state = State.BUILD;
 	}
 	
 	@Override
 	public VariableClique addNewVariableClique() {
-		VariableClique current = new VariableCliqueImplementation(numCliques++);
-		cliques.add(current);
-		return current;
+		checkBuildState();
+		if (numCliques >= parent.length) {
+			parent = expandArray(parent, numCliques+1);
+			variablesOfSeparator = expandArray(variablesOfSeparator, numCliques+1);
+			arraySize = expandArray(arraySize, numCliques+1);
+			arrayIndex = expandArray(arrayIndex, numCliques+1);
+			variableSeparatorLimit = expandArray(variableSeparatorLimit, numCliques+1);
+			variableResidueLimit = expandArray(variableResidueLimit, numCliques+1);
+			children = expandArray(children, numCliques+1);
+			variableIndex = expandArray(variableIndex, numCliques+1);
+			childrenIndex = expandArray(childrenIndex, numCliques+1);
+		}
+		
+		if (numCliques > 0) {
+			variableIndex[numCliques] = variableIndex[numCliques-1];
+		} else {
+			variableIndex[numCliques] = -1;
+		}
+		parent[numCliques] = -1;
+		childrenIndex[numCliques] = 0;
+		
+		numCliques++;
+		return lastVariableClique;
 	}
 
 	@Override
 	public void setVariableCliqueParent(int childID, int parentID) {
-		cliques.get(childID).setParent(cliques.get(parentID));
+		checkBuildState();
+		parent[childID] = parentID;
+		childrenIndex[parentID]++;
+	}
+
+	private void checkBuildState() {
+		if (state != State.BUILD) {
+			throw new IllegalStateException("Modifying clique tree while not in BUILD state.");
+		}
+	}
+	
+	private int getNumberOfVariablesOfClique(int cliqueIndex) {
+		if (cliqueIndex == 0) {
+			return variableIndex[0]+1;
+		} else {
+			return variableIndex[cliqueIndex]-variableIndex[cliqueIndex-1];
+		}
+	}
+	
+	private int getVariableOfClique(int cliqueIndex, int index) {
+		return variables[indexOfVariableInClique(cliqueIndex, index)];
+	}
+	
+	private int indexOfVariableInClique(int cliqueIndex, int index) {
+		if (cliqueIndex==0) {
+			return index;
+		} else {
+			return index+variableIndex[cliqueIndex-1]+1;
+		}
+	}
+	
+	private List<Integer> getVariablesOfClique(int cliqueIndex) {
+		return new AbstractList<Integer>() {
+			@Override
+			public Integer get(int index) {
+				return getVariableOfClique(cliqueIndex, index);
+			}
+
+			@Override
+			public int size() {
+				return getNumberOfVariablesOfClique(cliqueIndex);
+			}
+			
+			@Override
+			public Integer set(int index, Integer element) {
+				int varIndex = indexOfVariableInClique(cliqueIndex, index);
+				int previousValue = variables[varIndex];
+				variables[varIndex] = element;
+				return previousValue;
+			}
+		};
+	}
+	
+	private int getNumberOfChildrenOfClique(int cliqueIndex) {
+		if (cliqueIndex == 0) {
+			return childrenIndex[0]+1;
+		} else {
+			return childrenIndex[cliqueIndex]-childrenIndex[cliqueIndex-1];
+		}
+	}
+	
+	private int getChildrenOfClique(int cliqueIndex, int index) {
+		if (cliqueIndex==0) {
+			return children[index];
+		} else {
+			return children[index+childrenIndex[cliqueIndex-1]+1];
+		}
+	}
+	
+	private void ensureQueryState() {
+		if (state != State.QUERY) {
+			prepareDataSructureForQuery();
+			state = State.QUERY;
+		}
+	}
+	
+	private void prepareDataSructureForQuery() {
+		// Adjust indices
+		int previousIndex = -1;
+		for (int i=0; i < numCliques; i++) {
+			int newIndex = previousIndex + childrenIndex[i];
+			childrenIndex[i] = previousIndex;
+			previousIndex = newIndex;
+		}
+		
+		for (int i=0; i < numCliques; i++) {
+			int p = parent[i];
+			if (p >= 0) {
+				children[++childrenIndex[p]] = i;
+			}
+		}
+	}
+
+	private void applyDynamicProgrammingToClique(int clique, PBSolution red, EmbeddedLandscape embeddedLandscape, List<Integer>[] subFunctionPartitions, double[] summaryValue, int[] variableValue) {
+		PBSolution solution = new PBSolution(red);
+		
+		int separatorValueLimit = arraySize[clique];
+		int numVariablesOfResidue = getNumberOfVariablesOfClique(clique)-variablesOfSeparator[clique];
+		int residueValueLimit = 1 << variableResidueLimit[clique];
+
+		if (variableResidueLimit[clique] < numVariablesOfResidue && !sameGroupsOfNonExploredVariables.get(clique)) {
+			residueValueLimit <<= 1;
+		}
+		
+		// Iterate over the variables in the separator 
+		for (int separatorValue=0; separatorValue < separatorValueLimit; separatorValue++) {
+			int auxSeparator=separatorValue;
+			for (int bit=0; bit < variableSeparatorLimit[clique]; bit++) {
+				solution.setBit(getVariableOfClique(clique, bit), auxSeparator & 1);
+				auxSeparator >>>= 1;
+			}
+			if (variableSeparatorLimit[clique] < variablesOfSeparator[clique]) {
+				if ((auxSeparator & 1)==0) {
+					// Red solution
+					for (int bit=variableSeparatorLimit[clique]; bit < variablesOfSeparator[clique]; bit++) {
+						int variable = getVariableOfClique(clique, bit);
+						solution.setBit(variable, red.getBit(variable));
+					}
+				} else {
+					// Blue solution
+					for (int bit = variableSeparatorLimit[clique]; bit < variablesOfSeparator[clique]; bit++) {
+						int variable = getVariableOfClique(clique, bit);
+						solution.setBit(variable, 1 - red.getBit(variable));
+					}
+				}
+			}
+			
+			summaryValue[arrayIndex[clique]+separatorValue]=Double.NEGATIVE_INFINITY;
+			
+			// Iterate over the variables in the residue
+			for (int residueValue=0; residueValue < residueValueLimit; residueValue++) {
+				int auxResidue=residueValue;
+				for (int bit=0; bit < variableResidueLimit[clique]; bit++) {
+					solution.setBit(getVariableOfClique(clique, variablesOfSeparator[clique]+bit), auxResidue & 1);
+					auxResidue >>>= 1;
+				}
+				if (variableResidueLimit[clique] < numVariablesOfResidue) {
+					if (sameGroupsOfNonExploredVariables.get(clique)) {
+						auxResidue = auxSeparator;
+					}
+					
+					if ((auxResidue & 1) == 0) {
+						// Red solution
+						for (int bit=variableResidueLimit[clique]; bit < numVariablesOfResidue; bit++) {
+							int variable = getVariableOfClique(clique, variablesOfSeparator[clique]+bit);
+							solution.setBit(variable, red.getBit(variable));
+						}
+					} else {
+						// Blue solution
+						for (int bit=variableResidueLimit[clique]; bit < numVariablesOfResidue; bit++) {
+							int variable = getVariableOfClique(clique, variablesOfSeparator[clique]+bit);
+							solution.setBit(variable, 1 - red.getBit(variable));
+						}
+					}
+				}
+				
+				// We have the solution here and we have to evaluate it
+				double value = evaluateSolution(clique, embeddedLandscape, subFunctionPartitions, solution, red, summaryValue);
+				if (value > summaryValue[arrayIndex[clique]+separatorValue]) {
+					summaryValue[arrayIndex[clique]+separatorValue] = value;
+					variableValue[arrayIndex[clique] + separatorValue] = residueValue;
+				}
+			}
+		}
+	}
+	
+	private int getSeparatorValueFromSolution(int clique, PBSolution solution, PBSolution red) {
+		int separatorValue = 0;
+		if (variableSeparatorLimit[clique] < variablesOfSeparator[clique]) {
+			int variable = getVariableOfClique(clique, variableSeparatorLimit[clique]);
+			if (solution.getBit(variable) == red.getBit(variable)) {
+				separatorValue = 0;
+			} else {
+				separatorValue = 1;
+			}
+		}
+		
+		for (int bit=variableSeparatorLimit[clique]-1; bit >= 0; bit--) {
+			separatorValue <<= 1;
+			separatorValue += solution.getBit(getVariableOfClique(clique, bit));
+		}
+		return separatorValue;
+	}
+	
+	private double evaluateSolution(int clique, EmbeddedLandscape el, List<Integer>[] subFunctionsPartition, PBSolution solution, PBSolution red, double [] summaryValue) {
+		double value = 0;
+		for (int childIndex = 0; childIndex < getNumberOfChildrenOfClique(clique); childIndex++) {
+			int child = getChildrenOfClique(clique, childIndex);
+			int separatorValue = getSeparatorValueFromSolution(child, solution, red);
+			value += summaryValue[arrayIndex[child] + separatorValue];
+		}
+		
+		for (int i = variablesOfSeparator[clique]; i < getNumberOfVariablesOfClique(clique); i++) {
+			int residueVariable = getVariableOfClique(clique, i);
+			for (int fn: subFunctionsPartition[residueVariable]) {
+				value += el.evaluateSubFunctionFromCompleteSolution(fn, solution);
+			}
+		}
+		return value;
+	}
+	
+	private void prepareStructuresForComputation(int clique, Set<Integer> nonExhaustivelyExplored, int [] marks, Function<Integer,Integer> indexAssignment) {
+		List<Integer> listVariables = getVariablesOfClique(clique);
+		
+		List<Integer> separator = listVariables.subList(0, variablesOfSeparator[clique]);
+		variableSeparatorLimit[clique] = variableLimitFromList(nonExhaustivelyExplored, separator);
+		
+		List<Integer> residue = listVariables.subList(variablesOfSeparator[clique], getNumberOfVariablesOfClique(clique));
+		variableResidueLimit[clique] = variableLimitFromList(nonExhaustivelyExplored, residue);
+		
+		if (Math.max(variableSeparatorLimit[clique], variableResidueLimit[clique]) > DYNP_ITERATION_LIMIT) {
+			throw new RuntimeException("I cannot reduce this clique because it is too large (Reduce the exhaustive exploration)");
+		}
+		
+		arraySize[clique] = 1<< variableSeparatorLimit[clique];
+		if (variableSeparatorLimit[clique] < variablesOfSeparator[clique]) {
+			arraySize[clique] <<= 1;
+		}
+		
+		arrayIndex[clique] = indexAssignment.apply(arraySize[clique]);
+		
+		int numVariablesOfResidue = getNumberOfVariablesOfClique(clique)-variablesOfSeparator[clique];
+		boolean sameGroup = (variableResidueLimit[clique] < numVariablesOfResidue) &&
+				(variableSeparatorLimit[clique] < variablesOfSeparator[clique]) &&
+				(marks[getVariableOfClique(clique, variableSeparatorLimit[clique])] == marks[getVariableOfClique(clique,variablesOfSeparator[clique]+variableResidueLimit[clique])]);
+		
+		
+		sameGroupsOfNonExploredVariables.set(clique, sameGroup);
+	}
+
+	private static int variableLimitFromList(Set<Integer> nonExhaustivelyExplored, List<Integer> separator) {
+		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExplored.contains(variable)?1:0));
+		int i;
+		for (i=0; i < separator.size() && !nonExhaustivelyExplored.contains(separator.get(i)); i++);
+		return i;
+	}
+	
+	private void reconstructSolutionInClique(int clique, PBSolution child, PBSolution red, VariableProcedence variableProcedence, int [] variableValue) {
+		int numVariablesOfResidue = getNumberOfVariablesOfClique(clique)-variablesOfSeparator[clique];
+		int separatorValue = getSeparatorValueFromSolution(clique, child, red);
+		int residueVariables = variableValue[arrayIndex[clique]+separatorValue];
+		
+		for (int bit=0; bit < variableResidueLimit[clique]; bit++) {
+			Integer variable = getVariableOfClique(clique, variablesOfSeparator[clique]+bit);
+			child.setBit(variable, residueVariables & 1);
+			
+			if (red.getBit(variable) != (residueVariables & 1)) {
+				variableProcedence.markAsBlue(variable);
+			}
+			residueVariables >>>= 1;
+		}
+		if (variableResidueLimit[clique] < numVariablesOfResidue) {
+			if (sameGroupsOfNonExploredVariables.get(clique)) {
+				residueVariables = ((separatorValue >>> variableSeparatorLimit[clique]) & 1);
+			}
+			if ((residueVariables & 1) == 0) {
+				// Red solution
+				for (int bit=variableResidueLimit[clique]; bit < numVariablesOfResidue; bit++) {
+					int variable = getVariableOfClique(clique,variablesOfSeparator[clique]+bit);
+					child.setBit(variable, red.getBit(variable));
+				}
+			} else {
+				// Blue solution
+				for (int bit=variableResidueLimit[clique]; bit < numVariablesOfResidue; bit++) {
+					int variable = getVariableOfClique(clique, variablesOfSeparator[clique]+bit);
+					child.setBit(variable, 1 - red.getBit(variable));
+					variableProcedence.markAsBlue(variable);
+				}
+			}
+		}
 	}
 }

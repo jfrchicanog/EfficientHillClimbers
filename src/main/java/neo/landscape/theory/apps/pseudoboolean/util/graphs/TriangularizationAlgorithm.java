@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagement;
 import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagementBasicImplementation;
 import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagementFactory;
+import neo.landscape.theory.apps.pseudoboolean.px.CliqueManagementMemoryEfficient;
 
 public class TriangularizationAlgorithm {
 	
@@ -23,23 +24,25 @@ public class TriangularizationAlgorithm {
 	private UndirectedGraph chordalGraph;
 	// Clique Tree
 	private CliqueManagement cliqueManagement;
-	private CliqueManagementFactory cmFactory = CliqueManagementBasicImplementation.FACTORY;
+	private CliqueManagementFactory cmFactory;
 	private UndirectedGraphFactory ugFactory;
 	
 	
 	
-	public TriangularizationAlgorithm(GraphV2 graph, UndirectedGraphFactory ugFactory) {
+	public TriangularizationAlgorithm(GraphV2 graph, UndirectedGraphFactory ugFactory, CliqueManagementFactory cmFactory) {
 		this.graph = graph;
 		int n = graph.numberOfVertices();
 		alpha = new int [n];
 		topLabel = n-1;
 		alphaInverted = new int [topLabel+1];
 		this.ugFactory=ugFactory;
-		cliqueManagement = cmFactory.createCliqueManagement();
+		this.cmFactory = cmFactory;
+		cliqueManagement = cmFactory.createCliqueManagement(n);
+		
 	}
 	
 	public TriangularizationAlgorithm(GraphV2 graph) {
-		this(graph, MapBasedUndirectedGraph.FACTORY);
+		this(graph, MapBasedUndirectedGraph.FACTORY, CliqueManagementBasicImplementation.FACTORY);
 	}
 	
 	public void maximumCardinalitySearch() {
@@ -142,7 +145,7 @@ public class TriangularizationAlgorithm {
 					cliqueManagement.setVariableCliqueParent(currentClique.getId(), clique[last[x]]);
 				}
 			} else {
-				currentClique.getVariables().add(x);
+				currentClique.addVariable(x);
 			}
 			for (Integer y: chordalGraph.getAdjacent(x)) {
 				mSets[y].add(x);

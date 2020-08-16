@@ -105,7 +105,7 @@ public class MemoryEfficientUndirectedGraph implements UndirectedGraph {
 		}
 	}
 	
-	private int [] expandArray(int [] array) {
+	private static int [] expandArray(int [] array) {
 		int newSize;
 		if (array.length <= 1) {
 			newSize=2;

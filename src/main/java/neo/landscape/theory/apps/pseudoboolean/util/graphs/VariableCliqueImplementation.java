@@ -16,7 +16,7 @@ public class VariableCliqueImplementation implements VariableClique {
 	private static final int DYNP_ITERATION_LIMIT = 29;
 	private int variablesOfSeparator;
 	private int arraySize;
-	private int arrayIndex=0;
+	private int arrayIndex;
 	
 	private int variableSeparatorLimit;
 	private int variableResidueLimit;
@@ -249,6 +249,16 @@ public class VariableCliqueImplementation implements VariableClique {
 	@Override
 	public void addAllVariables(Collection<Integer> vars) {
 		getVariables().addAll(vars);
+	}
+
+	@Override
+	public int getNumberOfVariables() {
+		return getVariables().size();
+	}
+
+	@Override
+	public int getVariable(int index) {
+		return getVariables().get(index);
 	}
 	
 	

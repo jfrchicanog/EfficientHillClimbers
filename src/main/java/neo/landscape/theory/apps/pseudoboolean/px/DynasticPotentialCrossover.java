@@ -39,7 +39,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private UndirectedGraph chordalGraph;
 	private UndirectedGraphFactory graphFactory = MemoryEfficientUndirectedGraph.FACTORY;
 	// Clique tree 
-	private CliqueManagementFactory cmFactory = CliqueManagementBasicImplementation.FACTORY;
+	private CliqueManagementFactory cmFactory = CliqueManagementMemoryEfficient.FACTORY;
 	private CliqueManagement cliqueManagement;
 	// Subfunctions
 	List<Integer> [] subFunctionsPartition;
@@ -84,7 +84,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		mSets = new List[n];
 		for (int i=0; i <n; i++) mSets[i] = new ArrayList<>();
 		cliqueOfVariable = new int [n];
-		cliqueManagement = cmFactory.createCliqueManagement();
+		cliqueManagement = cmFactory.createCliqueManagement(n >> 1);
 		last = new int[n];
 		subFunctionsPartition = new List[n];
 		for (int i=0; i < n; i++) {
@@ -262,7 +262,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 				currentClique.addVariable(x);
 				
 				if (currentClique.getVariablesOfSeparator() == 1) {
-					articulationPoints.add(currentClique.getVariables().get(0));
+					articulationPoints.add(currentClique.getVariable(0));
 				}
 				
 				if (last[x] >= 0) {
@@ -272,7 +272,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 				}
 					
 			} else {
-				currentClique.getVariables().add(x);
+				currentClique.addVariable(x);
 			}
 			for (Integer y: chordalGraph.getAdjacent(x)) {
 				mSets[y].add(x);
