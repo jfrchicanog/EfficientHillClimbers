@@ -2,11 +2,11 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.util.DisjointSets;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
@@ -43,7 +43,7 @@ public class AbstractVariableClique implements VariableClique {
 	}
 
 	@Override
-	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, int[] marks,
+	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, DisjointSets disjointSets,
 			Function<Integer, Integer> indexAssignment) {
 		throw new UnsupportedOperationException();
 	}

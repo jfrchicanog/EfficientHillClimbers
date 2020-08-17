@@ -9,6 +9,8 @@ import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.util.DisjointSetArrays;
+import neo.landscape.theory.apps.pseudoboolean.util.DisjointSets;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.MemoryEfficientUndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraphFactory;
@@ -22,8 +24,6 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private static final int DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE = 28;
 	protected static final int VARIABLE_LIMIT = 1<<29;
 	protected EmbeddedLandscape el;
-    
-	int maximumNumberOfVariableToExploreExhaustively = DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE;
 	
 	int [] alpha;
 	private int [] alphaInverted;
@@ -59,6 +59,9 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	
 	protected PrintStream ps;
 	protected boolean debug;
+	
+	private DisjointSets disjointSets;
+	
 	public DynasticPotentialCrossover(EmbeddedLandscape el) {
 		int n = el.getN();
 		int maxDegree = el.getMaximumDegreeOfVIG();
@@ -78,12 +81,16 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		for (int i=0; i <n; i++) mSets[i] = new ArrayList<>();
 		cliqueOfVariable = new int [n];
 		cliqueManagement = cmFactory.createCliqueManagement(n);
+		cliqueManagement.setMaximumVariablesToExhaustivelyExplore(DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE);
 		last = new int[n];
 		subFunctionsPartition = new List[n];
 		for (int i=0; i < n; i++) {
 			subFunctionsPartition[i] = new ArrayList<>();
 		}
 		subfunctions = new TwoStatesISArrayImpl(el.getM());
+		
+		disjointSets = new DisjointSetArrays(fFillin, indexFillin);
+		cliqueManagement.setDisjointSets(disjointSets);
 		
 		this.el = el;
 		
@@ -300,14 +307,14 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	    	System.out.println("Subfunctions organization finished at: "+(System.nanoTime()-initTime));
 		    cliqueTree();
 		    System.out.println("Clique tree computation finished at: "+(System.nanoTime()-initTime));
-		    cliqueManagement.cliqueTreeAnalysis(this);
+		    cliqueManagement.cliqueTreeAnalysis();
 		    System.out.println("Clique tree analysis finished at: "+(System.nanoTime()-initTime));
 		    if (debug && ps != null) {
 		    	ps.println("Initial label: "+initialLabel);
 		    	ps.println("Number of components: "+numberOfComponents);
 		    	ps.println(cliqueManagement.getCliqueTree());
 		    }
-		    cliqueManagement.applyDynamicProgramming(cliqueManagement.getNonExhaustivelyExploredVariables(), marks, red, el, subFunctionsPartition);
+		    cliqueManagement.applyDynamicProgramming(red, el, subFunctionsPartition);
 		    System.out.println("Dynamic programming finished at: "+(System.nanoTime()-initTime));
 		    cliqueManagement.reconstructOptimalChild(child, red, varProcedence);
 	    }
@@ -322,7 +329,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 				+ (getDifferingVariables() == logarithmOfExploredSolutions));
 		ps.println("* Number of articulation points: " + getNumberOfArticulationPoints());
 		ps.println("* All articulation points exhaustively explored: "
-				+ cliqueManagement.allArticulationPointsExhaustivelyExplored(this));
+				+ cliqueManagement.allArticulationPointsExhaustivelyExplored());
 		
 		return child;
 	}
@@ -349,13 +356,14 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 
 	public void setDebug(boolean debug) {
 		this.debug = debug;
+		cliqueManagement.setDebug(debug);
 	}
 	
 	public void setMaximumVariablesToExhaustivelyExplore(int numberOfVariables) {
 		if (numberOfVariables > DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE) {
 			throw new IllegalArgumentException("The number of variables to explore exhaustively is too large: "+numberOfVariables);
 		}
-		maximumNumberOfVariableToExploreExhaustively = numberOfVariables;
+		cliqueManagement.setMaximumVariablesToExhaustivelyExplore(numberOfVariables);
 	}
 
 	public int getLogarithmOfExploredSolutions() {

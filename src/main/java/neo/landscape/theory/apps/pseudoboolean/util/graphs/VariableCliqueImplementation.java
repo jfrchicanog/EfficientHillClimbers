@@ -9,6 +9,7 @@ import java.util.function.Function;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.px.VariableProcedence;
+import neo.landscape.theory.apps.pseudoboolean.util.DisjointSets;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class VariableCliqueImplementation implements VariableClique {
@@ -57,7 +58,7 @@ public class VariableCliqueImplementation implements VariableClique {
 	}
 	
 	@Override
-	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, int [] marks, Function<Integer,Integer> indexAssignment) {
+	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, DisjointSets disjointSets, Function<Integer,Integer> indexAssignment) {
 		List<Integer> separator = variables.subList(0, variablesOfSeparator);
 		variableSeparatorLimit = variableLimitFromList(nonExhaustivelyExplored, separator);
 		
@@ -78,7 +79,7 @@ public class VariableCliqueImplementation implements VariableClique {
 		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
 		sameGroupsOfNonExploredVariables = (variableResidueLimit < numVariablesOfResidue) &&
 				(variableSeparatorLimit < variablesOfSeparator) &&
-				(marks[variables.get(variableSeparatorLimit)] == marks[variables.get(variablesOfSeparator+variableResidueLimit)]);
+				(disjointSets.sameSet(variables.get(variableSeparatorLimit),variables.get(variablesOfSeparator+variableResidueLimit)));
 	}
 
 	private static int variableLimitFromList(TwoStatesIntegerSet nonExhaustivelyExplored, List<Integer> separator) {

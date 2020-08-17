@@ -16,6 +16,7 @@ import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.util.DisjointSets;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
@@ -149,6 +150,10 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	private TwoStatesIntegerSet nonExhaustivelyExploredVariables;
 	private int groupsOfNonExhaustivelyExploredVariables;
 	private TwoStatesIntegerSet articulationPoints;
+	private int maximumVariablesToExhaustivelyExplore;
+	
+	private boolean debug;
+	private DisjointSets disjointSets;
 
 	private CliqueManagementMemoryEfficient(int maxVariables) {
 		int initialCliqueSize = Math.min(1, maxVariables >> 1);
@@ -198,11 +203,11 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	}
 
 	@Override
-	public void applyDynamicProgramming(TwoStatesIntegerSet nonExhaustivelyExploredVariables, int[] marks, PBSolution red, EmbeddedLandscape el, List<Integer> [] subFunctionsPartition) {
+	public void applyDynamicProgramming(PBSolution red, EmbeddedLandscape el, List<Integer> [] subFunctionsPartition) {
 		ensureQueryState();
 		indexAssigner.clearIndex();
 		for (int i=numCliques-1; i>=0; i--) {
-			prepareStructuresForComputation(i, nonExhaustivelyExploredVariables, marks, indexAssigner);
+			prepareStructuresForComputation(i, indexAssigner);
 		}
 		ensureSizeOfCliqueArrays(indexAssigner.getIndex());
 		for (int i=numCliques-1; i>=0; i--) {
@@ -457,14 +462,14 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		return value;
 	}
 	
-	private void prepareStructuresForComputation(int clique, TwoStatesIntegerSet nonExhaustivelyExplored, int [] marks, Function<Integer,Integer> indexAssignment) {
+	private void prepareStructuresForComputation(int clique, Function<Integer,Integer> indexAssignment) {
 		List<Integer> listVariables = getVariablesOfClique(clique);
 		
 		List<Integer> separator = listVariables.subList(0, variablesOfSeparator[clique]);
-		variableSeparatorLimit[clique] = variableLimitFromList(nonExhaustivelyExplored, separator);
+		variableSeparatorLimit[clique] = variableLimitFromList(nonExhaustivelyExploredVariables, separator);
 		
 		List<Integer> residue = listVariables.subList(variablesOfSeparator[clique], getNumberOfVariablesOfClique(clique));
-		variableResidueLimit[clique] = variableLimitFromList(nonExhaustivelyExplored, residue);
+		variableResidueLimit[clique] = variableLimitFromList(nonExhaustivelyExploredVariables, residue);
 		
 		if (Math.max(variableSeparatorLimit[clique], variableResidueLimit[clique]) > DYNP_ITERATION_LIMIT) {
 			throw new RuntimeException("I cannot reduce this clique because it is too large (Reduce the exhaustive exploration)");
@@ -480,13 +485,14 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		int numVariablesOfResidue = getNumberOfVariablesOfClique(clique)-variablesOfSeparator[clique];
 		boolean sameGroup = (variableResidueLimit[clique] < numVariablesOfResidue) &&
 				(variableSeparatorLimit[clique] < variablesOfSeparator[clique]) &&
-				(marks[getVariableOfClique(clique, variableSeparatorLimit[clique])] == marks[getVariableOfClique(clique,variablesOfSeparator[clique]+variableResidueLimit[clique])]);
+				(disjointSets.sameSet(getVariableOfClique(clique, variableSeparatorLimit[clique]),getVariableOfClique(clique,variablesOfSeparator[clique]+variableResidueLimit[clique])));
 		
 		
 		sameGroupsOfNonExploredVariables.set(clique, sameGroup);
 	}
 
 	private static int variableLimitFromList(TwoStatesIntegerSet nonExhaustivelyExplored, List<Integer> separator) {
+		// TODO: re-implement for efficiency 
 		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExplored.isExplored(variable)?1:0));
 		int i;
 		for (i=0; i < separator.size() && !nonExhaustivelyExplored.isExplored(separator.get(i)); i++);
@@ -560,23 +566,24 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	}
 
 	@Override
-	public void cliqueTreeAnalysis(DynasticPotentialCrossover dynasticPotentialCrossover) {
-		getNonExhaustivelyExploredVariables().reset();
+	public void cliqueTreeAnalysis() {
+		// TODO: re-implement for efficiency
+		nonExhaustivelyExploredVariables.reset();
 		for (VariableClique clique: getCliques()) {
-			assert orderOfVariablesInClique(dynasticPotentialCrossover, clique.getVariables());
 			
 			List<Integer> listOfVariables = clique.getVariables().subList(0,clique.getVariablesOfSeparator());
-			checkExplorationLimits(dynasticPotentialCrossover, listOfVariables);
+			checkExplorationLimits(listOfVariables);
 			
 			listOfVariables = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
-			checkExplorationLimits(dynasticPotentialCrossover, listOfVariables);
+			checkExplorationLimits(listOfVariables);
 		}
 		
-		analysisOfGroupsOfNonExhaustivelyExploredVariables(dynasticPotentialCrossover);
+		analysisOfGroupsOfNonExhaustivelyExploredVariables();
 		
 	}
 	
-	private void analysisOfGroupsOfNonExhaustivelyExploredVariables(DynasticPotentialCrossover dynasticPotentialCrossover) {
+	private void analysisOfGroupsOfNonExhaustivelyExploredVariables() {
+		// TODO: re-implement for efficiency
 		List<Set<Integer>> partitionOfNonExploredVariables = new ArrayList<>();
 		for (VariableClique clique: getCliques()) {
 			List<Integer> separator = clique.getVariables().subList(0, clique.getVariablesOfSeparator());
@@ -610,7 +617,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		}
 		groupsOfNonExhaustivelyExploredVariables = partitionOfNonExploredVariables.size();
 		
-		if (dynasticPotentialCrossover.debug) {
+		if (debug) {
 			Set<Integer> auxiliar = new HashSet<>();
 			for (Set<Integer> component: partitionOfNonExploredVariables) {
 				assert auxiliar.stream().filter(component::contains).count()==0;
@@ -621,39 +628,31 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		
 		for (int i=0; i < partitionOfNonExploredVariables.size(); i++) {
 			Set<Integer> component = partitionOfNonExploredVariables.get(i);
+			int previousVar = -1;
 			for (int variable : component) {
-				dynasticPotentialCrossover.marks[variable] = i;
+				disjointSets.makeSet(variable);
+				if (previousVar >= 0) {
+					disjointSets.union(previousVar, variable);
+				}
+				previousVar = variable;
 			}
 		}
 	}
 	
-	private void checkExplorationLimits(DynasticPotentialCrossover dynasticPotentialCrossover, List<Integer> listOfVariables) {
-		if (listOfVariables.size() > dynasticPotentialCrossover.maximumNumberOfVariableToExploreExhaustively) {
+	private void checkExplorationLimits(List<Integer> listOfVariables) {
+		// TODO: re-implement for efficiency
+		if (listOfVariables.size() > maximumVariablesToExhaustivelyExplore) {
 			listOfVariables.sort(Comparator.<Integer>comparingInt(variable -> articulationPoints.isExplored(variable)?0:1)
 					.thenComparing(Comparator.<Integer>naturalOrder()));
-			listOfVariables.subList(dynasticPotentialCrossover.maximumNumberOfVariableToExploreExhaustively, listOfVariables.size())
+			listOfVariables.subList(maximumVariablesToExhaustivelyExplore, listOfVariables.size())
 			.forEach(getNonExhaustivelyExploredVariables()::explored);
 			
 		}
 	}
 	
-	private boolean orderOfVariablesInClique(DynasticPotentialCrossover dynasticPotentialCrossover, List<Integer> list) {
-		List<Integer> alphas = list.stream().mapToInt(v->dynasticPotentialCrossover.alpha[v]).boxed().collect(Collectors.toList());
-		if (alphas.size()>2) {
-			int val = alphas.get(0);
-			for (int i=1; i < alphas.size(); i++) {
-				if (alphas.get(i) > val) {
-					return false;
-				}
-				val = alphas.get(i);
-			}
-		}
-		return true;
-	}
-	
 	@Override
-	public boolean allArticulationPointsExhaustivelyExplored(DynasticPotentialCrossover dynasticPotentialCrossover) {
-		return !getNonExhaustivelyExploredVariables().getExplored().anyMatch(articulationPoints::isExplored);
+	public boolean allArticulationPointsExhaustivelyExplored() {
+		return !nonExhaustivelyExploredVariables.getExplored().anyMatch(articulationPoints::isExplored);
 	}
 
 	@Override
@@ -664,5 +663,25 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	@Override
 	public int getNumberOfArticulationPoints() {
 		return  articulationPoints.getNumberOfExploredElements();
+	}
+	
+	@Override
+	public void setMaximumVariablesToExhaustivelyExplore(int numberOfVariables) {
+		maximumVariablesToExhaustivelyExplore = numberOfVariables;
+	}
+
+	@Override
+	public boolean isDebug() {
+		return debug;
+	}
+
+	@Override
+	public void setDebug(boolean debug) {
+		this.debug = debug;
+	}
+
+	@Override
+	public void setDisjointSets(DisjointSets disjointSets) {
+		this.disjointSets = disjointSets;
 	}
 }
