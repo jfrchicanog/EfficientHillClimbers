@@ -6,20 +6,20 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableCliqueImplementation;
+import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class CliqueManagementBasicImplementation implements CliqueManagement {	
 	public static final CliqueManagementFactory FACTORY = new CliqueManagementFactory() {
 		@Override
-		public CliqueManagement createCliqueManagement(int estimatedSize) {
-			return new CliqueManagementBasicImplementation();
+		public CliqueManagement createCliqueManagement(int maxVariables) {
+			return new CliqueManagementBasicImplementation(maxVariables);
 		}
 	};
 
@@ -31,9 +31,12 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 	
 	private TwoStatesIntegerSet nonExhaustivelyExploredVariables;
 	private int groupsOfNonExhaustivelyExploredVariables;
+	private TwoStatesIntegerSet articulationPoints;
 
-	private CliqueManagementBasicImplementation() {
+	private CliqueManagementBasicImplementation(int maxVariables) {
 		cliques = new ArrayList<>();
+		nonExhaustivelyExploredVariables = new TwoStatesISArrayImpl(maxVariables);
+		articulationPoints = new TwoStatesISArrayImpl(maxVariables);
 	}
 
 	@Override
@@ -70,6 +73,9 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 	@Override
 	public void clearCliqueTree() {
 		cliques.clear();
+		groupsOfNonExhaustivelyExploredVariables=0;
+		nonExhaustivelyExploredVariables.reset();
+		articulationPoints.reset();
 		numCliques=0;
 	}
 	
@@ -109,24 +115,14 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 	}
 	
 	@Override
-	public void setNonExhaustivelyExploredVariables(TwoStatesIntegerSet nonExhaustivelyExploredVariables) {
-		this.nonExhaustivelyExploredVariables = nonExhaustivelyExploredVariables;
-	}
-	
-	@Override
 	public int getGroupsOfNonExhaustivelyExploredVariables() {
 		return groupsOfNonExhaustivelyExploredVariables;
 	}
 	
 	@Override
-	public void setGroupsOfNonExhaustivelyExploredVariables(int groupsOfNonExhaustivelyExploredVariables) {
-		this.groupsOfNonExhaustivelyExploredVariables = groupsOfNonExhaustivelyExploredVariables;
-	}
-	
-	@Override
 	public void cliqueTreeAnalysis(DynasticPotentialCrossover dynasticPotentialCrossover) {
-		getNonExhaustivelyExploredVariables().reset();
-		for (VariableClique clique: getCliques()) {
+		nonExhaustivelyExploredVariables.reset();
+		for (VariableClique clique: cliques) {
 			assert orderOfVariablesInClique(dynasticPotentialCrossover, clique.getVariables());
 			
 			List<Integer> listOfVariables = clique.getVariables().subList(0,clique.getVariablesOfSeparator());
@@ -171,7 +167,7 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 				}
 			}
 		}
-		setGroupsOfNonExhaustivelyExploredVariables(partitionOfNonExploredVariables.size());
+		groupsOfNonExhaustivelyExploredVariables = partitionOfNonExploredVariables.size();
 		
 		if (dynasticPotentialCrossover.debug) {
 			Set<Integer> auxiliar = new HashSet<>();
@@ -191,7 +187,7 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 	}
 	private void checkExplorationLimits(DynasticPotentialCrossover dynasticPotentialCrossover, List<Integer> listOfVariables) {
 		if (listOfVariables.size() > dynasticPotentialCrossover.maximumNumberOfVariableToExploreExhaustively) {
-			listOfVariables.sort(Comparator.<Integer>comparingInt(variable -> dynasticPotentialCrossover.articulationPoints.isExplored(variable)?0:1)
+			listOfVariables.sort(Comparator.<Integer>comparingInt(variable -> articulationPoints.isExplored(variable)?0:1)
 					.thenComparing(Comparator.<Integer>naturalOrder()));
 			listOfVariables.subList(dynasticPotentialCrossover.maximumNumberOfVariableToExploreExhaustively, listOfVariables.size())
 			.forEach(getNonExhaustivelyExploredVariables()::explored);
@@ -214,6 +210,16 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 	
 	@Override
 	public boolean allArticulationPointsExhaustivelyExplored(DynasticPotentialCrossover dynasticPotentialCrossover) {
-		return !getNonExhaustivelyExploredVariables().getExplored().anyMatch(dynasticPotentialCrossover.articulationPoints::isExplored);
+		return !getNonExhaustivelyExploredVariables().getExplored().anyMatch(articulationPoints::isExplored);
+	}
+
+	@Override
+	public void addArticulationPoint(int variable) {
+		articulationPoints.explored(variable);
+	}
+	
+	@Override
+	public int getNumberOfArticulationPoints() {
+		return  articulationPoints.getNumberOfExploredElements();
 	}
 }

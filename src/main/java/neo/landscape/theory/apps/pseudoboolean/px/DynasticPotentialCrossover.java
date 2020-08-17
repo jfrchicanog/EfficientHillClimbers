@@ -51,7 +51,6 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private int [] cliqueOfVariable;
 	private int [] last;
 	
-	TwoStatesIntegerSet articulationPoints;
 	private PBSolution red;
 	private PBSolution blue;
 	
@@ -78,16 +77,13 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		mSets = new List[n];
 		for (int i=0; i <n; i++) mSets[i] = new ArrayList<>();
 		cliqueOfVariable = new int [n];
-		cliqueManagement = cmFactory.createCliqueManagement(n >> 1);
+		cliqueManagement = cmFactory.createCliqueManagement(n);
 		last = new int[n];
 		subFunctionsPartition = new List[n];
 		for (int i=0; i < n; i++) {
 			subFunctionsPartition[i] = new ArrayList<>();
 		}
 		subfunctions = new TwoStatesISArrayImpl(el.getM());
-		articulationPoints = new TwoStatesISArrayImpl(n);
-		cliqueManagement.setNonExhaustivelyExploredVariables(new TwoStatesISArrayImpl(n));
-		
 		
 		this.el = el;
 		
@@ -233,10 +229,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	}
 	
 	private void cliqueTree() {
-		articulationPoints.reset();
 		numberOfComponents=1;
 		int n = el.getN();
-		cliqueManagement.clearCliqueTree();
 		for (int i=topLabel; i>=initialLabel; i--) {
 			int x = alphaInverted[i];
 			marks[x]=0;
@@ -256,7 +250,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 				currentClique.addVariable(x);
 				
 				if (currentClique.getVariablesOfSeparator() == 1) {
-					articulationPoints.explored(currentClique.getVariable(0));
+					cliqueManagement.addArticulationPoint(currentClique.getVariable(0));
 				}
 				
 				if (last[x] >= 0) {
@@ -295,9 +289,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	    System.out.println("Maximum cardinality search finished at: "+(System.nanoTime()-initTime));
 	    
 	    numberOfComponents = 0;
-	    cliqueManagement.setGroupsOfNonExhaustivelyExploredVariables(0);
-    	cliqueManagement.getNonExhaustivelyExploredVariables().reset();
-    	articulationPoints.reset();
+	    cliqueManagement.clearCliqueTree();
 	    
 	    if (differentSolutions) {
 	    	fillIn();
@@ -375,7 +367,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	}
 	
 	public int getNumberOfArticulationPoints() {
-		return articulationPoints.getNumberOfExploredElements();
+		return cliqueManagement.getNumberOfArticulationPoints();
 	}
 	
 	public EmbeddedLandscape getEmbddedLandscape() {
