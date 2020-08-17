@@ -139,14 +139,14 @@ public class DynasticPotentialCrossoverTest {
         }
         
         PBSolution result = dpx.recombine(blue, red);
-        TwoStatesIntegerSet nonExploredVariables = dpx.cliqueManagement.getNonExhaustivelyExploredVariables(dpx);
+        TwoStatesIntegerSet nonExploredVariables = dpx.cliqueManagement.getNonExhaustivelyExploredVariables();
         
         List<Integer> exploredVariables = IntStream.range(0, nk.getN())
     			.filter(i->(blue.getBit(i)!=red.getBit(i)) && !nonExploredVariables.isExplored(i))
     			.boxed().collect(Collectors.toList());
         
         System.out.println("Truncated exploration: "+exploredVariables.size()+" variables, "+nonExploredVariables.getNumberOfExploredElements()+" non-explored variables");
-        System.out.println("Groups of non exhaustively explored variables: "+dpx.cliqueManagement.getGroupsOfNonExhaustivelyExploredVariables(dpx));
+        System.out.println("Groups of non exhaustively explored variables: "+dpx.cliqueManagement.getGroupsOfNonExhaustivelyExploredVariables());
         
         if (exploredVariables.size() > 29) {
         	throw new IllegalArgumentException("Too many explored variables, I cannot do this test");

@@ -52,9 +52,6 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private int [] last;
 	
 	TwoStatesIntegerSet articulationPoints;
-	TwoStatesIntegerSet nonExhaustivelyExploredVariables;
-	int groupsOfNonExhaustivelyExploredVariables;
-	
 	private PBSolution red;
 	private PBSolution blue;
 	
@@ -89,7 +86,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		}
 		subfunctions = new TwoStatesISArrayImpl(el.getM());
 		articulationPoints = new TwoStatesISArrayImpl(n);
-		cliqueManagement.setNonExhaustivelyExploredVariables(this, new TwoStatesISArrayImpl(n));
+		cliqueManagement.setNonExhaustivelyExploredVariables(new TwoStatesISArrayImpl(n));
 		
 		
 		this.el = el;
@@ -298,8 +295,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	    System.out.println("Maximum cardinality search finished at: "+(System.nanoTime()-initTime));
 	    
 	    numberOfComponents = 0;
-	    cliqueManagement.setGroupsOfNonExhaustivelyExploredVariables(this, 0);
-    	cliqueManagement.getNonExhaustivelyExploredVariables(this).reset();
+	    cliqueManagement.setGroupsOfNonExhaustivelyExploredVariables(0);
+    	cliqueManagement.getNonExhaustivelyExploredVariables().reset();
     	articulationPoints.reset();
 	    
 	    if (differentSolutions) {
@@ -318,7 +315,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		    	ps.println("Number of components: "+numberOfComponents);
 		    	ps.println(cliqueManagement.getCliqueTree());
 		    }
-		    cliqueManagement.applyDynamicProgramming(cliqueManagement.getNonExhaustivelyExploredVariables(this), marks, red, el, subFunctionsPartition);
+		    cliqueManagement.applyDynamicProgramming(cliqueManagement.getNonExhaustivelyExploredVariables(), marks, red, el, subFunctionsPartition);
 		    System.out.println("Dynamic programming finished at: "+(System.nanoTime()-initTime));
 		    cliqueManagement.reconstructOptimalChild(child, red, varProcedence);
 	    }
@@ -370,7 +367,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	}
 
 	public int getLogarithmOfExploredSolutions() {
-		return cliqueManagement.getGroupsOfNonExhaustivelyExploredVariables(this) + (getDifferingVariables()-cliqueManagement.getNonExhaustivelyExploredVariables(this).getNumberOfExploredElements());
+		return cliqueManagement.getGroupsOfNonExhaustivelyExploredVariables() + (getDifferingVariables()-cliqueManagement.getNonExhaustivelyExploredVariables().getNumberOfExploredElements());
 	}
 	
 	public int getDifferingVariables() {
