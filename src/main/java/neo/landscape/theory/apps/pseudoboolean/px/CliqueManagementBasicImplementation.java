@@ -1,6 +1,7 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -9,6 +10,7 @@ import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableCliqueImplementation;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class CliqueManagementBasicImplementation implements CliqueManagement {	
 	public static final CliqueManagementFactory FACTORY = new CliqueManagementFactory() {
@@ -41,7 +43,7 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 	}
 
 	@Override
-	public void applyDynamicProgramming(Set<Integer> nonExhaustivelyExploredVariables, int[] marks, PBSolution red, EmbeddedLandscape el, List<Integer> [] subFunctionsPartition) {
+	public void applyDynamicProgramming(TwoStatesIntegerSet nonExhaustivelyExploredVariables, int[] marks, PBSolution red, EmbeddedLandscape el, List<Integer> [] subFunctionsPartition) {
 		indexAssigner.clearIndex();
 		for (int i=numCliques-1; i>=0; i--) {
 			cliques.get(i).prepareStructuresForComputation(nonExhaustivelyExploredVariables, marks, indexAssigner);
@@ -75,5 +77,23 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 	@Override
 	public void setVariableCliqueParent(int childID, int parentID) {
 		cliques.get(childID).setParent(cliques.get(parentID));
+	}
+	
+	@Override
+	public String getCliqueTree() {
+		String result = "";
+		for (VariableClique clique: getCliques()) {
+			Set<Integer> residue = new HashSet<>();
+			residue.addAll(clique.getVariables());
+			
+			if (clique.getParent() != null) {
+				residue.removeAll(clique.getParent().getVariables());
+			}
+			Set<Integer> separator = new HashSet<>();
+			separator.addAll(clique.getVariables());
+			separator.removeAll(residue);
+			result += "Clique "+clique.getId()+" (parent "+(clique.getParent()!=null?clique.getParent().getId():-1)+"): separator="+separator+ ", residue="+residue+"\n";
+		}
+		return result;
 	}
 }

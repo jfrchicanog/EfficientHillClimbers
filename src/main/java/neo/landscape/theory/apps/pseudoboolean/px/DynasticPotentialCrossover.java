@@ -2,12 +2,9 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
@@ -26,12 +23,12 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	protected static final int VARIABLE_LIMIT = 1<<29;
 	protected EmbeddedLandscape el;
     
-	private int maximumNumberOfVariableToExploreExhaustively = DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE;
+	int maximumNumberOfVariableToExploreExhaustively = DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE;
 	
-	private int [] alpha;
+	int [] alpha;
 	private int [] alphaInverted;
 	private Set<Integer> [] verticesWithNMarks;
-	private int [] marks;
+	int [] marks;
 	private boolean differentSolutions;
 	private int topLabel;
 	private int initialLabel;
@@ -40,9 +37,9 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private UndirectedGraphFactory graphFactory = MemoryEfficientUndirectedGraph.FACTORY;
 	// Clique tree 
 	private CliqueManagementFactory cmFactory = CliqueManagementMemoryEfficient.FACTORY;
-	private CliqueManagement cliqueManagement;
+	public CliqueManagement cliqueManagement;
 	// Subfunctions
-	List<Integer> [] subFunctionsPartition;
+	private List<Integer> [] subFunctionsPartition;
 	private TwoStatesIntegerSet subfunctions;
 	
     protected long lastRuntime;
@@ -54,11 +51,11 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private int [] cliqueOfVariable;
 	private int [] last;
 	
-	private Set<Integer> articulationPoints;
-	Set<Integer> nonExhaustivelyExploredVariables;
-	private int groupsOfNonExhaustivelyExploredVariables;
+	TwoStatesIntegerSet articulationPoints;
+	TwoStatesIntegerSet nonExhaustivelyExploredVariables;
+	int groupsOfNonExhaustivelyExploredVariables;
 	
-	PBSolution red;
+	private PBSolution red;
 	private PBSolution blue;
 	
 	protected VariableProcedence varProcedence;
@@ -91,8 +88,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 			subFunctionsPartition[i] = new ArrayList<>();
 		}
 		subfunctions = new TwoStatesISArrayImpl(el.getM());
-		articulationPoints = new HashSet<>();
-		nonExhaustivelyExploredVariables = new HashSet<>();
+		articulationPoints = new TwoStatesISArrayImpl(n);
+		cliqueManagement.setNonExhaustivelyExploredVariables(this, new TwoStatesISArrayImpl(n));
 		
 		
 		this.el = el;
@@ -239,7 +236,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	}
 	
 	private void cliqueTree() {
-		articulationPoints.clear();
+		articulationPoints.reset();
 		numberOfComponents=1;
 		int n = el.getN();
 		cliqueManagement.clearCliqueTree();
@@ -262,7 +259,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 				currentClique.addVariable(x);
 				
 				if (currentClique.getVariablesOfSeparator() == 1) {
-					articulationPoints.add(currentClique.getVariable(0));
+					articulationPoints.explored(currentClique.getVariable(0));
 				}
 				
 				if (last[x] >= 0) {
@@ -301,9 +298,9 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	    System.out.println("Maximum cardinality search finished at: "+(System.nanoTime()-initTime));
 	    
 	    numberOfComponents = 0;
-	    groupsOfNonExhaustivelyExploredVariables = 0;
-    	nonExhaustivelyExploredVariables.clear();
-    	articulationPoints.clear();
+	    cliqueManagement.setGroupsOfNonExhaustivelyExploredVariables(this, 0);
+    	cliqueManagement.getNonExhaustivelyExploredVariables(this).reset();
+    	articulationPoints.reset();
 	    
 	    if (differentSolutions) {
 	    	fillIn();
@@ -314,14 +311,14 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	    	System.out.println("Subfunctions organization finished at: "+(System.nanoTime()-initTime));
 		    cliqueTree();
 		    System.out.println("Clique tree computation finished at: "+(System.nanoTime()-initTime));
-		    cliqueTreeAnalysis();
+		    cliqueManagement.cliqueTreeAnalysis(this);
 		    System.out.println("Clique tree analysis finished at: "+(System.nanoTime()-initTime));
 		    if (debug && ps != null) {
 		    	ps.println("Initial label: "+initialLabel);
 		    	ps.println("Number of components: "+numberOfComponents);
-		    	ps.println(getCliqueTree());
+		    	ps.println(cliqueManagement.getCliqueTree());
 		    }
-		    cliqueManagement.applyDynamicProgramming(nonExhaustivelyExploredVariables, marks, red, el, subFunctionsPartition);
+		    cliqueManagement.applyDynamicProgramming(cliqueManagement.getNonExhaustivelyExploredVariables(this), marks, red, el, subFunctionsPartition);
 		    System.out.println("Dynamic programming finished at: "+(System.nanoTime()-initTime));
 		    cliqueManagement.reconstructOptimalChild(child, red, varProcedence);
 	    }
@@ -336,7 +333,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 				+ (getDifferingVariables() == logarithmOfExploredSolutions));
 		ps.println("* Number of articulation points: " + getNumberOfArticulationPoints());
 		ps.println("* All articulation points exhaustively explored: "
-				+ allArticulationPointsExhaustivelyExplored());
+				+ cliqueManagement.allArticulationPointsExhaustivelyExplored(this));
 		
 		return child;
 	}
@@ -349,100 +346,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	    return solution;
 	}
 	
-	/**
-	 * This method analyzes the clique tree and put limit to the number of variables for which all the combinations are tested.
-	 */
-	private void cliqueTreeAnalysis() {
-		nonExhaustivelyExploredVariables.clear();
-		for (VariableClique clique: cliqueManagement.getCliques()) {
-			List<Integer> listOfVariables = clique.getVariables().subList(0,clique.getVariablesOfSeparator());
-			checkExplorationLimits(listOfVariables);
-			
-			listOfVariables = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
-			checkExplorationLimits(listOfVariables);
-		}
-		
-		analysisOfGroupsOfNonExhaustivelyExploredVariables();
-		
-	}
-
-	protected void analysisOfGroupsOfNonExhaustivelyExploredVariables() {
-		List<Set<Integer>> partitionOfNonExploredVariables = new ArrayList<>();
-		for (VariableClique clique: cliqueManagement.getCliques()) {
-			List<Integer> separator = clique.getVariables().subList(0, clique.getVariablesOfSeparator());
-			List<Integer> residue = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
-			for (List<Integer> listOfVariables : new List[] { separator, residue }) {
-				Set<Integer> newComponent = listOfVariables.stream().filter(nonExhaustivelyExploredVariables::contains)
-						.collect(Collectors.toSet());
-				
-				if (newComponent.isEmpty()) {
-					continue;
-				}
-				
-				Iterator<Set<Integer>> it = partitionOfNonExploredVariables.iterator();
-				Set<Integer> updatedComponent = null;
-				while (it.hasNext()) {
-					Set<Integer> previousComponent = it.next();
-					if (previousComponent.stream().filter(newComponent::contains).findFirst().isPresent()) {
-						if (updatedComponent == null) {
-							updatedComponent = previousComponent;
-							updatedComponent.addAll(newComponent);
-						} else {
-							updatedComponent.addAll(previousComponent);
-							it.remove();
-						}
-					}
-				}
-				if (updatedComponent == null) {
-					partitionOfNonExploredVariables.add(newComponent);
-				}
-			}
-		}
-		groupsOfNonExhaustivelyExploredVariables = partitionOfNonExploredVariables.size();
-		
-		if (debug) {
-			Set<Integer> auxiliar = new HashSet<>();
-			for (Set<Integer> component: partitionOfNonExploredVariables) {
-				assert auxiliar.stream().filter(component::contains).count()==0;
-				auxiliar.addAll(component);
-			}
-			assert auxiliar.equals(nonExhaustivelyExploredVariables);
-		}
-		
-		for (int i=0; i < partitionOfNonExploredVariables.size(); i++) {
-			Set<Integer> component = partitionOfNonExploredVariables.get(i);
-			for (int variable : component) {
-				marks[variable] = i;
-			}
-		}
-	}
-
-	protected void checkExplorationLimits(List<Integer> listOfVariables) {
-		if (listOfVariables.size() > maximumNumberOfVariableToExploreExhaustively) {
-			listOfVariables.sort(Comparator.<Integer>comparingInt(variable -> articulationPoints.contains(variable)?0:1)
-					.thenComparing(Comparator.<Integer>naturalOrder()));
-			nonExhaustivelyExploredVariables.addAll(listOfVariables.subList(maximumNumberOfVariableToExploreExhaustively, listOfVariables.size()));
-		}
-	}
-
-	public String getCliqueTree() {
-		String result = "";
-		for (VariableClique clique: cliqueManagement.getCliques()) {
-			Set<Integer> residue = new HashSet<>();
-			residue.addAll(clique.getVariables());
-			
-			if (clique.getParent() != null) {
-				residue.removeAll(clique.getParent().getVariables());
-			}
-			Set<Integer> separator = new HashSet<>();
-			separator.addAll(clique.getVariables());
-			separator.removeAll(residue);
-			result += "Clique "+clique.getId()+" (parent "+(clique.getParent()!=null?clique.getParent().getId():-1)+"): separator="+separator+ ", residue="+residue+"\n";
-		}
-		return result;
-	}
-
-    public int getNumberOfComponents() {
+	public int getNumberOfComponents() {
         return numberOfComponents;
     }
     
@@ -465,16 +369,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		maximumNumberOfVariableToExploreExhaustively = numberOfVariables;
 	}
 
-	public Set<Integer> getNonExhaustivelyExploredVariables() {
-		return nonExhaustivelyExploredVariables;
-	}
-
-	public int getGroupsOfNonExhaustivelyExploredVariables() {
-		return groupsOfNonExhaustivelyExploredVariables;
-	}
-	
 	public int getLogarithmOfExploredSolutions() {
-		return groupsOfNonExhaustivelyExploredVariables + (getDifferingVariables()-nonExhaustivelyExploredVariables.size());
+		return cliqueManagement.getGroupsOfNonExhaustivelyExploredVariables(this) + (getDifferingVariables()-cliqueManagement.getNonExhaustivelyExploredVariables(this).getNumberOfExploredElements());
 	}
 	
 	public int getDifferingVariables() {
@@ -482,13 +378,9 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	}
 	
 	public int getNumberOfArticulationPoints() {
-		return articulationPoints.size();
+		return articulationPoints.getNumberOfExploredElements();
 	}
 	
-	public boolean allArticulationPointsExhaustivelyExplored() {
-		return !nonExhaustivelyExploredVariables.stream().anyMatch(articulationPoints::contains);
-	}
-
 	public EmbeddedLandscape getEmbddedLandscape() {
 		return el;
 	}

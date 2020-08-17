@@ -8,6 +8,7 @@ import java.util.function.Function;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class AbstractVariableClique implements VariableClique {
 
@@ -42,7 +43,7 @@ public class AbstractVariableClique implements VariableClique {
 	}
 
 	@Override
-	public void prepareStructuresForComputation(Set<Integer> nonExhaustivelyExplored, int[] marks,
+	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, int[] marks,
 			Function<Integer, Integer> indexAssignment) {
 		throw new UnsupportedOperationException();
 	}

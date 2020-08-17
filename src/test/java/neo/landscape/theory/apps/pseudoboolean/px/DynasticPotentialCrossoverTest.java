@@ -17,6 +17,7 @@ import org.junit.Test;
 import junit.framework.Assert;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class DynasticPotentialCrossoverTest {
     private NKLandscapes nk;
@@ -138,14 +139,14 @@ public class DynasticPotentialCrossoverTest {
         }
         
         PBSolution result = dpx.recombine(blue, red);
-        Set<Integer> nonExploredVariables = dpx.getNonExhaustivelyExploredVariables();
+        TwoStatesIntegerSet nonExploredVariables = dpx.cliqueManagement.getNonExhaustivelyExploredVariables(dpx);
         
         List<Integer> exploredVariables = IntStream.range(0, nk.getN())
-    			.filter(i->(blue.getBit(i)!=red.getBit(i)) && !nonExploredVariables.contains(i))
+    			.filter(i->(blue.getBit(i)!=red.getBit(i)) && !nonExploredVariables.isExplored(i))
     			.boxed().collect(Collectors.toList());
         
-        System.out.println("Truncated exploration: "+exploredVariables.size()+" variables, "+nonExploredVariables.size()+" non-explored variables");
-        System.out.println("Groups of non exhaustively explored variables: "+dpx.getGroupsOfNonExhaustivelyExploredVariables());
+        System.out.println("Truncated exploration: "+exploredVariables.size()+" variables, "+nonExploredVariables.getNumberOfExploredElements()+" non-explored variables");
+        System.out.println("Groups of non exhaustively explored variables: "+dpx.cliqueManagement.getGroupsOfNonExhaustivelyExploredVariables(dpx));
         
         if (exploredVariables.size() > 29) {
         	throw new IllegalArgumentException("Too many explored variables, I cannot do this test");

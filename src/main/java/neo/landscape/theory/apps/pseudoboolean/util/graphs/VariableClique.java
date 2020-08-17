@@ -8,6 +8,7 @@ import java.util.function.Function;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.px.VariableProcedence;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public interface VariableClique {
 	VariableClique getParent();
@@ -18,7 +19,7 @@ public interface VariableClique {
 	void addVariable(int var);
 	void addAllVariables(Collection<Integer> vars);
 	int getId();
-	void prepareStructuresForComputation(Set<Integer> nonExhaustivelyExplored, int[] marks,
+	void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, int[] marks,
 			Function<Integer, Integer> indexAssignment);
 	int getVariablesOfSeparator();
 	void markSeparator();

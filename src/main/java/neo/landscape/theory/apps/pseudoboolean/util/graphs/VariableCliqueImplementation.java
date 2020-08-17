@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.px.VariableProcedence;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class VariableCliqueImplementation implements VariableClique {
 	
@@ -57,7 +57,7 @@ public class VariableCliqueImplementation implements VariableClique {
 	}
 	
 	@Override
-	public void prepareStructuresForComputation(Set<Integer> nonExhaustivelyExplored, int [] marks, Function<Integer,Integer> indexAssignment) {
+	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, int [] marks, Function<Integer,Integer> indexAssignment) {
 		List<Integer> separator = variables.subList(0, variablesOfSeparator);
 		variableSeparatorLimit = variableLimitFromList(nonExhaustivelyExplored, separator);
 		
@@ -81,10 +81,10 @@ public class VariableCliqueImplementation implements VariableClique {
 				(marks[variables.get(variableSeparatorLimit)] == marks[variables.get(variablesOfSeparator+variableResidueLimit)]);
 	}
 
-	private static int variableLimitFromList(Set<Integer> nonExhaustivelyExplored, List<Integer> separator) {
-		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExplored.contains(variable)?1:0));
+	private static int variableLimitFromList(TwoStatesIntegerSet nonExhaustivelyExplored, List<Integer> separator) {
+		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExplored.isExplored(variable)?1:0));
 		int i;
-		for (i=0; i < separator.size() && !nonExhaustivelyExplored.contains(separator.get(i)); i++);
+		for (i=0; i < separator.size() && !nonExhaustivelyExplored.isExplored(separator.get(i)); i++);
 		return i;
 	}
 

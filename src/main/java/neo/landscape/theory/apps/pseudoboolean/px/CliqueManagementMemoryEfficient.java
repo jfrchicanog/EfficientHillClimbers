@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -14,6 +15,7 @@ import java.util.stream.IntStream;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	public static final CliqueManagementFactory FACTORY = new CliqueManagementFactory() {
@@ -186,7 +188,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	}
 
 	@Override
-	public void applyDynamicProgramming(Set<Integer> nonExhaustivelyExploredVariables, int[] marks, PBSolution red, EmbeddedLandscape el, List<Integer> [] subFunctionsPartition) {
+	public void applyDynamicProgramming(TwoStatesIntegerSet nonExhaustivelyExploredVariables, int[] marks, PBSolution red, EmbeddedLandscape el, List<Integer> [] subFunctionsPartition) {
 		ensureQueryState();
 		indexAssigner.clearIndex();
 		for (int i=numCliques-1; i>=0; i--) {
@@ -442,7 +444,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		return value;
 	}
 	
-	private void prepareStructuresForComputation(int clique, Set<Integer> nonExhaustivelyExplored, int [] marks, Function<Integer,Integer> indexAssignment) {
+	private void prepareStructuresForComputation(int clique, TwoStatesIntegerSet nonExhaustivelyExplored, int [] marks, Function<Integer,Integer> indexAssignment) {
 		List<Integer> listVariables = getVariablesOfClique(clique);
 		
 		List<Integer> separator = listVariables.subList(0, variablesOfSeparator[clique]);
@@ -471,10 +473,10 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		sameGroupsOfNonExploredVariables.set(clique, sameGroup);
 	}
 
-	private static int variableLimitFromList(Set<Integer> nonExhaustivelyExplored, List<Integer> separator) {
-		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExplored.contains(variable)?1:0));
+	private static int variableLimitFromList(TwoStatesIntegerSet nonExhaustivelyExplored, List<Integer> separator) {
+		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExplored.isExplored(variable)?1:0));
 		int i;
-		for (i=0; i < separator.size() && !nonExhaustivelyExplored.contains(separator.get(i)); i++);
+		for (i=0; i < separator.size() && !nonExhaustivelyExplored.isExplored(separator.get(i)); i++);
 		return i;
 	}
 	
@@ -511,5 +513,26 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 				}
 			}
 		}
+	}
+	
+	@Override
+	public String getCliqueTree() {
+		String result = "";
+		for (int clique=0; clique < numCliques; clique++) {
+			int vars = getNumberOfVariablesOfClique(clique);
+			int sepVars = variablesOfSeparator[clique];
+
+			Set<Integer> separator = new HashSet<>();
+			Set<Integer> residue = new HashSet<>();
+			int v;
+			for (v=0; v < sepVars; v++) {
+				separator.add(getVariableOfClique(clique, v));
+			}
+			for (; v < vars; v++) {
+				residue.add(getVariableOfClique(clique, v));
+			}
+			result += "Clique "+clique+" (parent "+parent[clique]+"): separator="+separator+ ", residue="+residue+"\n";
+		}
+		return result;
 	}
 }
