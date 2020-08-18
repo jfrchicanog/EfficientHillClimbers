@@ -4,7 +4,6 @@ import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -468,8 +467,8 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		int startIndex = indexOfVariableInClique(clique, 0);
 		int endIndex = variableIndex[clique];
 
-		variableSeparatorLimit[clique] = variableLimitFromList(startIndex, startIndex+varsInSep-1);
-		variableResidueLimit[clique] = variableLimitFromList(startIndex+varsInSep, endIndex);
+		//variableSeparatorLimit[clique] = variableLimitFromList(startIndex, startIndex+varsInSep-1);
+		//variableResidueLimit[clique] = variableLimitFromList(startIndex+varsInSep, endIndex);
 		
 		if (Math.max(variableSeparatorLimit[clique], variableResidueLimit[clique]) > DYNP_ITERATION_LIMIT) {
 			throw new RuntimeException("I cannot reduce this clique because it is too large (Reduce the exhaustive exploration)");
@@ -489,27 +488,6 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		
 		
 		sameGroupsOfNonExploredVariables.set(clique, sameGroup);
-	}
-
-	private int variableLimitFromList(int startIndex, int endIndexInclusive) {
-		int nbOfNonExhVariables = 0;
-		int toWrite = startIndex;
-		for (int i=startIndex; i <= endIndexInclusive; i++) {
-			int variable = variables[i];
-			if (nonExhaustivelyExploredVariables.isExplored(variable)) {
-				auxiliaryArray[nbOfNonExhVariables++] = variable;
-			} else {
-				variables[toWrite++] = variable;
-			}
-		}
-		
-		int exhaustivelyExplored = toWrite - startIndex;
-		
-		for (int i=0; i < nbOfNonExhVariables; i++) {
-			variables[toWrite++] = auxiliaryArray[i];
-		}
-		
-		return exhaustivelyExplored;
 	}
 	
 	private void reconstructSolutionInClique(int clique, PBSolution child, PBSolution red, VariableProcedence variableProcedence, int [] variableValue) {
@@ -605,8 +583,10 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 			int startIndex = indexOfVariableInClique(cliqueId, 0);
 			int endIndex = variableIndex[cliqueId];
 			
-			analyzeSetOfVariables(startIndex, startIndex+varsInSep-1);
-			analyzeSetOfVariables(startIndex+varsInSep, endIndex);
+			variableSeparatorLimit[cliqueId] = analyzeSetOfVariables(startIndex, startIndex+varsInSep-1);
+			assert checkExhaustivelyExplored(startIndex, startIndex+varsInSep-1, variableSeparatorLimit[cliqueId]);
+			variableResidueLimit[cliqueId] = analyzeSetOfVariables(startIndex+varsInSep, endIndex);
+			assert checkExhaustivelyExplored(startIndex+varsInSep, endIndex, variableResidueLimit[cliqueId]);
 		}
 		
 		groupsOfNonExhaustivelyExploredVariables = disjointSets.getNumberOfSets() 
@@ -614,57 +594,72 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 				- hammingDistance;
 	}
 	
-	private void analyzeSetOfVariables(int startIndex, int endIndexInclusive) {
+	private int analyzeSetOfVariables(int startIndex, int endIndexInclusive) {
+		int nbOfNonExhVariables = 0;
+		int toWrite = startIndex;
 		int previousVar = -1;
 		for (int i=startIndex; i <= endIndexInclusive; i++) {
-			if (nonExhaustivelyExploredVariables.isExplored(variables[i])) {
+			int variable = variables[i];
+			if (nonExhaustivelyExploredVariables.isExplored(variable)) {
+				auxiliaryArray[nbOfNonExhVariables++] = variable;
 				if (previousVar >= 0) {
-					disjointSets.union(previousVar, variables[i]);
+					disjointSets.union(previousVar, variable);
 				}
-				previousVar = variables[i];
+				previousVar = variable;
+			} else {
+				variables[toWrite++] = variable;
 			}
 		}
+		
+		int exhaustivelyExplored = toWrite - startIndex;
+		
+		for (int i=0; i < nbOfNonExhVariables; i++) {
+			variables[toWrite++] = auxiliaryArray[i];
+		}
+		
+		return exhaustivelyExplored;
+	}
+	
+	/**
+	 * This method adds an extra check in the code, only used in an assertion
+	 * @param startIndex
+	 * @param endIndexInclusive
+	 * @param exhaustivelyExplored
+	 * @return
+	 */
+	private boolean checkExhaustivelyExplored(int startIndex, int endIndexInclusive, int exhaustivelyExplored) {
+		for (int i=startIndex; i < startIndex+exhaustivelyExplored; i++) {
+			if (nonExhaustivelyExploredVariables.isExplored(variables[i])) {
+				return false;
+			}
+		}
+		
+		for (int i=startIndex+exhaustivelyExplored; i <= endIndexInclusive; i++) {
+			if (!nonExhaustivelyExploredVariables.isExplored(variables[i])) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	private void fillNonExhaustivelyExploredVariables(int startIndex, int endIndexInclusive) {
 		int variablesToJoin = endIndexInclusive-startIndex+1 - maximumVariablesToExhaustivelyExplore;
 		if (variablesToJoin > 0) {
-			int bottomIndex = 0;
-			int topIndex = variablesToJoin-1;
-			for (;bottomIndex < variablesToJoin && endIndexInclusive >= startIndex; endIndexInclusive--) {
+			int nbOfArticulationPoints = 0;
+			for (; variablesToJoin > 0 && endIndexInclusive >= startIndex; endIndexInclusive--) {
 				int variable = variables[endIndexInclusive];
 				if (articulationPoints.isExplored(variable)) {
-					if (topIndex >= bottomIndex) {
-						auxiliaryArray[topIndex--] = variable;
-					}
+					auxiliaryArray[nbOfArticulationPoints++] = variable;
 				} else {
-					auxiliaryArray[bottomIndex++] = variable;
+					nonExhaustivelyExploredVariables.explored(variable);
+					variablesToJoin--;
 				}
 			}
 			
-			for (int i=0; i < variablesToJoin; i++) {
+			for (int i = 0; variablesToJoin > 0; i++) {
 				nonExhaustivelyExploredVariables.explored(auxiliaryArray[i]);
+				variablesToJoin--;
 			}
-			
-			// assert variablesToJoin <= bottomIndex;
-			
-//			int previousVar = -1;
-//
-//			if (previousVar >= 0) {
-//				disjointSets.union(previousVar, variable);
-//			}
-//
-//			nonExhaustivelyExploredVariables.explored(variable);
-//			previousVar = variable;
-//
-//			for (int i = 0; variablesToJoin > 0; i++) {
-//				int variable = auxiliaryArray[i];
-//				if (previousVar >= 0) {
-//					disjointSets.union(previousVar, variable);
-//				}
-//				nonExhaustivelyExploredVariables.explored(variable);
-//				variablesToJoin--;
-//			}
 		}
 	}
 	
