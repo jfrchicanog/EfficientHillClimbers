@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>es.uma.chicano</groupId>
 	<artifactId>EfficientHillClimbers</artifactId>
-	<version>0.19-MEM</version>
+	<version>0.20-DPX</version>
 	<name>Efficient Hill Climbers</name>
 	<description>Efficient operators based on Gray-Box optimization (work started during the research stay in CSU in August-November 2013)</description>
 
