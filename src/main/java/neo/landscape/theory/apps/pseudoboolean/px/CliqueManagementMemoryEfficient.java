@@ -471,9 +471,6 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		variableSeparatorLimit[clique] = variableLimitFromList(startIndex, startIndex+varsInSep-1);
 		variableResidueLimit[clique] = variableLimitFromList(startIndex+varsInSep, endIndex);
 		
-		assert variableSeparatorLimit[clique] == variableLimitFromListAlternative(getVariablesOfClique(clique).subList(0, variablesOfSeparator[clique]));
-		assert variableResidueLimit[clique] == variableLimitFromListAlternative(getVariablesOfClique(clique).subList(variablesOfSeparator[clique], getNumberOfVariablesOfClique(clique)));
-		
 		if (Math.max(variableSeparatorLimit[clique], variableResidueLimit[clique]) > DYNP_ITERATION_LIMIT) {
 			throw new RuntimeException("I cannot reduce this clique because it is too large (Reduce the exhaustive exploration)");
 		}
@@ -494,19 +491,6 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		sameGroupsOfNonExploredVariables.set(clique, sameGroup);
 	}
 
-	private int variableLimitFromListAlternative(List<Integer> separator) {
-		for (int i=0; i < separator.size();i++) {
-			auxiliaryArray[i] = separator.get(i);
-		}
-		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExploredVariables.isExplored(variable)?1:0));
-		for (int i=0; i < separator.size(); i++) {
-			assert auxiliaryArray[i] == separator.get(i);
-		}
-		int i;
-		for (i=0; i < separator.size() && !nonExhaustivelyExploredVariables.isExplored(separator.get(i)); i++);
-		return i;
-	}
-	
 	private int variableLimitFromList(int startIndex, int endIndexInclusive) {
 		int nbOfNonExhVariables = 0;
 		int toWrite = startIndex;
@@ -612,11 +596,8 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 			int startIndex = indexOfVariableInClique(cliqueId, 0);
 			int endIndex = variableIndex[cliqueId];
 			
-			int varsToJoin = fillNonExhaustivelyExploredVariables(startIndex, startIndex+varsInSep-1);
-			assert checkAlternative(getVariablesOfClique(cliqueId).subList(0,varsInSep), varsToJoin);
-			
-			varsToJoin=fillNonExhaustivelyExploredVariables(startIndex+varsInSep, endIndex);
-			assert checkAlternative(getVariablesOfClique(cliqueId).subList(varsInSep,getNumberOfVariablesOfClique(cliqueId)), varsToJoin);
+			fillNonExhaustivelyExploredVariables(startIndex, startIndex+varsInSep-1);
+			fillNonExhaustivelyExploredVariables(startIndex+varsInSep, endIndex);
 		}
 		
 		for (int cliqueId=0; cliqueId < numCliques; cliqueId++) {
@@ -633,23 +614,6 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 				- hammingDistance;
 	}
 	
-	private boolean checkAlternative(List<Integer> listOfVariables, int varsToJoin) {
-		if (listOfVariables.size() > maximumVariablesToExhaustivelyExplore) {
-			List<Integer> vars = listOfVariables.stream()
-				.sorted(Comparator.<Integer>comparingInt(variable -> articulationPoints.isExplored(variable)?0:1)).collect(Collectors.toList()).subList(maximumVariablesToExhaustivelyExplore, listOfVariables.size());
-			
-			assert varsToJoin == vars.size();
-			for (int i=0; i < vars.size();i++) {
-				if (!vars.contains(auxiliaryArray[i])) {
-					return false;
-				}
-			}	
-		} else {
-			assert varsToJoin == 0;
-		}
-		return true;
-	}
-	
 	private void analyzeSetOfVariables(int startIndex, int endIndexInclusive) {
 		int previousVar = -1;
 		for (int i=startIndex; i <= endIndexInclusive; i++) {
@@ -662,7 +626,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		}
 	}
 	
-	private int fillNonExhaustivelyExploredVariables(int startIndex, int endIndexInclusive) {
+	private void fillNonExhaustivelyExploredVariables(int startIndex, int endIndexInclusive) {
 		int variablesToJoin = endIndexInclusive-startIndex+1 - maximumVariablesToExhaustivelyExplore;
 		if (variablesToJoin > 0) {
 			int bottomIndex = 0;
@@ -682,7 +646,6 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 				nonExhaustivelyExploredVariables.explored(auxiliaryArray[i]);
 			}
 			
-			return variablesToJoin;
 			// assert variablesToJoin <= bottomIndex;
 			
 //			int previousVar = -1;
@@ -703,8 +666,6 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 //				variablesToJoin--;
 //			}
 		}
-		
-		return 0;
 	}
 	
 	@Override
