@@ -182,6 +182,7 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 			assert auxiliar.equals(getNonExhaustivelyExploredVariables().getExplored().boxed().collect(Collectors.toSet()));
 		}
 		
+		disjointSets.clear();
 		for (int i=0; i < partitionOfNonExploredVariables.size(); i++) {
 			Set<Integer> component = partitionOfNonExploredVariables.get(i);
 			int previousVar = -1;
@@ -199,7 +200,7 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 			listOfVariables.sort(Comparator.<Integer>comparingInt(variable -> articulationPoints.isExplored(variable)?0:1)
 					.thenComparing(Comparator.<Integer>naturalOrder()));
 			listOfVariables.subList(maximumVariablesToExhaustivelyExplore, listOfVariables.size())
-			.forEach(getNonExhaustivelyExploredVariables()::explored);
+			.forEach(nonExhaustivelyExploredVariables::explored);
 			
 		}
 	}

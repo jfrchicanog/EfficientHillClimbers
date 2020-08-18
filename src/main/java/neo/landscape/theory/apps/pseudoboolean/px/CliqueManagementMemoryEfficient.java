@@ -1,13 +1,11 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -152,6 +150,8 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	private TwoStatesIntegerSet articulationPoints;
 	private int maximumVariablesToExhaustivelyExplore;
 	
+	private int [] auxiliaryArray; // iff possible, this could come from the arrays of Dynastic potential class
+	
 	private boolean debug;
 	private DisjointSets disjointSets;
 
@@ -170,6 +170,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		sameGroupsOfNonExploredVariables = new BitSet(initialCliqueSize);
 		nonExhaustivelyExploredVariables = new TwoStatesISArrayImpl(maxVariables);
 		articulationPoints = new TwoStatesISArrayImpl(maxVariables);
+		auxiliaryArray = new int [maxVariables];
 		clearCliqueTree();
 	}
 	
@@ -463,13 +464,15 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	}
 	
 	private void prepareStructuresForComputation(int clique, Function<Integer,Integer> indexAssignment) {
-		List<Integer> listVariables = getVariablesOfClique(clique);
+		int varsInSep = variablesOfSeparator[clique];
+		int startIndex = indexOfVariableInClique(clique, 0);
+		int endIndex = variableIndex[clique];
+
+		variableSeparatorLimit[clique] = variableLimitFromList(startIndex, startIndex+varsInSep-1);
+		variableResidueLimit[clique] = variableLimitFromList(startIndex+varsInSep, endIndex);
 		
-		List<Integer> separator = listVariables.subList(0, variablesOfSeparator[clique]);
-		variableSeparatorLimit[clique] = variableLimitFromList(nonExhaustivelyExploredVariables, separator);
-		
-		List<Integer> residue = listVariables.subList(variablesOfSeparator[clique], getNumberOfVariablesOfClique(clique));
-		variableResidueLimit[clique] = variableLimitFromList(nonExhaustivelyExploredVariables, residue);
+		assert variableSeparatorLimit[clique] == variableLimitFromListAlternative(getVariablesOfClique(clique).subList(0, variablesOfSeparator[clique]));
+		assert variableResidueLimit[clique] == variableLimitFromListAlternative(getVariablesOfClique(clique).subList(variablesOfSeparator[clique], getNumberOfVariablesOfClique(clique)));
 		
 		if (Math.max(variableSeparatorLimit[clique], variableResidueLimit[clique]) > DYNP_ITERATION_LIMIT) {
 			throw new RuntimeException("I cannot reduce this clique because it is too large (Reduce the exhaustive exploration)");
@@ -491,12 +494,38 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		sameGroupsOfNonExploredVariables.set(clique, sameGroup);
 	}
 
-	private static int variableLimitFromList(TwoStatesIntegerSet nonExhaustivelyExplored, List<Integer> separator) {
-		// TODO: re-implement for efficiency 
-		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExplored.isExplored(variable)?1:0));
+	private int variableLimitFromListAlternative(List<Integer> separator) {
+		for (int i=0; i < separator.size();i++) {
+			auxiliaryArray[i] = separator.get(i);
+		}
+		separator.sort(Comparator.<Integer>comparingInt(variable->nonExhaustivelyExploredVariables.isExplored(variable)?1:0));
+		for (int i=0; i < separator.size(); i++) {
+			assert auxiliaryArray[i] == separator.get(i);
+		}
 		int i;
-		for (i=0; i < separator.size() && !nonExhaustivelyExplored.isExplored(separator.get(i)); i++);
+		for (i=0; i < separator.size() && !nonExhaustivelyExploredVariables.isExplored(separator.get(i)); i++);
 		return i;
+	}
+	
+	private int variableLimitFromList(int startIndex, int endIndexInclusive) {
+		int nbOfNonExhVariables = 0;
+		int toWrite = startIndex;
+		for (int i=startIndex; i <= endIndexInclusive; i++) {
+			int variable = variables[i];
+			if (nonExhaustivelyExploredVariables.isExplored(variable)) {
+				auxiliaryArray[nbOfNonExhVariables++] = variable;
+			} else {
+				variables[toWrite++] = variable;
+			}
+		}
+		
+		int exhaustivelyExplored = toWrite - startIndex;
+		
+		for (int i=0; i < nbOfNonExhVariables; i++) {
+			variables[toWrite++] = auxiliaryArray[i];
+		}
+		
+		return exhaustivelyExplored;
 	}
 	
 	private void reconstructSolutionInClique(int clique, PBSolution child, PBSolution red, VariableProcedence variableProcedence, int [] variableValue) {
@@ -567,87 +596,115 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 
 	@Override
 	public void cliqueTreeAnalysis() {
-		// TODO: re-implement for efficiency
+		disjointSets.clear();
 		nonExhaustivelyExploredVariables.reset();
-		for (VariableClique clique: getCliques()) {
-			
-			List<Integer> listOfVariables = clique.getVariables().subList(0,clique.getVariablesOfSeparator());
-			checkExplorationLimits(listOfVariables);
-			
-			listOfVariables = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
-			checkExplorationLimits(listOfVariables);
+		
+		for (int varIndex=0; varIndex <= variableIndex[numCliques-1]; varIndex++) {
+			disjointSets.makeSet(variables[varIndex]);
+			nonExhaustivelyExploredVariables.explored(variables[varIndex]);
 		}
 		
-		analysisOfGroupsOfNonExhaustivelyExploredVariables();
+		int hammingDistance = nonExhaustivelyExploredVariables.getNumberOfExploredElements();
+		nonExhaustivelyExploredVariables.reset();
 		
+		for (int cliqueId=0; cliqueId < numCliques; cliqueId++) {
+			int varsInSep = variablesOfSeparator[cliqueId];
+			int startIndex = indexOfVariableInClique(cliqueId, 0);
+			int endIndex = variableIndex[cliqueId];
+			
+			int varsToJoin = fillNonExhaustivelyExploredVariables(startIndex, startIndex+varsInSep-1);
+			assert checkAlternative(getVariablesOfClique(cliqueId).subList(0,varsInSep), varsToJoin);
+			
+			varsToJoin=fillNonExhaustivelyExploredVariables(startIndex+varsInSep, endIndex);
+			assert checkAlternative(getVariablesOfClique(cliqueId).subList(varsInSep,getNumberOfVariablesOfClique(cliqueId)), varsToJoin);
+		}
+		
+		for (int cliqueId=0; cliqueId < numCliques; cliqueId++) {
+			int varsInSep = variablesOfSeparator[cliqueId];
+			int startIndex = indexOfVariableInClique(cliqueId, 0);
+			int endIndex = variableIndex[cliqueId];
+			
+			analyzeSetOfVariables(startIndex, startIndex+varsInSep-1);
+			analyzeSetOfVariables(startIndex+varsInSep, endIndex);
+		}
+		
+		groupsOfNonExhaustivelyExploredVariables = disjointSets.getNumberOfSets() 
+				+ nonExhaustivelyExploredVariables.getNumberOfExploredElements() 
+				- hammingDistance;
 	}
 	
-	private void analysisOfGroupsOfNonExhaustivelyExploredVariables() {
-		// TODO: re-implement for efficiency
-		List<Set<Integer>> partitionOfNonExploredVariables = new ArrayList<>();
-		for (VariableClique clique: getCliques()) {
-			List<Integer> separator = clique.getVariables().subList(0, clique.getVariablesOfSeparator());
-			List<Integer> residue = clique.getVariables().subList(clique.getVariablesOfSeparator(), clique.getVariables().size());
-			for (List<Integer> listOfVariables : new List[] { separator, residue }) {
-				Set<Integer> newComponent = listOfVariables.stream().filter(getNonExhaustivelyExploredVariables()::isExplored)
-						.collect(Collectors.toSet());
-				
-				if (newComponent.isEmpty()) {
-					continue;
-				}
-				
-				Iterator<Set<Integer>> it = partitionOfNonExploredVariables.iterator();
-				Set<Integer> updatedComponent = null;
-				while (it.hasNext()) {
-					Set<Integer> previousComponent = it.next();
-					if (previousComponent.stream().filter(newComponent::contains).findFirst().isPresent()) {
-						if (updatedComponent == null) {
-							updatedComponent = previousComponent;
-							updatedComponent.addAll(newComponent);
-						} else {
-							updatedComponent.addAll(previousComponent);
-							it.remove();
-						}
-					}
-				}
-				if (updatedComponent == null) {
-					partitionOfNonExploredVariables.add(newComponent);
-				}
-			}
-		}
-		groupsOfNonExhaustivelyExploredVariables = partitionOfNonExploredVariables.size();
-		
-		if (debug) {
-			Set<Integer> auxiliar = new HashSet<>();
-			for (Set<Integer> component: partitionOfNonExploredVariables) {
-				assert auxiliar.stream().filter(component::contains).count()==0;
-				auxiliar.addAll(component);
-			}
-			assert auxiliar.equals(getNonExhaustivelyExploredVariables().getExplored().boxed().collect(Collectors.toSet()));
-		}
-		
-		for (int i=0; i < partitionOfNonExploredVariables.size(); i++) {
-			Set<Integer> component = partitionOfNonExploredVariables.get(i);
-			int previousVar = -1;
-			for (int variable : component) {
-				disjointSets.makeSet(variable);
-				if (previousVar >= 0) {
-					disjointSets.union(previousVar, variable);
-				}
-				previousVar = variable;
-			}
-		}
-	}
-	
-	private void checkExplorationLimits(List<Integer> listOfVariables) {
-		// TODO: re-implement for efficiency
+	private boolean checkAlternative(List<Integer> listOfVariables, int varsToJoin) {
 		if (listOfVariables.size() > maximumVariablesToExhaustivelyExplore) {
-			listOfVariables.sort(Comparator.<Integer>comparingInt(variable -> articulationPoints.isExplored(variable)?0:1)
-					.thenComparing(Comparator.<Integer>naturalOrder()));
-			listOfVariables.subList(maximumVariablesToExhaustivelyExplore, listOfVariables.size())
-			.forEach(getNonExhaustivelyExploredVariables()::explored);
+			List<Integer> vars = listOfVariables.stream()
+				.sorted(Comparator.<Integer>comparingInt(variable -> articulationPoints.isExplored(variable)?0:1)).collect(Collectors.toList()).subList(maximumVariablesToExhaustivelyExplore, listOfVariables.size());
 			
+			assert varsToJoin == vars.size();
+			for (int i=0; i < vars.size();i++) {
+				if (!vars.contains(auxiliaryArray[i])) {
+					return false;
+				}
+			}	
+		} else {
+			assert varsToJoin == 0;
 		}
+		return true;
+	}
+	
+	private void analyzeSetOfVariables(int startIndex, int endIndexInclusive) {
+		int previousVar = -1;
+		for (int i=startIndex; i <= endIndexInclusive; i++) {
+			if (nonExhaustivelyExploredVariables.isExplored(variables[i])) {
+				if (previousVar >= 0) {
+					disjointSets.union(previousVar, variables[i]);
+				}
+				previousVar = variables[i];
+			}
+		}
+	}
+	
+	private int fillNonExhaustivelyExploredVariables(int startIndex, int endIndexInclusive) {
+		int variablesToJoin = endIndexInclusive-startIndex+1 - maximumVariablesToExhaustivelyExplore;
+		if (variablesToJoin > 0) {
+			int bottomIndex = 0;
+			int topIndex = variablesToJoin-1;
+			for (;bottomIndex < variablesToJoin && endIndexInclusive >= startIndex; endIndexInclusive--) {
+				int variable = variables[endIndexInclusive];
+				if (articulationPoints.isExplored(variable)) {
+					if (topIndex >= bottomIndex) {
+						auxiliaryArray[topIndex--] = variable;
+					}
+				} else {
+					auxiliaryArray[bottomIndex++] = variable;
+				}
+			}
+			
+			for (int i=0; i < variablesToJoin; i++) {
+				nonExhaustivelyExploredVariables.explored(auxiliaryArray[i]);
+			}
+			
+			return variablesToJoin;
+			// assert variablesToJoin <= bottomIndex;
+			
+//			int previousVar = -1;
+//
+//			if (previousVar >= 0) {
+//				disjointSets.union(previousVar, variable);
+//			}
+//
+//			nonExhaustivelyExploredVariables.explored(variable);
+//			previousVar = variable;
+//
+//			for (int i = 0; variablesToJoin > 0; i++) {
+//				int variable = auxiliaryArray[i];
+//				if (previousVar >= 0) {
+//					disjointSets.union(previousVar, variable);
+//				}
+//				nonExhaustivelyExploredVariables.explored(variable);
+//				variablesToJoin--;
+//			}
+		}
+		
+		return 0;
 	}
 	
 	@Override

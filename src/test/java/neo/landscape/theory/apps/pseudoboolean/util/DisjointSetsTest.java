@@ -16,21 +16,66 @@ public class DisjointSetsTest {
 		Set<Set<Integer>> partition = Stream.of(
 				Stream.of(1, 2, 3, 4).collect(Collectors.toSet()),
 				Stream.of(5, 6, 7, 8).collect(Collectors.toSet()),
-				Stream.of(0, 9, 10, 11).collect(Collectors.toSet()))
+				Stream.of(0, 9, 10, 11).collect(Collectors.toSet()),
+				Stream.of(12).collect(Collectors.toSet()),
+				Stream.of(13).collect(Collectors.toSet())
+				)
 				.collect(Collectors.toSet());
 		
-		check(partition);
-		
-	}
-	
-	private void check (Set<Set<Integer>> partition) {
 		Set<Integer> allNumbers = partition.stream().flatMap(Set::stream).collect(Collectors.toSet());
 		int [] parent = new int [allNumbers.size()];
 		int [] rank = new int [allNumbers.size()];
 		
 		DisjointSets djs = new DisjointSetArrays(parent, rank);
-		
+		djs.clear();
 		allNumbers.forEach(n->djs.makeSet(n));
+		
+		check(djs, partition);
+		
+	}
+	
+	@Test
+	public void testReuse() {
+		Set<Set<Integer>> partition = Stream.of(
+				Stream.of(1, 2, 3, 4).collect(Collectors.toSet()),
+				Stream.of(5, 6, 7, 8).collect(Collectors.toSet()),
+				Stream.of(0, 9, 10, 11).collect(Collectors.toSet()),
+				Stream.of(12).collect(Collectors.toSet()),
+				Stream.of(13).collect(Collectors.toSet())
+				)
+				.collect(Collectors.toSet());
+		
+		Set<Integer> allNumbers = partition.stream().flatMap(Set::stream).collect(Collectors.toSet());
+		int [] parent = new int [allNumbers.size()];
+		int [] rank = new int [allNumbers.size()];
+		
+		DisjointSets djs = new DisjointSetArrays(parent, rank);
+		djs.clear();
+		allNumbers.forEach(n->djs.makeSet(n));
+		
+		check(djs, partition);
+		
+		djs.clear();
+		allNumbers.forEach(n->djs.makeSet(n));
+		
+		Set<Set<Integer>> partition2 = Stream.of(
+				Stream.of(10, 2, 4).collect(Collectors.toSet()),
+				Stream.of(5, 7, 8).collect(Collectors.toSet()),
+				Stream.of(0, 9, 6, 1, 11).collect(Collectors.toSet()),
+				Stream.of(12, 3).collect(Collectors.toSet()),
+				Stream.of(13).collect(Collectors.toSet())
+				)
+				.collect(Collectors.toSet());
+		
+		check(djs, partition2);
+		
+	}
+	
+	private void check (DisjointSets djs, Set<Set<Integer>> partition) {
+		
+		
+		
+		
 		
 		partition.forEach(set -> {
 			Integer previous = null;
@@ -60,6 +105,7 @@ public class DisjointSetsTest {
 		}
 		
 		Assert.assertEquals("Size of partitions changes", partition.size(), representatives.size());
+		Assert.assertEquals(partition.size(), djs.getNumberOfSets());
 		
 	}
 
