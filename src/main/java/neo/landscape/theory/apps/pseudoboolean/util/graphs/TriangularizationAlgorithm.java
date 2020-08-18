@@ -88,6 +88,77 @@ public class TriangularizationAlgorithm {
 		}
 	}
 	
+	public void maximumCardinalitySearchWithBasicImplementationOfVerticesWithNMarks() {
+		int n = graph.numberOfVertices();
+		int maxDegree = n;
+		
+		VerticesWIthNMarks verticesWithNMarks = new VerticesWithNMarksBasicImplementation(maxDegree);
+		
+		int [] marks = new int [n];
+		
+		for (int vertex: IntStream.range(0, n).toArray()) {
+			marks[vertex] = 0;
+			verticesWithNMarks.addVertexToLastNonEmptyBucketOrZero(vertex);
+		}
+		
+		if (n==0) return;
+		
+		int i=topLabel;
+		while (verticesWithNMarks.getLastNonEmptyBucket()>=0) {
+			int vertex = verticesWithNMarks.removeVertexFromLastNonEmptyBucket();
+			alpha[vertex] = i;
+			alphaInverted[i] = vertex;
+			initialLabel=i;
+			marks[vertex] = -1;
+			
+			Iterator<Integer> it = graph.adjacentVertices(vertex);
+			while (it.hasNext()) {
+				int w = it.next();
+				if (marks[w] >= 0) {
+					verticesWithNMarks.moveVertexToNextBucket(marks[w], w);
+					marks[w]++;
+				}
+			}
+			i--;
+		}
+	}
+	
+	
+	public void maximumCardinalitySearchWithEfficientImplementationOfVerticesWithNMarks() {
+		int n = graph.numberOfVertices();
+		int maxDegree = n;
+		
+		VerticesWIthNMarks verticesWithNMarks = new VerticesWithNMarksEfficientImplementation(n, maxDegree);
+		
+		int [] marks = new int [n];
+		
+		for (int vertex: IntStream.range(0, n).toArray()) {
+			marks[vertex] = 0;
+			verticesWithNMarks.addVertexToLastNonEmptyBucketOrZero(vertex);
+		}
+		
+		if (n==0) return;
+		
+		int i=topLabel;
+		while (verticesWithNMarks.getLastNonEmptyBucket()>=0) {
+			int vertex = verticesWithNMarks.removeVertexFromLastNonEmptyBucket();
+			alpha[vertex] = i;
+			alphaInverted[i] = vertex;
+			initialLabel=i;
+			marks[vertex] = -1;
+			
+			Iterator<Integer> it = graph.adjacentVertices(vertex);
+			while (it.hasNext()) {
+				int w = it.next();
+				if (marks[w] >= 0) {
+					verticesWithNMarks.moveVertexToNextBucket(marks[w],w);
+					marks[w]++;
+				}
+			}
+			i--;
+		}
+	}
+	
 	public void fillIn() {
 		int n = graph.numberOfVertices();
 		chordalGraph = ugFactory.createGraph(graph.numberOfVertices());
