@@ -1,6 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.util.graphs;
 
-public interface VerticesWIthNMarks {
+public interface VerticesWithNMarks {
 	int getLastNonEmptyBucket();
 	boolean isBucketEmtpy(int bucketID);
 	void clear();

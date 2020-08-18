@@ -92,7 +92,7 @@ public class TriangularizationAlgorithm {
 		int n = graph.numberOfVertices();
 		int maxDegree = n;
 		
-		VerticesWIthNMarks verticesWithNMarks = new VerticesWithNMarksBasicImplementation(maxDegree);
+		VerticesWithNMarks verticesWithNMarks = new VerticesWithNMarksBasicImplementation(maxDegree);
 		
 		int [] marks = new int [n];
 		
@@ -128,7 +128,7 @@ public class TriangularizationAlgorithm {
 		int n = graph.numberOfVertices();
 		int maxDegree = n;
 		
-		VerticesWIthNMarks verticesWithNMarks = new VerticesWithNMarksEfficientImplementation(n, maxDegree);
+		VerticesWithNMarks verticesWithNMarks = new VerticesWithNMarksEfficientImplementation(n, maxDegree);
 		
 		int [] marks = new int [n];
 		

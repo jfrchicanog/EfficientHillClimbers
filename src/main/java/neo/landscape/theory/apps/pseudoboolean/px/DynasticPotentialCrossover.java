@@ -2,9 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
@@ -15,6 +13,10 @@ import neo.landscape.theory.apps.pseudoboolean.util.graphs.MemoryEfficientUndire
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraph;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.UndirectedGraphFactory;
 import neo.landscape.theory.apps.pseudoboolean.util.graphs.VariableClique;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.VerticesWithNMarks;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.VerticesWithNMarksBasicImplementation;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.VerticesWithNMarksEfficientImplementation;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.VerticesWithNMarksFactory;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
@@ -26,7 +28,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	
 	int [] alpha;
 	private int [] alphaInverted;
-	private List<Integer> [] verticesWithNMarks;
+	private VerticesWithNMarks verticesWithNMarks;
+	private VerticesWithNMarksFactory verticesWithNMarksFactory = VerticesWithNMarksEfficientImplementation.FACTORY;
 	int [] marks;
 	private boolean differentSolutions;
 	private int topLabel;
@@ -68,11 +71,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		alpha = new int [n];
 		topLabel = n-1;
 		alphaInverted = new int [topLabel+1];
-		verticesWithNMarks = new List[maxDegree+1];
+		verticesWithNMarks = verticesWithNMarksFactory.createVerticesWithNMarks(n, n);
 		marks = new int [n];
-		for (int i=0; i < verticesWithNMarks.length; i++) {
-			verticesWithNMarks[i] = new ArrayList<>();
-		}
 		chordalGraph = graphFactory.createGraph(n);
 		fFillin = new int[n];
 		indexFillin = new int [n];
@@ -105,9 +105,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 	private void maximumCardinalitySearch() {
 		int n = el.getN();
 		
-		for (int i=0; i < verticesWithNMarks.length; i++) {
-			verticesWithNMarks[i].clear();
-		}
+		verticesWithNMarks.clear();
 		
 		differentSolutions = false;
 		
@@ -117,7 +115,7 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		
 		IntStream.range(0, n).filter(v -> (blue.getBit(v) != red.getBit(v))).forEach(vertex -> 
 			{marks[vertex] = 0; 
-			verticesWithNMarks[0].add(vertex); 
+			verticesWithNMarks.addVertexToLastNonEmptyBucketOrZero(vertex);
 			differentSolutions=true;
 			varProcedence.markAsRed(vertex);
 			}
@@ -127,9 +125,8 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 		
 		int i=topLabel;
 		initialLabel = i;
-		int j=0;
-		while (j>=0) {
-			int vertex = verticesWithNMarks[j].remove(verticesWithNMarks[j].size()-1);
+		while (verticesWithNMarks.getLastNonEmptyBucket()>=0) {
+			int vertex = verticesWithNMarks.removeVertexFromLastNonEmptyBucket();
 			alpha[vertex] = i;
 			alphaInverted[i] = vertex;
 			initialLabel=i;
@@ -138,35 +135,28 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 			for (int w : el.getInteractions()[vertex]) {
 				if (blue.getBit(w) != red.getBit(w)) {
 					if (marks[w] >= 0) {
-						int index = verticesWithNMarks[marks[w]].indexOf(w);
-						verticesWithNMarks[marks[w]].remove(index);
+						verticesWithNMarks.moveVertexToNextBucket(marks[w], w);
 						marks[w]++;
-						verticesWithNMarks[marks[w]].add(w);
 					}
 				}
 			}
 			i--;
-			j++;
-			for (;j>=0 && verticesWithNMarks[j].isEmpty();j--);
 		}
 	}
 	
 	private void maximumCardinalitySearchBasedOnChordalGraph() {
 		int n = el.getN();
-		for (int i=0; i < verticesWithNMarks.length; i++) {
-			verticesWithNMarks[i].clear();
-		}
+		verticesWithNMarks.clear();
 		
 		for (int vertex: chordalGraph.getNodes()) {
 			marks[vertex] = 0; 
-			verticesWithNMarks[0].add(vertex);
+			verticesWithNMarks.addVertexToLastNonEmptyBucketOrZero(vertex);
 		}
 
 		int i=topLabel;
 		initialLabel = i;
-		int j=0;
-		while (j>=0) {
-			int vertex = verticesWithNMarks[j].remove(verticesWithNMarks[j].size()-1);
+		while (verticesWithNMarks.getLastNonEmptyBucket()>=0) {
+			int vertex = verticesWithNMarks.removeVertexFromLastNonEmptyBucket();
 			alpha[vertex] = i;
 			alphaInverted[i] = vertex;
 			initialLabel=i;
@@ -174,15 +164,11 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 			
 			for (int w : chordalGraph.getAdjacent(vertex)) {
 				if (marks[w] >= 0) {
-					int index = verticesWithNMarks[marks[w]].indexOf(w);
-					verticesWithNMarks[marks[w]].remove(index);
+					verticesWithNMarks.moveVertexToNextBucket(marks[w], w);
 					marks[w]++;
-					verticesWithNMarks[marks[w]].add(w);
 				}
 			}
 			i--;
-			j++;
-			for (;j>=0 && verticesWithNMarks[j].isEmpty();j--);
 		}
 	}
 	

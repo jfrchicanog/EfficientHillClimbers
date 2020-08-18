@@ -2,7 +2,14 @@ package neo.landscape.theory.apps.pseudoboolean.util.graphs;
 
 import java.util.NoSuchElementException;
 
-public class VerticesWithNMarksEfficientImplementation implements VerticesWIthNMarks {
+public class VerticesWithNMarksEfficientImplementation implements VerticesWithNMarks {
+	public static final VerticesWithNMarksFactory FACTORY = new VerticesWithNMarksFactory() {
+		@Override
+		public VerticesWithNMarks createVerticesWithNMarks(int elements, int maxBuckets) {
+			return new VerticesWithNMarksEfficientImplementation(elements, maxBuckets);
+		}
+	};
+	
 	private int [] vertexIndex;
 	private int [] vertices;
 	private int [] bucketIndex;

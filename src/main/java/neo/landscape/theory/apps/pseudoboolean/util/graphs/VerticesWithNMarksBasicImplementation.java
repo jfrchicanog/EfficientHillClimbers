@@ -4,7 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class VerticesWithNMarksBasicImplementation implements VerticesWIthNMarks {
+public class VerticesWithNMarksBasicImplementation implements VerticesWithNMarks {
+	
+	public static final VerticesWithNMarksFactory FACTORY = new VerticesWithNMarksFactory() {
+		@Override
+		public VerticesWithNMarks createVerticesWithNMarks(int elements, int maxBuckets) {
+			return new VerticesWithNMarksBasicImplementation(maxBuckets);
+		}
+	};
+	
 	private List<Integer> [] data;
 	private int lastNonEmpty;
 	
