@@ -271,41 +271,41 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 
 	public PBSolution recombineInternal(PBSolution blue, PBSolution red) {
 	    long initTime = System.nanoTime();
-	    System.out.println("DPX starts: "+0);
+	    //System.out.println("DPX starts: "+0);
 	    this.red = red;
 	    this.blue = blue;
 	    
 	    PBSolution child = new PBSolution(red); //child, copy of red
 	    
 	    maximumCardinalitySearch();
-	    System.out.println("Maximum cardinality search finished at: "+(System.nanoTime()-initTime));
+	    //System.out.println("Maximum cardinality search finished at: "+(System.nanoTime()-initTime));
 	    
 	    numberOfComponents = 0;
 	    cliqueManagement.clearCliqueTree();
 	    
 	    if (differentSolutions) {
 	    	fillIn();
-	    	System.out.println("Fill in finished at: "+(System.nanoTime()-initTime));
+	    	//System.out.println("Fill in finished at: "+(System.nanoTime()-initTime));
 	    	maximumCardinalitySearchBasedOnChordalGraph();
-	    	System.out.println("New MCS finished at: "+(System.nanoTime()-initTime));
+	    	//System.out.println("New MCS finished at: "+(System.nanoTime()-initTime));
 	    	computeSubfunctinsPartition();
-	    	System.out.println("Subfunctions organization finished at: "+(System.nanoTime()-initTime));
+	    	//System.out.println("Subfunctions organization finished at: "+(System.nanoTime()-initTime));
 		    cliqueTree();
-		    System.out.println("Clique tree computation finished at: "+(System.nanoTime()-initTime));
+		    //System.out.println("Clique tree computation finished at: "+(System.nanoTime()-initTime));
 		    cliqueManagement.cliqueTreeAnalysis();
-		    System.out.println("Clique tree analysis finished at: "+(System.nanoTime()-initTime));
+		    //System.out.println("Clique tree analysis finished at: "+(System.nanoTime()-initTime));
 		    if (debug && ps != null) {
 		    	ps.println("Initial label: "+initialLabel);
 		    	ps.println("Number of components: "+numberOfComponents);
 		    	ps.println(cliqueManagement.getCliqueTree());
 		    }
 		    cliqueManagement.applyDynamicProgramming(red, el, subFunctionsPartition);
-		    System.out.println("Dynamic programming finished at: "+(System.nanoTime()-initTime));
+		    //System.out.println("Dynamic programming finished at: "+(System.nanoTime()-initTime));
 		    cliqueManagement.reconstructOptimalChild(child, red, varProcedence);
 	    }
 
 		lastRuntime = System.nanoTime() - initTime;
-		System.out.println("DPX finishes at: "+lastRuntime);
+		//System.out.println("DPX finishes at: "+lastRuntime);
 		
 		ps.println("* Number of components: "+getNumberOfComponents());
 		int logarithmOfExploredSolutions = getLogarithmOfExploredSolutions();
