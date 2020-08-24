@@ -116,19 +116,21 @@ public class BestSolutionAtTimeDRILS implements Process {
 			computeTraceWithException(fileName);
 		} catch (CloneNotSupportedException e) {
 			throw new RuntimeException(e);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
 		}
 	}
 
 	public void computeTraceWithException(String fileName)
-			throws CloneNotSupportedException, IOException {
+			throws CloneNotSupportedException {
 	    
-		Double valor = processFile(fileName);
-		if (valor ==null) {
-		    valor = Double.NaN;
+		try {
+			Double valor = processFile(fileName);
+			if (valor ==null) {
+			    valor = Double.NaN;
+			}
+			traces.add(valor);
+		} catch (IOException e) {
+			
 		}
-		traces.add(valor);
 	}
 	
 	private Double processFile(String fileName) throws IOException, FileNotFoundException,
