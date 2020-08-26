@@ -22,6 +22,8 @@ public class StarPXParser implements Process {
 		public double logarithm;
 		public double articulationPoints;
 		public double recombinationTime;
+		public double solutionQuality;
+		public double bestSolutionQuality;
 
 		public Sample(long t) {
 			time = t;
@@ -34,7 +36,7 @@ public class StarPXParser implements Process {
 
 		@Override
 		public String toString() {
-			return "Sample [time=" + time + ", values=" + new double[] {components, logarithm, articulationPoints, recombinationTime} + "]";
+			return "Sample [time=" + time + ", values=" + new double[] {components, logarithm, articulationPoints, recombinationTime, solutionQuality, bestSolutionQuality} + "]";
 		}
 	}
 	
@@ -44,6 +46,8 @@ public class StarPXParser implements Process {
 	    private double logarithm;
 	    private double articulationPoints;
 	    private double recombinationTime;
+	    public double solutionQuality;
+		public double bestSolutionQuality;
 	    private int samples;
 
 	    public long getMinTime() {
@@ -64,6 +68,8 @@ public class StarPXParser implements Process {
 	        logarithm=0;
 	        articulationPoints=0;
 	        recombinationTime=0;
+	        solutionQuality=0;
+			bestSolutionQuality=0;
 	        for (Sample tmp : past) {
 	        	if (tmp != null) {
 	        		samples++;
@@ -72,6 +78,8 @@ public class StarPXParser implements Process {
 	        		logarithm += tmp.logarithm;
 	        		articulationPoints += tmp.articulationPoints;
 	        		recombinationTime += tmp.recombinationTime;
+	        		solutionQuality += tmp.solutionQuality;
+	        		bestSolutionQuality += tmp.bestSolutionQuality;
 	        	}
 	        }
 	        if (samples > 0) {
@@ -79,11 +87,13 @@ public class StarPXParser implements Process {
 	        	logarithm /= samples;
 	        	articulationPoints /= samples;
 	        	recombinationTime /= samples;
+	        	solutionQuality /= samples;
+	        	bestSolutionQuality /= samples;
 	        }
 	    }
 
 	    public String toString() {
-	        return getMinTime() + ", " + components + ", " + logarithm + ", " + articulationPoints + ", " + recombinationTime +", " + getSamples();
+	        return getMinTime() + ", " + components + ", " + logarithm + ", " + articulationPoints + ", " + recombinationTime +", " + solutionQuality +", " + bestSolutionQuality +", " + getSamples();
 	    }
 
 	}
@@ -95,7 +105,7 @@ public class StarPXParser implements Process {
 
     @Override
 	public String getDescription() {
-		return "Statistics for PX, APX and DPX";
+		return "Statistics for UX, NX, PX, APX and DPX";
 	}
 
 	@Override
@@ -133,7 +143,6 @@ public class StarPXParser implements Process {
 		} catch (CloneNotSupportedException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
-			throw new RuntimeException(e);
 		}
 	}
 
@@ -161,6 +170,7 @@ public class StarPXParser implements Process {
         List<Sample> aux = new ArrayList<Sample>();
 
         Sample last = new Sample(0);
+        last.bestSolutionQuality = -Double.MAX_VALUE;
         
         String[] strs;
 		String line;
@@ -186,6 +196,14 @@ public class StarPXParser implements Process {
 				strs = line.split(":");
 				last.recombinationTime = Double.parseDouble(strs[1].trim());
 				somethingToPrint=true;
+			} else if (line.startsWith("Solution")) {
+				strs = line.split(":");
+				double quality = Double.parseDouble(strs[1].trim());
+				last.solutionQuality = quality;
+				if (quality > last.bestSolutionQuality) {
+					last.bestSolutionQuality = quality;
+				}
+				somethingToPrint=true;
 			} else if (line.startsWith("Elapsed Time:")) {
 				strs = line.split(":");
 				last.time = Long.parseLong(strs[1].trim());
@@ -199,7 +217,7 @@ public class StarPXParser implements Process {
     }
 
 	private void printResults() {
-		System.out.println("time, components, logExploredSolutions, articulationPoints, recombinationTime, samples");
+		System.out.println("time, components, logExploredSolutions, articulationPoints, recombinationTime, solutionQuality, bestSolutionQuality, samples");
 
 		List<Sample>[] trs = traces.toArray(new List[0]);
 
