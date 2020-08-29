@@ -20,7 +20,7 @@ You can use the `-DskipTests` option to speed up the construction. This will gen
 java -jar <jarfile name>
 ```
 
-The list of options are the different experiments available. We describe here options for the jar file EfficientHillClimbers-0.15-DPX.jar
+The list of options are the different experiments available. We describe here options for the jar file EfficientHillClimbers-0.20-DPX.jar
 
 
 # Options to run DRILS
