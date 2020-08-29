@@ -31,7 +31,7 @@ In order to run DRILS you need first to compile and package them into a JAR file
 java -jar <jarfile name> drils  <options omitted>
 ```
 
-Two important options are `-problem` and `-crossover`, which determine the problem to be solved (`nk` for NK Landscapes and `maxsat` for MAX-SAT) and the crossover operator used (the options are `ux`, `nx`, `spx`, `px`, `apx`, `dpx` for uniform, network, single-point, partition, articulation points partition and dynastic potential crossovers, respectively). Running the command above with options will generate a message with all the options and their meaning. The options for the problem are given using the format `-P<key>=<value>`. The options for the crossover operator are given using the format `-X<key>=<value>`. For example, running `java -jar EfficientHillClimbers-0.15-DPX.jar drils -problem nk -crossover dpx` will generate the next output:
+Two important options are `-problem` and `-crossover`, which determine the problem to be solved (`nk` for NK Landscapes and `maxsat` for MAX-SAT) and the crossover operator used (the options are `ux`, `nx`, `spx`, `px`, `apx`, `dpx` for uniform, network, single-point, partition, articulation points partition and dynastic potential crossovers, respectively). Running the command above with options will generate a message with all the options and their meaning. The options for the problem are given using the format `-P<key>=<value>`. The options for the crossover operator are given using the format `-X<key>=<value>`. For example, running `java -jar EfficientHillClimbers-0.20-DPX.jar drils -problem nk -crossover dpx` will generate the next output:
 ```
 usage: drils
  -aseed <arg>          random seed for the algorithm (optional)
@@ -72,7 +72,7 @@ In order to run EA you need first to compile and package them into a JAR file (s
 java -jar <jarfile name> ea  <options omitted>
 ```
 
-Two important options are `-problem` and `-crossover`, which determine the problem to be solved (`nk` for NK Landscapes and `maxsat` for MAX-SAT) and the crossover operator used (the options are `ux`, `nx`, `spx`, `px`, `apx`, `dpx` for uniform, network, single-point, partition, articulation points partition and dynastic potential crossovers, respectively). Running the command above with options will generate a message with all the options and their meaning. The options for the problem are given using the format `-P<key>=<value>`. The options for the crossover operator are given using the format `-X<key>=<value>`. For example, running `java -jar EfficientHillClimbers-0.15-DPX.jar ea -problem nk -crossover dpx` will generate the next output:
+Two important options are `-problem` and `-crossover`, which determine the problem to be solved (`nk` for NK Landscapes and `maxsat` for MAX-SAT) and the crossover operator used (the options are `ux`, `nx`, `spx`, `px`, `apx`, `dpx` for uniform, network, single-point, partition, articulation points partition and dynastic potential crossovers, respectively). Running the command above with options will generate a message with all the options and their meaning. The options for the problem are given using the format `-P<key>=<value>`. The options for the crossover operator are given using the format `-X<key>=<value>`. For example, running `java -jar EfficientHillClimbers-0.20-DPX.jar ea -problem nk -crossover dpx` will generate the next output:
 ```
 usage: ea
  -alpha <arg>          alpha/N is the mutation probability, except if it
