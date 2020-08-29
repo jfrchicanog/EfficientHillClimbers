@@ -48,6 +48,8 @@ usage: drils
  -problem <arg>        problem to be solved: [maxsat, nk]
  -r <arg>              radius of the Hamming Ball hill climber
  -time <arg>           execution time limit (in seconds)
+ -timer <arg>          timer to use [singleThreadCpu,cpuClock], default:
+                       singleThreadCpu
  -X <property=value>   properties for the crossover operator
 usage: Problem: nk
  -k <arg>       number of subfunction arguments
@@ -84,6 +86,7 @@ usage: ea
  -P <property=value>   properties for the problem
  -population <arg>     number of solution in the population
  -problem <arg>        problem to be solved: [maxsat, nk]
+ -selection <arg>      selection operator: tournament, roulette, rank
  -time <arg>           execution time limit (in seconds)
  -X <property=value>   properties for the crossover operator
 usage: Problem: nk
