@@ -2,7 +2,7 @@
 
 You can find in this repository the source code of the algorithms implemented for the scientific papers listed:
 
-* Gabriela Ochoa, Francisco Chicano and Marco Tomassini, "Global Landscape Structure and the Random MAX-SAT Phase Transition", accepted for PPSN 2020 (DOI coming soon)
+* Gabriela Ochoa, Francisco Chicano and Marco Tomassini, "Global Landscape Structure and the Random MAX-SAT Phase Transition", PPSN 2020 (https://dx.doi.org/10.1007/978-3-030-58115-2_9)
 
 * Gabriela Ochoa and Francisco Chicano, "Local Optima Network Analysis for MAX-SAT", Landscape-Aware Heuristics Search Workshop at GECCO 2019 (https://doi.org/10.1145/3319619.3326855)
 
