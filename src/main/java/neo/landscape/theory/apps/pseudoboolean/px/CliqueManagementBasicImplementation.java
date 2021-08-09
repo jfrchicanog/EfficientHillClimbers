@@ -49,10 +49,13 @@ public class CliqueManagementBasicImplementation implements CliqueManagement {
 		return cliques;
 	}
 
-	private void ensureSizeOfCliqueArrays(int size) {
+	private void ensureSizeOfCliqueArrays(long size) {
 		if (summaryValue == null || summaryValue.length < size) {
-			summaryValue = new double [size];
-			variableValue = new int [size];
+			if ((size >>>= 31)!=0) {
+				throw new RuntimeException("I cannot create an array of size: "+size);
+			}
+			summaryValue = new double [(int)size];
+			variableValue = new int [(int)size];
 		}
 	}
 

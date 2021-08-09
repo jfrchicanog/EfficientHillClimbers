@@ -44,7 +44,7 @@ public class AbstractVariableClique implements VariableClique {
 
 	@Override
 	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, DisjointSets disjointSets,
-			Function<Integer, Integer> indexAssignment) {
+			Function<Long, Long> indexAssignment) {
 		throw new UnsupportedOperationException();
 	}
 

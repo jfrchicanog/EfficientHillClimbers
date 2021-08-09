@@ -20,7 +20,7 @@ public interface VariableClique {
 	void addAllVariables(Collection<Integer> vars);
 	int getId();
 	void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, DisjointSets disjointSets,
-			Function<Integer, Integer> indexAssignment);
+			Function<Long, Long> indexAssignment);
 	int getVariablesOfSeparator();
 	void markSeparator();
 	void applyDynamicProgrammingToClique(PBSolution red, EmbeddedLandscape embeddedLandscape,

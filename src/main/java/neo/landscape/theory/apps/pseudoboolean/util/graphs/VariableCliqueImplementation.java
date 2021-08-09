@@ -16,8 +16,8 @@ public class VariableCliqueImplementation implements VariableClique {
 	
 	private static final int DYNP_ITERATION_LIMIT = 29;
 	private int variablesOfSeparator;
-	private int arraySize;
-	private int arrayIndex;
+	private long arraySize;
+	private long arrayIndex;
 	
 	private int variableSeparatorLimit;
 	private int variableResidueLimit;
@@ -58,7 +58,7 @@ public class VariableCliqueImplementation implements VariableClique {
 	}
 	
 	@Override
-	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, DisjointSets disjointSets, Function<Integer,Integer> indexAssignment) {
+	public void prepareStructuresForComputation(TwoStatesIntegerSet nonExhaustivelyExplored, DisjointSets disjointSets, Function<Long,Long> indexAssignment) {
 		List<Integer> separator = variables.subList(0, variablesOfSeparator);
 		variableSeparatorLimit = variableLimitFromList(nonExhaustivelyExplored, separator);
 		
@@ -116,7 +116,7 @@ public class VariableCliqueImplementation implements VariableClique {
 		double value = 0;
 		for (VariableCliqueImplementation child: children) {
 			int separatorValue = child.getSeparatorValueFromSolution(solution, red);
-			value += summaryValue[child.arrayIndex + separatorValue];
+			value += summaryValue[(int)(child.arrayIndex + separatorValue)];
 		}
 		for (int i = variablesOfSeparator; i < variables.size(); i++) {
 			int residueVariable = variables.get(i);
@@ -136,7 +136,7 @@ public class VariableCliqueImplementation implements VariableClique {
 	public void applyDynamicProgrammingToClique(PBSolution red, EmbeddedLandscape embeddedLandscape, List<Integer>[] subFunctionPartitions, double[] summaryValue, int[] variableValue) {
 		PBSolution solution = new PBSolution(red);
 		
-		int separatorValueLimit = arraySize;
+		long separatorValueLimit = arraySize;
 		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
 		int residueValueLimit = 1 << variableResidueLimit;
 
@@ -167,7 +167,7 @@ public class VariableCliqueImplementation implements VariableClique {
 				}
 			}
 			
-			summaryValue[arrayIndex+separatorValue]=Double.NEGATIVE_INFINITY;
+			summaryValue[(int)(arrayIndex+separatorValue)]=Double.NEGATIVE_INFINITY;
 			
 			// Iterate over the variables in the residue
 			for (int residueValue=0; residueValue < residueValueLimit; residueValue++) {
@@ -198,9 +198,9 @@ public class VariableCliqueImplementation implements VariableClique {
 				
 				// We have the solution here and we have to evaluate it
 				double value = evaluateSolution(embeddedLandscape, subFunctionPartitions, solution, red, summaryValue);
-				if (value > summaryValue[arrayIndex+separatorValue]) {
-					summaryValue[arrayIndex+separatorValue] = value;
-					variableValue[arrayIndex + separatorValue] = residueValue;
+				if (value > summaryValue[(int)(arrayIndex+separatorValue)]) {
+					summaryValue[(int)(arrayIndex+separatorValue)] = value;
+					variableValue[(int)(arrayIndex + separatorValue)] = residueValue;
 				}
 			}
 		}
@@ -210,7 +210,7 @@ public class VariableCliqueImplementation implements VariableClique {
 	public void reconstructSolutionInClique(PBSolution child, PBSolution red, VariableProcedence variableProcedence, int [] variableValue) {
 		int numVariablesOfResidue = variables.size()-variablesOfSeparator;
 		int separatorValue = getSeparatorValueFromSolution(child, red);
-		int residueVariables = variableValue[arrayIndex+separatorValue];
+		int residueVariables = variableValue[(int)(arrayIndex+separatorValue)];
 		
 		for (int bit=0; bit < variableResidueLimit; bit++) {
 			Integer variable = variables.get(variablesOfSeparator+bit);

@@ -2,15 +2,15 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 
 import java.util.function.Function;
 
-public class IndexAssigner implements Function<Integer,Integer> {
-	private int index=0;
+public class IndexAssigner implements Function<Long,Long> {
+	private long index=0;
 	@Override
-	public Integer apply(Integer arraySize) {
-		int thisIndex = index;
+	public Long apply(Long arraySize) {
+		long thisIndex = index;
 		index += arraySize;
 		return thisIndex;
 	}
-	public int getIndex() {
+	public long getIndex() {
 		return index;
 	}
 	

@@ -126,8 +126,8 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	private int numCliques;
 	
 	private int [] variablesOfSeparator;
-	private int [] arraySize;
-	private int [] arrayIndex;
+	private long [] arraySize;
+	private long [] arrayIndex;
 	
 	private int [] variableSeparatorLimit;
 	private int [] variableResidueLimit;
@@ -157,8 +157,8 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	private CliqueManagementMemoryEfficient(int maxVariables) {
 		int initialCliqueSize = Math.min(1, maxVariables >> 1);
 		variablesOfSeparator = new int [initialCliqueSize];
-		arraySize = new int [initialCliqueSize];
-		arrayIndex = new int [initialCliqueSize];
+		arraySize = new long [initialCliqueSize];
+		arrayIndex = new long [initialCliqueSize];
 		variableSeparatorLimit = new int [initialCliqueSize];
 		variableResidueLimit = new int [initialCliqueSize];
 		variables = new int [initialCliqueSize];
@@ -171,6 +171,19 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		articulationPoints = new TwoStatesISArrayImpl(maxVariables);
 		auxiliaryArray = new int [maxVariables];
 		clearCliqueTree();
+	}
+	
+	private static long [] expandArray(long [] array, int minNewSize) {
+		int newSize;
+		if (array.length <= 1) {
+			newSize=2;
+		} else {
+			newSize = array.length+(array.length >> 1);
+		}
+		if (newSize < minNewSize) {
+			newSize = minNewSize;
+		}
+		return Arrays.copyOf(array, newSize);
 	}
 	
 	private static int [] expandArray(int [] array, int minNewSize) {
@@ -195,10 +208,13 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 				.collect(Collectors.toList());
 	}
 
-	private void ensureSizeOfCliqueArrays(int size) {
+	private void ensureSizeOfCliqueArrays(long size) {
 		if (summaryValue == null || summaryValue.length < size) {
-			summaryValue = new double [size];
-			variableValue = new int [size];
+			if ((size >>> 31)!=0) {
+				throw new RuntimeException("I cannot create an array of size: "+size);
+			}
+			summaryValue = new double [(int)size]; // TODO: Negative array exception
+			variableValue = new int [(int)size];
 		}
 	}
 
@@ -357,7 +373,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	private void applyDynamicProgrammingToClique(int clique, PBSolution red, EmbeddedLandscape embeddedLandscape, List<Integer>[] subFunctionPartitions, double[] summaryValue, int[] variableValue) {
 		PBSolution solution = new PBSolution(red);
 		
-		int separatorValueLimit = arraySize[clique];
+		long separatorValueLimit = arraySize[clique];
 		int numVariablesOfResidue = getNumberOfVariablesOfClique(clique)-variablesOfSeparator[clique];
 		int residueValueLimit = 1 << variableResidueLimit[clique];
 
@@ -388,7 +404,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 				}
 			}
 			
-			summaryValue[arrayIndex[clique]+separatorValue]=Double.NEGATIVE_INFINITY;
+			summaryValue[(int)(arrayIndex[clique]+separatorValue)]=Double.NEGATIVE_INFINITY; // TODO: Array Index OUt of Bounds
 			
 			// Iterate over the variables in the residue
 			for (int residueValue=0; residueValue < residueValueLimit; residueValue++) {
@@ -419,9 +435,9 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 				
 				// We have the solution here and we have to evaluate it
 				double value = evaluateSolution(clique, embeddedLandscape, subFunctionPartitions, solution, red, summaryValue);
-				if (value > summaryValue[arrayIndex[clique]+separatorValue]) {
-					summaryValue[arrayIndex[clique]+separatorValue] = value;
-					variableValue[arrayIndex[clique] + separatorValue] = residueValue;
+				if (value > summaryValue[(int)(arrayIndex[clique]+separatorValue)]) {
+					summaryValue[(int)(arrayIndex[clique]+separatorValue)] = value;
+					variableValue[(int)(arrayIndex[clique] + separatorValue)] = residueValue;
 				}
 			}
 		}
@@ -450,7 +466,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		for (int childIndex = 0; childIndex < getNumberOfChildrenOfClique(clique); childIndex++) {
 			int child = getChildrenOfClique(clique, childIndex);
 			int separatorValue = getSeparatorValueFromSolution(child, solution, red);
-			value += summaryValue[arrayIndex[child] + separatorValue];
+			value += summaryValue[(int)(arrayIndex[child] + separatorValue)];
 		}
 		
 		for (int i = variablesOfSeparator[clique]; i < getNumberOfVariablesOfClique(clique); i++) {
@@ -462,7 +478,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 		return value;
 	}
 	
-	private void prepareStructuresForComputation(int clique, Function<Integer,Integer> indexAssignment) {
+	private void prepareStructuresForComputation(int clique, Function<Long,Long> indexAssignment) {
 		int varsInSep = variablesOfSeparator[clique];
 		int startIndex = indexOfVariableInClique(clique, 0);
 		int endIndex = variableIndex[clique];
@@ -493,7 +509,7 @@ public class CliqueManagementMemoryEfficient implements CliqueManagement {
 	private void reconstructSolutionInClique(int clique, PBSolution child, PBSolution red, VariableProcedence variableProcedence, int [] variableValue) {
 		int numVariablesOfResidue = getNumberOfVariablesOfClique(clique)-variablesOfSeparator[clique];
 		int separatorValue = getSeparatorValueFromSolution(clique, child, red);
-		int residueVariables = variableValue[arrayIndex[clique]+separatorValue];
+		int residueVariables = variableValue[(int)(arrayIndex[clique]+separatorValue)];
 		
 		for (int bit=0; bit < variableResidueLimit[clique]; bit++) {
 			Integer variable = getVariableOfClique(clique, variablesOfSeparator[clique]+bit);
