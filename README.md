@@ -10,10 +10,20 @@ The experiments used in the paper can be reproduced using the following commands
 When DPX is use another parameter is required (it also applies to the commands below): `-Xexhexp=${beta}`
 
 * Evolutionary Algorithm for NKQ Landscapes (Section YY)
-`java -Xmx5000m -jar EfficientHillClimbers-0.20-DPX.jar ea -problem nk -Pn=${n} -Pk=${k} -Pq=${q} -Pmodel=random -Ppseed=${seed} -mutationProb ${pm} -population ${popsize} -time ${time} -crossover ${crossover} -timer cpuClock`
+`java -Xmx5000m -jar EfficientHillClimbers-0.20-DPX.jar ea -population ${popsize} -mutationProb ${pm} ${crossover_options} ${problem_related_options} -time ${time} -timer cpuClock -aseed ${seed}`
+
+The problem-related options are 
+`-problem nk -Pn=${n} -Pk=${k} -Pq=${q} -Pmodel=random -Ppseed=${seed}`
+`-problem maxsat -Pinstance=${instancefile}`
+
+The crossover-reated options are
+`-crossover ${crossover}` where ${crossover} can be apx, px, nx, ux
+`-crossover dpx -Xexhexp=${beta}` for DPX.
 
 * DRILS for NKQ Landscapes (Section ZZ)
-`java -Xmx5000m -jar EfficientHillClimbers-0.20-DPX.jar drils -time ${time} -timer cpuClock  -problem nk -Pn=${n} -Pk=${k} -Pq=${q} -Pmodel=random -Ppseed=${pseed} -aseed ${seed}`
+`java -Xmx5000m -jar EfficientHillClimbers-0.20-DPX.jar drils -r 1 -mf ${perturbation_factor} ${crossover_options} ${problem_related_options} -time ${time} -timer cpuClock -aseed ${seed}`
 
 * iDPX for NKQ Landscapes (Section WW)
+`java -Xmx5000m -jar EfficientHillClimbers-0.20-DPX.jar isox -crossover dpx -Xexhexp=${beta} ${problem_related_options} -expSols ${explored_solutions} -time ${time} -timer cpuClock -aseed ${seed}`
 
+Where ${explored_solutions} is 3 for the expreriments with ${beta}=28.
