@@ -143,10 +143,10 @@ For the experiments of the paper some of the MAX-SAT weighted and unweighted inc
 
 There is a ready-to-use docker image containing the JAR file and the JRE necessary to run the code. This makes it possible to use the code without the need to compile it and configure the environment. The docker image is [here](https://hub.docker.com/r/jfrchicanog/graybox). In short, you can run the code with:
 ```
-docker run --rm -v $(PWD):/data jfrchicanog/graybox <options>
+docker run --rm -v $(PWD):/data jfrchicanog/graybox:0.20-DPX <options>
 ```
 where `options` includes all that is after the `<jarfile name>`in the previous commands. For example, to run DRILS algorithm during 60 seconds with perturbation factor of 0.3, Hamming distance 1 hill climber and DPX crossover with beta=2 for an NKQ Landscape instance with N=10000 variables, K=5, Q=64 and the random model we can use:
 ```
-docker run --rm -v $(PWD):/data jfrchicanog/graybox drils -problem nk -crossover dpx -Xexhexp=2 -Pn=10000 -Pk=5 -Pq=64 -Pmodel=random -Ppseed=1 -aseed 1 -time 60 -mf 0.3 -r 1 -timer cpuClock
+docker run --rm -v $(PWD):/data jfrchicanog/graybox:0.20-DPX drils -problem nk -crossover dpx -Xexhexp=2 -Pn=10000 -Pk=5 -Pq=64 -Pmodel=random -Ppseed=1 -aseed 1 -time 60 -mf 0.3 -r 1 -timer cpuClock
 ```
 The output will be compressed with gzip, so it can be redirected to a file for later processing or pipelined to a `gzip -cd` command to see it in the console.
