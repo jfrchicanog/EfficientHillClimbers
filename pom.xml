@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>es.uma.chicano</groupId>
@@ -47,64 +48,68 @@
 					<timestampFormat>yyyy-MM-dd-HHmmss</timestampFormat>
 				</configuration>
 			</plugin>
-			
+
 			<plugin>
-                <!-- We want to create a standalone jar that can be run on the command
-                  line. Java does not really allow this - you cannot place jars inside of jars.
-                  You must either provide all the dependency jars to the user (usually lib/
-                  under the directory containing the runnable jar) or explode all the jars
-                  and repackage them into a single jar. The problem is that while class files
-                  are nicely organized into the package namespace and should not collide, the
-                  META-INF directories of the jars will collide. Maven's standard assembly
-                  plugin does not account for this and will just clobber metadata. This then
-                  causes runtime errors, particularly with Spring. Instead, we use the shade
-                  plugin which has transformers that will for example append files of the same
-                  name rather than overwrite them in the combined JAR. NB: Don't use a version
-                  of the shade plugin older than 1.3.2, as it fixed MSHADE-76 (files not merged
-                  properly if some input files are missing a terminating newline) -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <filters>
-                                <filter>
-                                    <!-- exclude signatures from merged JAR to avoid invalid signature messages -->
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <!-- The shaded JAR will be the main artifact for the project -->
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <!-- MinimizeJar removes unused classes, (classes not imported explicitly by name).
-                              We have eliminated most Jersey auto-scanning, but there is still some need for include
-                              filters to force-include classes that are dynamically loaded by name/auto-scanned. -->
-                            <!-- This roughly halves the size of the OTP JAR, bringing it down to around 20 MB. -->
-                              <minimizeJar>true</minimizeJar>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <manifestEntries>
-                                        <Main-Class>neo.landscape.theory.apps.pseudoboolean.Experiments</Main-Class>
-                                    </manifestEntries>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+				<!-- We want to create a standalone jar that can be run on the command 
+					line. Java does not really allow this - you cannot place jars inside of jars. 
+					You must either provide all the dependency jars to the user (usually lib/ 
+					under the directory containing the runnable jar) or explode all the jars 
+					and repackage them into a single jar. The problem is that while class files 
+					are nicely organized into the package namespace and should not collide, the 
+					META-INF directories of the jars will collide. Maven's standard assembly 
+					plugin does not account for this and will just clobber metadata. This then 
+					causes runtime errors, particularly with Spring. Instead, we use the shade 
+					plugin which has transformers that will for example append files of the same 
+					name rather than overwrite them in the combined JAR. NB: Don't use a version 
+					of the shade plugin older than 1.3.2, as it fixed MSHADE-76 (files not merged 
+					properly if some input files are missing a terminating newline) -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<filters>
+								<filter>
+									<!-- exclude signatures from merged JAR to avoid invalid signature 
+										messages -->
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+							<!-- The shaded JAR will be the main artifact for the project -->
+							<shadedArtifactAttached>false</shadedArtifactAttached>
+							<!-- MinimizeJar removes unused classes, (classes not imported explicitly 
+								by name). We have eliminated most Jersey auto-scanning, but there is still 
+								some need for include filters to force-include classes that are dynamically 
+								loaded by name/auto-scanned. -->
+							<!-- This roughly halves the size of the OTP JAR, bringing it down 
+								to around 20 MB. -->
+							<minimizeJar>true</minimizeJar>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<manifestEntries>
+										<Main-Class>neo.landscape.theory.apps.pseudoboolean.Experiments</Main-Class>
+									</manifestEntries>
+								</transformer>
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 
 		</plugins>
 
-		
+
 
 
 	</build>
@@ -133,11 +138,22 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>3.2</version>
-			</dependency>
+		</dependency>
 		<dependency>
-    <groupId>com.google.code.gson</groupId>
-    <artifactId>gson</artifactId>
-    <version>2.8.0</version>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.8.0</version>
+		</dependency>
+		<dependency>
+			<groupId>jakarta.xml.bind</groupId>
+			<artifactId>jakarta.xml.bind-api</artifactId>
+			<version>2.3.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.xml.bind</groupId>
+			<artifactId>jaxb-impl</artifactId>
+			<version>2.3.3</version>
+			<scope>runtime</scope>
 		</dependency>
 	</dependencies>
 
@@ -164,8 +180,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  <sonar.organization>jfrchicanog</sonar.organization>
-  <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-</properties>
+		<sonar.organization>jfrchicanog</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+	</properties>
 
 </project>
