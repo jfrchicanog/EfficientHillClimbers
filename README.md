@@ -2,7 +2,7 @@
 
 You can find in this repository the source code of the algorithms implemented for the scientific papers listed:
 
-* Francisco Chicano, Gabriela Ochoa, Darrell Whitley, Renato Tinós, "Dynastic Potential Crossover Operator", submitted to Evolutionary Computation Journal (under review). 
+* Francisco Chicano, Gabriela Ochoa, Darrell Whitley, Renato Tinós, "Dynastic Potential Crossover Operator", accepted in Evolutionary Computation Journal. 
 
 * Gabriela Ochoa, Francisco Chicano and Marco Tomassini, "Global Landscape Structure and the Random MAX-SAT Phase Transition", PPSN 2020 (https://dx.doi.org/10.1007/978-3-030-58115-2_9)
 
