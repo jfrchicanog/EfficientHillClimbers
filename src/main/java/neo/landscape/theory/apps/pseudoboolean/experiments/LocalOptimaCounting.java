@@ -26,6 +26,7 @@ public class LocalOptimaCounting implements Process {
     protected long seed;
 
     protected List<RBallPBMove> [] moveBin; 
+    protected int [] counter;
 
     @Override
     public String getDescription() {
@@ -45,6 +46,7 @@ public class LocalOptimaCounting implements Process {
         long nextSolutionsReport = solutions + (1L<<30);
         PBSolution solution = rball.getSolution();
         initializeMoveBin();
+        counter = new int[n];
         
         long localOptima = 0;
         
@@ -60,15 +62,18 @@ public class LocalOptimaCounting implements Process {
                 System.out.println("Local optima: "+localOptima);
                 nextSolutionsReport = solutions + (1L<<30);
             }
-            while (index < n && solution.getBit(index) == 1) {
-                rball.moveOneBit(index);
+            while (index < n && counter[index] == 1) {
+                counter[index]=0;
+                //rball.moveOneBit(index);
                 index++;
             }
             if (index < n) {
+                counter[index]=1;
                 rball.moveOneBit(index);
             }
             
         }
+        System.out.println("Total solutions explored: "+solutions);
         return localOptima;
     }
 
