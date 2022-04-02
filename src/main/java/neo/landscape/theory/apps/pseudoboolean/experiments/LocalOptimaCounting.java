@@ -1,5 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.experiments;
 
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -132,8 +133,13 @@ public class LocalOptimaCounting implements Process {
         long localOptima = findLocalOptima();
         System.out.println("Seed: "+seed);
         System.out.println("Local optima: "+localOptima);
+        reportInstanceToStandardOutput();
 
         
+    }
+
+    private void reportInstanceToStandardOutput() {
+        pbf.writeTo(new OutputStreamWriter(System.out));
     }
     
     private void createInstance(String n, String k, String q, String circular) {

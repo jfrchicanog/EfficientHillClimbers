@@ -4,13 +4,13 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Properties;
 
+import org.junit.Test;
+
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod.SolutionQuality;
 import neo.landscape.theory.apps.pseudoboolean.exactsolvers.CompleteEnumerationBigDecimal;
 import neo.landscape.theory.apps.pseudoboolean.exactsolvers.NKLandscapesCircularDynProgBigDecimal;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-
-import org.junit.Test;
 
 public class NKLandscapesCircularDynProgBigDecimalTest {
 
