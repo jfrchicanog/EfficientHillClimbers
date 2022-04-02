@@ -74,7 +74,7 @@ public class LocalOptimaExperiment implements Process {
 
 	@Override
 	public String getInvocationInfo() {
-		return "Arguments: " + getID() + " <n> <k> <q> <circular> <r> [<seed>]";
+		return "Arguments: " + getID() + "<n> <k> <q> <circular> <r> [<seed>]";
 	}
 
 	private void notifyLocalOptima(RBallEfficientHillClimberSnapshot rball,

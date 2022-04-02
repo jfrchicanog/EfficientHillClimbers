@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.experiments;
 
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -10,13 +11,15 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillCl
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallPBMove;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.problems.MAXSAT;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class LocalOptimaCounting implements Process {
     
-    protected NKLandscapes pbf;
+    protected EmbeddedLandscape pbf;
     protected int r;
     protected RBallEfficientHillClimberSnapshot rball;
     protected RBallEfficientHillClimberForInstanceOf rballfio;
@@ -38,6 +41,8 @@ public class LocalOptimaCounting implements Process {
     protected long findLocalOptima() {
         int n = pbf.getN();
         int index = n-1;
+        long solutions=0;
+        long nextSolutionsReport = solutions + (1L<<30);
         PBSolution solution = rball.getSolution();
         initializeMoveBin();
         
@@ -49,6 +54,12 @@ public class LocalOptimaCounting implements Process {
                 localOptima++;
                 index = 0;
             }
+            solutions += (1L << index);
+            if (solutions > nextSolutionsReport) {
+                System.out.println("Solutions explored: "+(double)solutions);
+                System.out.println("Local optima: "+localOptima);
+                nextSolutionsReport = solutions + (1L<<30);
+            }
             while (index < n && solution.getBit(index) == 1) {
                 rball.moveOneBit(index);
                 index++;
@@ -56,6 +67,7 @@ public class LocalOptimaCounting implements Process {
             if (index < n) {
                 rball.moveOneBit(index);
             }
+            
         }
         return localOptima;
     }
@@ -105,15 +117,42 @@ public class LocalOptimaCounting implements Process {
 
     @Override
     public String getInvocationInfo() {
-        return "Arguments: " + getID() + " <n> <k> <q> <circular> <r> [<seed>]";
+        return "Arguments: " + getID() + "[nk <n> <k> <q> <circular> <r> [<seed>]] | [maxsat <instance> <r> [<seed>]]";
     }
 
     public void execute(String[] args) {
-        if (args.length < 5) {
+        if (args.length < 1) {
             System.out.println(getInvocationInfo());
             return;
         }
 
+        if ("nk".equals(args[0])) {
+            args= Arrays.copyOfRange(args, 1, args.length);
+            pbf = configureNKInstance(args);
+        } else if ("maxsat".equals(args[0])) {
+            args= Arrays.copyOfRange(args, 1, args.length);
+            pbf = configureMaxsatInstance(args);
+        }
+        
+        if (pbf == null) {
+            System.out.println(getInvocationInfo());
+            return;
+        }
+        
+        prepareRBallExplorationAlgorithm();
+
+        long localOptima = findLocalOptima();
+        System.out.println("Seed: "+seed);
+        System.out.println("Local optima: "+localOptima);
+        
+        if (pbf instanceof NKLandscapes) {
+            reportNKInstanceToStandardOutput();
+        }
+
+        
+    }
+
+    private EmbeddedLandscape configureNKInstance(String[] args) {
         String n = args[0];
         String k = args[1];
         String q = args[2];
@@ -126,24 +165,31 @@ public class LocalOptimaCounting implements Process {
             seed = Seeds.getSeed();
         }
         
-        createInstance(n, k, q, circular);
-        
-        prepareRBallExplorationAlgorithm();
-
-        long localOptima = findLocalOptima();
-        System.out.println("Seed: "+seed);
-        System.out.println("Local optima: "+localOptima);
-        reportInstanceToStandardOutput();
-
-        
-    }
-
-    private void reportInstanceToStandardOutput() {
-        pbf.writeTo(new OutputStreamWriter(System.out));
+        return createNKInstance(n, k, q, circular);
     }
     
-    private void createInstance(String n, String k, String q, String circular) {
-        pbf = new NKLandscapes();
+    private EmbeddedLandscape configureMaxsatInstance(String [] args) {
+        String instance = args[0];
+        r = Integer.parseInt(args[1]);
+        seed = 0;
+        if (args.length >= 3) {
+            seed = Long.parseLong(args[2]);
+        } else {
+            seed = Seeds.getSeed();
+        }
+        Properties prop = new Properties();
+        prop.setProperty(MAXSAT.INSTANCE_STRING, instance);
+        MAXSAT maxsat = new MAXSAT();
+        maxsat.setConfiguration(prop);
+        return maxsat;
+    }
+
+    private void reportNKInstanceToStandardOutput() {
+        ((NKLandscapes)pbf).writeTo(new OutputStreamWriter(System.out));
+    }
+    
+    private EmbeddedLandscape createNKInstance(String n, String k, String q, String circular) {
+        NKLandscapes pbf = new NKLandscapes();
         Properties prop = new Properties();
         prop.setProperty(NKLandscapes.N_STRING, n);
         prop.setProperty(NKLandscapes.K_STRING, k);
@@ -158,6 +204,8 @@ public class LocalOptimaCounting implements Process {
 
         pbf.setSeed(seed);
         pbf.setConfiguration(prop);
+        
+        return pbf;
     }
 
 }
