@@ -3,8 +3,10 @@ package neo.landscape.theory.apps.pseudoboolean.experiments;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.IntStream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
@@ -27,6 +29,8 @@ public class LocalOptimaCounting implements Process {
 
     protected List<RBallPBMove> [] moveBin; 
     protected long counterValue;
+    protected int [] variableOrder;
+    protected int [] variableRank;
     //protected int [] counter;
 
     @Override
@@ -46,8 +50,12 @@ public class LocalOptimaCounting implements Process {
         long solutions=0;
         long nextSolutionsReport = solutions + (1L<<30);
         PBSolution solution = rball.getSolution();
+        
+        initializeVariableArrays();
         initializeMoveBin();
         //counter = new int[n];
+        
+        
         
         long localOptima = 0;
         
@@ -74,12 +82,26 @@ public class LocalOptimaCounting implements Process {
             }*/
             if (index < n) {
                 //counter[index]=1;
-                rball.moveOneBit(index);
+                rball.moveOneBit(variableOrder[index]);
             }
             
         }
         System.out.println("Total solutions explored: "+solutions);
         return localOptima;
+    }
+
+    private void initializeVariableArrays() {
+        int n = pbf.getN();
+        int [][] interactions = pbf.getInteractions();
+        variableOrder = IntStream.range(0, n)
+                   .boxed()
+                   .sorted(Comparator.comparingInt(i->interactions[i].length))
+                   .mapToInt(i->i).toArray();
+        // TODO sort variables
+        variableRank = new int[n];
+        for (int i=0; i < n; i++) {
+            variableRank[variableOrder[i]]=i;
+        }
     }
 
     protected int findNextIndex(int index) {
@@ -104,14 +126,17 @@ public class LocalOptimaCounting implements Process {
             for (int subfn : rballfio.subFunctionsAffected(move.flipVariables)) {
                 int [] mask = pbf.getMasks()[subfn];
                 for (int var: mask) {
-                    if (var < min) {
-                        min = var;
+                    if (variableRank[var] < min) {
+                        min = variableRank[var];
                     }
                 }
             }
             
             moveBin[min].add(move);
             System.out.println("Move "+move+" in "+min);
+        }
+        for (int i=0; i < moveBin.length; i++) {
+            System.out.println("Bin["+i+"]: "+moveBin[i].size());
         }
 
     }
