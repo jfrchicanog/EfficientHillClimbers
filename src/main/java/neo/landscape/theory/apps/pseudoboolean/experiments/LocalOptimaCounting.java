@@ -26,6 +26,7 @@ public class LocalOptimaCounting implements Process {
     protected RBallEfficientHillClimberSnapshot rball;
     protected RBallEfficientHillClimberForInstanceOf rballfio;
     protected long seed;
+    protected String prefix="";
 
     protected List<RBallPBMove> [] moveBin; 
     protected long counterValue;
@@ -55,11 +56,18 @@ public class LocalOptimaCounting implements Process {
         initializeMoveBin();
         //counter = new int[n];
         
-        
+        preparPrefix();
         
         long localOptima = 0;
         
-        while (index < n) {
+        int limitIndex = n-prefix.length();
+        
+        index = findNextIndex(index);
+        if (index >= limitIndex) {
+            solutions += (1L << limitIndex);
+        }
+        
+        while (index < limitIndex) {
             index = findNextIndex(index);
             if (index < 0) {
                 localOptima++;
@@ -90,14 +98,23 @@ public class LocalOptimaCounting implements Process {
         return localOptima;
     }
 
+    private void preparPrefix() {
+        int index=pbf.getN()-1;
+        for (char c: prefix.toCharArray()) {
+            if (c == '1') {
+                rball.moveOneBit(variableOrder[index]);
+            }
+            index--;
+        }
+    }
+
     private void initializeVariableArrays() {
         int n = pbf.getN();
         int [][] interactions = pbf.getInteractions();
         variableOrder = IntStream.range(0, n)
                    .boxed()
-                   .sorted(Comparator.comparingInt(i->interactions[i].length))
-                   .mapToInt(i->i).toArray();
-        // TODO sort variables
+                   //.sorted(Comparator.comparingInt(i->interactions[i].length))
+                   .mapToInt(i->i).toArray(); 
         variableRank = new int[n];
         for (int i=0; i < n; i++) {
             variableRank[variableOrder[i]]=i;
@@ -152,7 +169,7 @@ public class LocalOptimaCounting implements Process {
 
     @Override
     public String getInvocationInfo() {
-        return "Arguments: " + getID() + "[nk <n> <k> <q> <circular> <r> [<seed>]] | [maxsat <instance> <r> [<seed>]]";
+        return "Arguments: " + getID() + " (nk <n> <k> <q> <circular> <r> [<seed> [<prefix>]] | maxsat <instance> <r> [<seed> [<prefix>]])";
     }
 
     public void execute(String[] args) {
@@ -174,6 +191,11 @@ public class LocalOptimaCounting implements Process {
             return;
         }
         
+        if (!checkPrefixOK()) {
+            System.err.println("The prefix must be a binary string");
+            return;
+        }
+        
         prepareRBallExplorationAlgorithm();
 
         long localOptima = findLocalOptima();
@@ -185,6 +207,10 @@ public class LocalOptimaCounting implements Process {
         }
 
         
+    }
+
+    private boolean  checkPrefixOK() {
+        return prefix.chars().allMatch(c->(c >= '0' && c <= '1'));
     }
 
     private EmbeddedLandscape configureNKInstance(String[] args) {
@@ -200,6 +226,10 @@ public class LocalOptimaCounting implements Process {
             seed = Seeds.getSeed();
         }
         
+        if (args.length >= 7) {
+            prefix = args[6];
+        }
+        
         return createNKInstance(n, k, q, circular);
     }
     
@@ -212,6 +242,11 @@ public class LocalOptimaCounting implements Process {
         } else {
             seed = Seeds.getSeed();
         }
+        
+        if (args.length >= 4) {
+            prefix = args[3];
+        }
+        
         Properties prop = new Properties();
         prop.setProperty(MAXSAT.INSTANCE_STRING, instance);
         MAXSAT maxsat = new MAXSAT();
