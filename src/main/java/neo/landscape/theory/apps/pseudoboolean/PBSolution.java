@@ -66,6 +66,14 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 		sol.parse(str);
 		return sol;
 	}
+	
+	public String toHex() {
+	    String str = "";
+	    for (int i=data.length-1; i >= 0; i--) {
+	        str += String.format("%08x", data[i]);
+	    }
+	    return str;
+	}
 
 	/**
 	 * This method assumes that the binary string is in Big Endian order.

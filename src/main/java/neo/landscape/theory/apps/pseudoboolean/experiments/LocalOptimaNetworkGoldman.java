@@ -1,13 +1,21 @@
 package neo.landscape.theory.apps.pseudoboolean.experiments;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
+import java.util.zip.GZIPOutputStream;
 
+import neo.landscape.theory.apps.efficienthc.HillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
@@ -21,6 +29,7 @@ import neo.landscape.theory.apps.util.Seeds;
 
 public class LocalOptimaNetworkGoldman implements Process {
     
+    private static final long REPORT_PERIOD = 1L<<30;
     protected EmbeddedLandscape pbf;
     protected int r;
     protected RBallEfficientHillClimberSnapshot rball;
@@ -33,6 +42,8 @@ public class LocalOptimaNetworkGoldman implements Process {
     protected int [] variableOrder;
     protected int [] variableRank;
     //protected int [] counter;
+    protected List<PBSolution> localOptima;
+    private HillClimberForInstanceOf<EmbeddedLandscape> rballHillClimber;
 
     @Override
     public String getDescription() {
@@ -49,11 +60,11 @@ public class LocalOptimaNetworkGoldman implements Process {
         int n = pbf.getN();
         int index = n-1;
         long solutions=0;
-        long nextSolutionsReport = solutions + (1L<<30);
-        PBSolution solution = rball.getSolution();
+        long nextSolutionsReport = solutions + REPORT_PERIOD;
         
         initializeVariableArrays();
         initializeMoveBin();
+        initializeLONDataStructures();
         //counter = new int[n];
         
         preparPrefix();
@@ -71,13 +82,14 @@ public class LocalOptimaNetworkGoldman implements Process {
             index = findNextIndex(index);
             if (index < 0) {
                 localOptima++;
+                storeLocalOptima();
                 index = 0;
             }
             solutions += (1L << index);
             if (solutions > nextSolutionsReport) {
                 System.out.println("Solutions explored: "+(double)solutions);
                 System.out.println("Local optima: "+localOptima);
-                nextSolutionsReport = solutions + (1L<<30);
+                nextSolutionsReport = solutions + REPORT_PERIOD;
             }
             long previousCounterValue = counterValue;
             counterValue += (1L<<index);
@@ -95,7 +107,85 @@ public class LocalOptimaNetworkGoldman implements Process {
             
         }
         System.out.println("Total solutions explored: "+solutions);
+        lonExtraction();
         return localOptima;
+    }
+
+    private void lonExtraction() {
+        Properties properties = new Properties();
+        properties.setProperty(RBallEfficientHillClimber.R_STRING, ""+r);
+        properties.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
+        rballHillClimber = new RBallEfficientHillClimber(properties).initialize(pbf);
+        
+        try (OutputStream file = new FileOutputStream("lon.json.gz"); 
+             OutputStream out = new GZIPOutputStream(file); 
+             PrintWriter writer = new PrintWriter(out)) {
+            
+            extractLON(writer);
+                    
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private void extractLON(PrintWriter writer) { 
+        writer.println("{");
+        for (int i=0; i < localOptima.size(); i++) {
+            PBSolution solution = localOptima.get(i);
+            writer.println(String.format("\"%s\": {", solution.toHex()));
+            Map<PBSolution, Long> histogram = computeLocalOptimaReachability(solution);
+            AtomicLong written = new AtomicLong(0);
+            histogram.entrySet().stream().forEach(entry -> {
+                writer.print(String.format("\t\"%s\": %d", entry.getKey().toHex(), entry.getValue()));
+                if (written.incrementAndGet() < histogram.size()) {
+                    writer.print(",");
+                }
+                writer.println();
+                
+            });
+            writer.print("}");
+            if (i < localOptima.size()-1) {
+                writer.print(",");
+            }
+            writer.println();
+        }
+        writer.println("}");        
+    }
+
+    private Map<PBSolution, Long> computeLocalOptimaReachability(PBSolution solution) {
+        Map<PBSolution, Long> histogram = new HashMap<>();
+        int n = solution.getN();
+        // Hamming distance 2 neighborhood
+        for (int i =0; i < n-1; i ++) {
+            for (int j=i+1; j < n; j++) {
+                PBSolution neighbor = new PBSolution(solution);
+                neighbor.flipBit(i);
+                neighbor.flipBit(j);
+                
+                
+                RBallEfficientHillClimberSnapshot rball = (RBallEfficientHillClimberSnapshot) rballHillClimber.initialize(neighbor);
+                climbToLocalOptima(rball);
+                histogram.compute(rball.getSolution(), (k,v)->v==null?1:(v+1));
+            }
+        }
+        return histogram;
+    }
+    
+    private void climbToLocalOptima(RBallEfficientHillClimberSnapshot rball) {
+        double imp;
+        do {
+            imp = rball.move();
+
+        } while (imp > 0);
+    }
+
+    private void initializeLONDataStructures() {
+        localOptima = new ArrayList<>();
+        
+    }
+
+    private void storeLocalOptima() {
+        localOptima.add(new PBSolution(rball.getSolution()));
     }
 
     private void preparPrefix() {

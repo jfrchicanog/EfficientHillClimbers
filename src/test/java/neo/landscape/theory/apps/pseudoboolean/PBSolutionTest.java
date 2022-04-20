@@ -1,7 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.util.Random;
 
@@ -132,5 +131,26 @@ public class PBSolutionTest {
 			assertEquals("equals not working", pbs, pbs2);
 		}
 	}
+	
+	@Test
+	public void testHexZero() {
+	    PBSolution solution = new PBSolution(40);
+	    assertEquals("Not the same", "0000000000000000", solution.toHex());
+	}
+	
+	@Test
+    public void testHexAllOnes() {
+        PBSolution solution = new PBSolution(40);
+        for (int i=0; i < 40; i++) {
+            solution.flipBit(i);
+        }
+        assertEquals("Not the same", "000000ffffffffff", solution.toHex());
+    }
+	
+	@Test
+    public void testHexSome() {
+        PBSolution solution = PBSolution.toPBSolution("1000111101010");
+        assertEquals("Not the same", "000011ea", solution.toHex());
+    }
 
 }
