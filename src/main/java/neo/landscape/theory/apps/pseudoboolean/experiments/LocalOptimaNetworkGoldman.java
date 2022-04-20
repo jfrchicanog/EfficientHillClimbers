@@ -44,6 +44,7 @@ public class LocalOptimaNetworkGoldman implements Process {
     //protected int [] counter;
     protected List<PBSolution> localOptima;
     private HillClimberForInstanceOf<EmbeddedLandscape> rballHillClimber;
+    private String outputFileName;
 
     @Override
     public String getDescription() {
@@ -117,7 +118,7 @@ public class LocalOptimaNetworkGoldman implements Process {
         properties.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
         rballHillClimber = new RBallEfficientHillClimber(properties).initialize(pbf);
         
-        try (OutputStream file = new FileOutputStream("lon.json.gz"); 
+        try (OutputStream file = new FileOutputStream(outputFileName); 
              OutputStream out = new GZIPOutputStream(file); 
              PrintWriter writer = new PrintWriter(out)) {
             
@@ -259,7 +260,7 @@ public class LocalOptimaNetworkGoldman implements Process {
 
     @Override
     public String getInvocationInfo() {
-        return "Arguments: " + getID() + " (nk <n> <k> <q> <circular> <r> [<seed> [<prefix>]] | maxsat <instance> <r> [<seed> [<prefix>]])";
+        return "Arguments: " + getID() + " <output.json.gz> (nk <n> <k> <q> <circular> <r> [<seed> [<prefix>]] | maxsat <instance> <r> [<seed> [<prefix>]])";
     }
 
     public void execute(String[] args) {
@@ -267,6 +268,9 @@ public class LocalOptimaNetworkGoldman implements Process {
             System.out.println(getInvocationInfo());
             return;
         }
+        
+        outputFileName = args[0];
+        args= Arrays.copyOfRange(args, 1, args.length);
 
         if ("nk".equals(args[0])) {
             args= Arrays.copyOfRange(args, 1, args.length);
