@@ -30,6 +30,7 @@ import neo.landscape.theory.apps.util.Seeds;
 public class LocalOptimaNetworkGoldman implements Process {
     
     private static final long REPORT_PERIOD = 1L<<30;
+    private static final long MILLIS_PERIOD = 5000;
     protected EmbeddedLandscape pbf;
     protected int r;
     protected RBallEfficientHillClimberSnapshot rball;
@@ -129,9 +130,16 @@ public class LocalOptimaNetworkGoldman implements Process {
         }
     }
     
-    private void extractLON(PrintWriter writer) { 
+    private void extractLON(PrintWriter writer) {
+    	long millis = System.currentTimeMillis();
         writer.println("{");
         for (int i=0; i < localOptima.size(); i++) {
+        	
+        	if (millis+MILLIS_PERIOD < System.currentTimeMillis()) {
+        		System.out.println(String.format("%f %%", ((double)i)/localOptima.size()));
+        		millis = System.currentTimeMillis();
+        	}
+        	
             PBSolution solution = localOptima.get(i);
             writer.println(String.format("\"%s\": {", solution.toHex()));
             Map<PBSolution, Long> histogram = computeLocalOptimaReachability(solution);
@@ -158,6 +166,7 @@ public class LocalOptimaNetworkGoldman implements Process {
         int n = solution.getN();
         // Hamming distance 2 neighborhood
         for (int i =0; i < n-1; i ++) {
+        	//System.out.print(".");
             for (int j=i+1; j < n; j++) {
                 PBSolution neighbor = new PBSolution(solution);
                 neighbor.flipBit(i);
@@ -169,6 +178,7 @@ public class LocalOptimaNetworkGoldman implements Process {
                 histogram.compute(rball.getSolution(), (k,v)->v==null?1:(v+1));
             }
         }
+        //System.out.println();
         return histogram;
     }
     
