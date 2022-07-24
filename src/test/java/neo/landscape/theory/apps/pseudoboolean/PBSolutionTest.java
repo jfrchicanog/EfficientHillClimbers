@@ -8,6 +8,8 @@ import org.junit.Test;
 
 public class PBSolutionTest {
 
+	private Random rnd;
+
 	@Test
 	public void testPBSolution() {
 
@@ -152,5 +154,27 @@ public class PBSolutionTest {
         PBSolution solution = PBSolution.toPBSolution("1000111101010");
         assertEquals("Not the same", "000011ea", solution.toHex());
     }
+	
+	@Test
+	public void fromHex() {
+		rnd = new Random (0);
+		for (int n: new Integer[] {4, 7, 9, 15, 16, 17, 23, 24, 25, 31, 32, 33, 63, 64, 65}) {
+			for (int it=0; it < 10; it++) {
+				PBSolution solution = generateRandomSolution (n);
+				String hex = solution.toHex();
+				PBSolution newSolution = new PBSolution(n);
+				newSolution.fromHex(hex);
+				assertEquals("Solutions are not equal", solution, newSolution);
+			}
+		}
+	}
+	
+	private PBSolution generateRandomSolution(int n) {
+		PBSolution solution = new PBSolution(n);
+		for (int i=0; i < n; i++) {
+			solution.setBit(i, rnd.nextInt(2));
+		}
+		return solution;
+	}
 
 }

@@ -74,6 +74,31 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 	    }
 	    return str;
 	}
+	
+	public void fromHex(String hex) {
+		hex = hex.trim();
+		if (hex.length() <= (data.length-1)*8) {
+			throw new IllegalArgumentException("Hex number nos long enough: "+hex);
+		}
+		
+		for (int i=data.length-1; i >= 0; i--) {
+			int endIndex = hex.length() - i*8;
+			String val = hex.subSequence(Math.max(endIndex-8, 0), endIndex).toString();
+			data[i] = parseHexInt(val);
+		}
+	}
+	
+	private int parseHexInt(String hex) {
+		assert hex.length() <= 8;
+		int result=0; 
+		if (hex.length()==8) {
+			result = Integer.parseInt(""+hex.charAt(0), 16);
+			result <<= 28;
+			hex = hex.substring(1);
+		}
+		result += Integer.parseInt(hex, 16);
+		return result; 
+	}
 
 	/**
 	 * This method assumes that the binary string is in Big Endian order.
