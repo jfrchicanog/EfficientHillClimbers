@@ -32,7 +32,7 @@ import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 
 public class LocalOptimaNetworkGoldmanExtraction implements Process {
-    
+	    
     protected EmbeddedLandscape pbf;
     protected int r;
     protected long seed;
