@@ -92,4 +92,13 @@ public class UnionFindBasicImplementation<E> implements UnionFind<E> {
 		return contains(e)?Optional.of(findSet(e)):Optional.empty();
 	}
 
+	@Override
+	public boolean makeSetIfNotContained(E e) {
+		if (contains(e)) {
+			return false;
+		}
+		makeSet(e);
+		return true;
+	}
+
 }

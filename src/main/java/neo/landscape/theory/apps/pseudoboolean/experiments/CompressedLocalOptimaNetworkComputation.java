@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -16,8 +15,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
@@ -45,9 +42,11 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
 	public static class CompressedComponent {
 		private Set<PBSolution> solutionsCombined;
 		private Set<PBSolution> otherSolutionsInComponent;
-		private long size;
 		private double fitness;
 		private Map<PBSolution, Integer> histogram;
+		public long getSize() {
+			return solutionsCombined.size() + otherSolutionsInComponent.size();
+		}
 	}
     
     protected EmbeddedLandscape pbf;
@@ -80,21 +79,6 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
         }
     }
     
-    private void printHistogramForSolution(PrintWriter writer, PBSolution solution, Map<PBSolution, Long> histogram) {
-    	writer.println(String.format("\"%s\": {", solution.toHex()));
-    	AtomicLong written = new AtomicLong(0);
-        histogram.entrySet().stream().forEach(entry -> {
-            writer.print(String.format("\t\"%s\": %d", entry.getKey().toHex(), entry.getValue()));
-            if (written.incrementAndGet() < histogram.size()) {
-                writer.print(",");
-            }
-            writer.println();
-            
-        });
-        writer.print("}");
-    }
-    
-    
     private void computeCLON(JsonWriter writer) {
     	Map<PBSolution, Map<PBSolution, Integer>> lon = readLON();
     	Set<CompressedComponent> compressedLON = compressedLONComputation(lon);
@@ -121,7 +105,7 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     	JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
     	compressedLON.stream().map(cc->{
     		JsonObjectBuilder objectBuilder = Json.createObjectBuilder();
-    		objectBuilder.add("size", cc.size);
+    		objectBuilder.add("size", cc.getSize());
     		objectBuilder.add("fitness", cc.fitness);
     		objectBuilder.add("solutionsCombined", arrayOfSolutions(cc.solutionsCombined));
     		objectBuilder.add("otherSolutionsInComponent", arrayOfSolutions(cc.otherSolutionsInComponent));
@@ -270,7 +254,6 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     
     private CompressedComponent combine(UnionFind<PBSolution> disjointSet, CompressedComponent component1, CompressedComponent component2) {
     	assert(component1.fitness==component2.fitness);
-    	component1.size += component2.size;
     	component1.solutionsCombined.addAll(component2.solutionsCombined);
     	component1.otherSolutionsInComponent.addAll(component2.otherSolutionsInComponent);
     	component1.otherSolutionsInComponent.removeAll(component1.solutionsCombined);
@@ -293,11 +276,19 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     	Set<PBSolution> merging = componentsToMerge(disjointSet, component);
     	Optional<PBSolution> oneSolution = merging.stream().findAny();
     	Optional<PBSolution> otherSolution = Stream.concat(component.solutionsCombined.stream(), component.otherSolutionsInComponent.stream())
+    		.peek(solution->disjointSet.makeSetIfNotContained(solution))	
     		.reduce((sol1, sol2)->{
     			disjointSet.union(sol1, sol2);
     			return sol1;
     		});
-    	oneSolution.ifPresent(s->disjointSet.union(s, otherSolution.get()));
+    	
+    	otherSolution.ifPresent(solution->{
+    		if (oneSolution.isPresent()) {
+    			disjointSet.union(oneSolution.get(), solution);
+    		} else {
+    			disjointSet.makeSet(solution);
+    		}
+    	});
     	
     	CompressedComponent combinedComponent = Stream.concat(Stream.of(component),
     			merging.stream().map(solution->store.remove(solution)))
@@ -334,7 +325,8 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     private CompressedComponent fromSolutionAndHistogram(PBSolution solution, Map<PBSolution, Integer> histogram) {
     	CompressedComponent component = new CompressedComponent();
     	component.fitness = pbf.evaluate(solution);
-    	component.solutionsCombined = Collections.singleton(solution);
+    	component.solutionsCombined = new HashSet<>();
+    	component.solutionsCombined.add(solution);
     	component.otherSolutionsInComponent = new HashSet<>();
     	component.histogram = histogram.entrySet().stream().filter(entry->{
     		if (pbf.evaluate(entry.getKey()) == component.fitness) {
@@ -344,8 +336,6 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     		return true;
     		})
     			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    	
-    	component.size = component.otherSolutionsInComponent.size() + component.solutionsCombined.size();
     	return component;
     }
     
@@ -357,7 +347,7 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     
     private Map<PBSolution, Integer> adjustHistogram(UnionFind<PBSolution> unionFind, PBSolution solution, Stream<Map.Entry<PBSolution, Integer>> histogram) {
     	return histogram
-    			.filter(e->!unionFind.sameSet(solution, e.getKey()))
+    			.filter(e->!unionFind.contains(e.getKey()) || !unionFind.sameSet(solution, e.getKey()))
     			.collect(Collectors.toMap(
     					e->unionFind.findSetIfContained(e.getKey()).orElse(e.getKey()),
     					e->e.getValue(),
@@ -367,15 +357,5 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     private Map<PBSolution, Integer> combineHistograms(UnionFind<PBSolution> unionFind, PBSolution solution, Map<PBSolution, Integer> h1, Map<PBSolution, Integer> h2) {
     	return adjustHistogram(unionFind, solution, Stream.concat(h1.entrySet().stream(),h2.entrySet().stream()));
     }
-    
-
-	private PBSolution representative(UnionFind<PBSolution> clusters, PBSolution localOptima) {
-		if (clusters.contains(localOptima)) {
-			localOptima = clusters.findSet(localOptima);
-		} else {
-			clusters.makeSet(localOptima);
-		}
-		return localOptima;
-	}
 
 }
