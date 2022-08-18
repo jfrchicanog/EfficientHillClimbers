@@ -9,13 +9,15 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
@@ -272,13 +274,18 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     	component1.solutionsCombined.addAll(component2.solutionsCombined);
     	component1.otherSolutionsInComponent.addAll(component2.otherSolutionsInComponent);
     	component1.otherSolutionsInComponent.removeAll(component1.solutionsCombined);
-    	component1.histogram = combineHistograms(disjointSet, component1.histogram, component2.histogram);
+    	component1.histogram = combineHistograms(disjointSet, 
+    			component1.solutionsCombined.stream().findAny().get(), 
+    			component1.histogram, 
+    			component2.histogram);
     	
     	return component1;
     }
     
     private void adjustHistograms(UnionFind<PBSolution> disjoinSets, CompressedComponent component) {
-    	component.histogram = adjustHistogram(disjoinSets, component.histogram.entrySet().stream());
+    	component.histogram = adjustHistogram(disjoinSets, 
+    			component.solutionsCombined.stream().findAny().get(), 
+    			component.histogram.entrySet().stream());
     }
     
     private Map<PBSolution, CompressedComponent> combineAuxiliaryStoreWithComponent(UnionFind<PBSolution> disjointSet, Map<PBSolution, CompressedComponent> store, CompressedComponent component){
@@ -324,66 +331,41 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     		.collect(Collectors.toSet());
     }
     
-    private Set<CompressedComponent> compressedLONComputation (Map<PBSolution, Map<PBSolution, Integer>> lon) {
-    	UnionFind<PBSolution> clusters = UnionFind.basicImplementation();
-    	Map<PBSolution,Map<PBSolution, Integer>> compressedLON = new HashMap<>();
-    	
-    	lon.entrySet().stream().forEach(lonEntry->{
-    		PBSolution localOptima = representative(clusters, lonEntry.getKey());
-    		double localOptimaFitness = pbf.evaluate(localOptima);
-    		
-    		Map<PBSolution, Integer> histogram = lonEntry.getValue();
-    		
-    		histogram.entrySet().forEach(histogramEntry->{
-    			PBSolution neighboringLocalOptima = representative(clusters, histogramEntry.getKey());
-    			int frequency = histogramEntry.getValue();
-    			
-    			if (clusters.sameSet(neighboringLocalOptima, localOptima)) {
-    				// Nothing to do
-    			} else if (pbf.evaluate(neighboringLocalOptima) == localOptimaFitness) {
-    				// We found that they are in the same compressed component: join the histograms
-    				clusters.union(neighboringLocalOptima, localOptima);
-    			} else {
-    				PBSolution localOptimaRepresentative = clusters.findSet(localOptima);
-    				compressedLON.compute(localOptimaRepresentative, (k,oldHistogram)->{
-    					Map<PBSolution, Integer> newHistogram = Optional.ofNullable(oldHistogram).orElse(new HashMap<>());
-    					newHistogram.compute(neighboringLocalOptima, (key,v)->Optional.ofNullable(v).orElse(0)+frequency);
-    					return newHistogram;
-    				});
-    			}
-    		});
-    	});
-    		
-    	
-    	Map<PBSolution, Map<PBSolution, Integer>> result = compressedLON.entrySet().stream()
-    		.collect(Collectors.toMap(
-    				entry->clusters.findSet(entry.getKey()), 
-    				entry->entry.getValue(), 
-    				(h1, h2)->combineHistograms(clusters, h1, h2)));
-    	
-    	
-    	return result.entrySet().stream()
-    		.map(e->{
-    			CompressedComponent compressed = new CompressedComponent();
-    			compressed.histogram = e.getValue();
-    			// TODO
-    			//compressed.fitness = pbf.evaluate(compressed.representative);
-    			//compressed.size = clusters.elementsInSameSetAs(compressed.representative).count();
-    			return compressed;
+    private CompressedComponent fromSolutionAndHistogram(PBSolution solution, Map<PBSolution, Integer> histogram) {
+    	CompressedComponent component = new CompressedComponent();
+    	component.fitness = pbf.evaluate(solution);
+    	component.solutionsCombined = Collections.singleton(solution);
+    	component.otherSolutionsInComponent = new HashSet<>();
+    	component.histogram = histogram.entrySet().stream().filter(entry->{
+    		if (pbf.evaluate(entry.getKey()) == component.fitness) {
+    			component.otherSolutionsInComponent.add(entry.getKey());
+    			return false;
+    		}
+    		return true;
     		})
-    		.collect(Collectors.toSet());
+    			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    	
+    	component.size = component.otherSolutionsInComponent.size() + component.solutionsCombined.size();
+    	return component;
     }
     
-    private Map<PBSolution, Integer> adjustHistogram(UnionFind<PBSolution> unionFind, Stream<Map.Entry<PBSolution, Integer>> histogram) {
+    private Set<CompressedComponent> compressedLONComputation (Map<PBSolution, Map<PBSolution, Integer>> lon) {
+    	return lon.entrySet().stream()
+    			.map(entry->Collections.singleton(fromSolutionAndHistogram(entry.getKey(), entry.getValue())))
+    			.reduce(this::combineCLONs).orElse(Collections.EMPTY_SET);
+    }
+    
+    private Map<PBSolution, Integer> adjustHistogram(UnionFind<PBSolution> unionFind, PBSolution solution, Stream<Map.Entry<PBSolution, Integer>> histogram) {
     	return histogram
+    			.filter(e->!unionFind.sameSet(solution, e.getKey()))
     			.collect(Collectors.toMap(
     					e->unionFind.findSetIfContained(e.getKey()).orElse(e.getKey()),
     					e->e.getValue(),
     					(a,b)->a+b));
     }
     
-    private Map<PBSolution, Integer> combineHistograms(UnionFind<PBSolution> unionFind, Map<PBSolution, Integer> h1, Map<PBSolution, Integer> h2) {
-    	return adjustHistogram(unionFind, Stream.concat(h1.entrySet().stream(),h2.entrySet().stream()));
+    private Map<PBSolution, Integer> combineHistograms(UnionFind<PBSolution> unionFind, PBSolution solution, Map<PBSolution, Integer> h1, Map<PBSolution, Integer> h2) {
+    	return adjustHistogram(unionFind, solution, Stream.concat(h1.entrySet().stream(),h2.entrySet().stream()));
     }
     
 
