@@ -6,12 +6,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
@@ -27,6 +30,8 @@ import javax.json.JsonNumber;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonString;
+import javax.json.JsonStructure;
 import javax.json.JsonWriter;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
@@ -55,7 +60,7 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
 
     protected long counterValue;
     private String outputFileName;
-    private String lonFileName;
+    private List<String> inputFileNames;
 
     @Override
     public String getDescription() {
@@ -79,12 +84,31 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
         }
     }
     
-    private void computeCLON(JsonWriter writer) {
-    	Map<PBSolution, Map<PBSolution, Integer>> lon = readLON();
-    	Set<CompressedComponent> compressedLON = compressedLONComputation(lon);
+    private void computeCLON(JsonWriter writer) {    	
+    	Set<CompressedComponent> compressedLON = inputFileNames.stream()
+    			.map(this::readFile)
+    			.reduce(this::combineCLONs)
+    			.get();
+    	
     	writeCLON(writer, compressedLON);        
     }
     
+    private Set<CompressedComponent> readFile(String inputFile) {
+    	try(InputStream is = new FileInputStream(inputFile);
+    			GZIPInputStream gzip = new GZIPInputStream (is);
+    			JsonReader reader = Json.createReader(gzip)) {
+    		
+    		JsonStructure structure = reader.read();
+    		if (structure instanceof JsonObject) {
+    			return compressedLONComputation(readLON((JsonObject)structure));
+    		} else {
+    			return readCLON((JsonArray)structure);
+    		}
+    	} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+    }
+
     
     private JsonObject jsonHistogram(Map<PBSolution, Integer> histogram) {
     	JsonObjectBuilder objectBuilder = Json.createObjectBuilder();
@@ -117,9 +141,37 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     	writer.write(arrayBuilder.build());
 	}
 
+    private Set<CompressedComponent> readCLON(JsonArray object) {
+    	return object.stream().map(JsonObject.class::cast)
+    			.map(ob->{
+    				CompressedComponent component = new CompressedComponent();
+    				component.fitness = ob.getJsonNumber("fitness").doubleValue();
+    				component.solutionsCombined = readArrayOfSolutions(ob.getJsonArray("solutionsCombined"));
+    				component.otherSolutionsInComponent = readArrayOfSolutions(ob.getJsonArray("otherSolutionsInComponent"));
+    				component.histogram = readHistogram(ob.getJsonObject("histogram"));
+    				return component;
+    			})
+    			.collect(Collectors.toSet());
+    }
+    
+
+	private Map<PBSolution, Integer> readHistogram(JsonObject jsonObject) {
+		return jsonObject.entrySet().stream()
+			.collect(Collectors.toMap(
+					entry->PBSolution.readFromHex(pbf.getN(), entry.getKey()),
+					entry->((JsonNumber)entry.getValue()).intValue()));
+	}
+
+	private Set<PBSolution> readArrayOfSolutions(JsonArray jsonArray) {
+		return jsonArray.stream()
+			.map(JsonString.class::cast)
+			.map(s->PBSolution.readFromHex(pbf.getN(), s.getString()))
+			.collect(Collectors.toSet());
+	}
+
 	@Override
     public String getInvocationInfo() {
-        return "Arguments: " + getID() + " <output.json.gz> <input.json.gz> (nk <n> <k> <q> <circular> <r> [<seed>] | maxsat <instance> <r> [<seed>])";
+        return "Arguments: " + getID() + " <clon.json.gz> (<lon.json.gz> | <clon.jzon.gz>)+ - (nk <n> <k> <q> <circular> <r> [<seed>] | maxsat <instance> <r> [<seed>])";
     }
 
     public void execute(String[] args) {
@@ -129,8 +181,18 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
         }
         
         outputFileName = args[0];
-        lonFileName = args[1];
-        args= Arrays.copyOfRange(args, 2, args.length);
+        
+        int i=1;
+        inputFileNames = new ArrayList<>();
+        while (i < args.length && !args[i].equals("-")) {
+        	inputFileNames.add(args[i++]);
+        }
+        if (!args[i].equals("-")) {
+        	System.err.println("I did not find the the end of the input file list: aborting");
+        	return;
+        }
+        
+        args= Arrays.copyOfRange(args, i+1, args.length);
 
         if ("nk".equals(args[0])) {
             args= Arrays.copyOfRange(args, 1, args.length);
@@ -211,30 +273,22 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
         return pbf;
     }
     
-    private Map<PBSolution, Map<PBSolution, Integer>> readLON() {
-    	
-    	try(InputStream is = new FileInputStream(lonFileName);
-    			GZIPInputStream gzip = new GZIPInputStream (is);
-    			JsonReader reader = Json.createReader(gzip)) {
-    		
-    		JsonObject object = reader.readObject();
-    		return object.entrySet().stream()
+    
+    
+    private Map<PBSolution, Map<PBSolution, Integer>> readLON(JsonObject object) {
+    	return object.entrySet().stream()
     			.collect(Collectors.toMap(
     					entry->solutionFromString(entry.getKey())
     					, entry->{
     						JsonObject value = (JsonObject)entry.getValue();
     						return value.entrySet().stream()
-    							.collect(Collectors.toMap(
-    									innerEntry->solutionFromString(innerEntry.getKey()), 
-    									innerEntry->{
-    										JsonNumber frequency = (JsonNumber) innerEntry.getValue();
-    										return frequency.intValue();
-    									}));
-    			}));
-    	} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
+    								.collect(Collectors.toMap(
+    										innerEntry->solutionFromString(innerEntry.getKey()), 
+    										innerEntry->{
+    											JsonNumber frequency = (JsonNumber) innerEntry.getValue();
+    											return frequency.intValue();
+    										}));
+    					}));
     }
     
     private PBSolution solutionFromString(String val) {
@@ -244,12 +298,25 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     }
     
     private Set<PBSolution> componentsToMerge(UnionFind<PBSolution> disjointSet, CompressedComponent component) {
+    	
+    	Set<PBSolution> resultSet = new HashSet<>();
+    	
+    	for (Set<PBSolution> set: new Set[] {component.solutionsCombined, component.otherSolutionsInComponent}) {
+    		for (PBSolution solution: set) {
+    			if (disjointSet.contains(solution)) {
+    				resultSet.add(disjointSet.findSet(solution));
+    			}
+    		}
+    	}
+    	return resultSet;
+    	
+    	/*
     	return Stream.concat(component.solutionsCombined.stream(), 
     			component.otherSolutionsInComponent.stream())
     		.map(solution->disjointSet.findSetIfContained(solution))
     		.filter(optional->optional.isPresent())
     		.map(Optional::get)
-    		.collect(Collectors.toSet());
+    		.collect(Collectors.toSet());*/
     }
     
     private CompressedComponent combine(UnionFind<PBSolution> disjointSet, CompressedComponent component1, CompressedComponent component2) {
@@ -266,9 +333,21 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     }
     
     private void adjustHistograms(UnionFind<PBSolution> disjoinSets, CompressedComponent component) {
-    	component.histogram = adjustHistogram(disjoinSets, 
-    			component.solutionsCombined.stream().findAny().get(), 
-    			component.histogram.entrySet().stream());
+    	PBSolution representative = component.solutionsCombined.stream().findAny().get();
+    	Map<PBSolution, Integer> newMap = new HashMap<>();
+    	for (Entry<PBSolution, Integer> entry: component.histogram.entrySet()) {
+    		if (disjoinSets.contains(entry.getKey()) && disjoinSets.sameSet(entry.getKey(), representative)) {
+    			// Not included
+    		} else {
+    			PBSolution toInsert = entry.getKey();
+    			if (disjoinSets.contains(entry.getKey())) {
+    				toInsert = disjoinSets.findSet(toInsert);
+    			}
+    			newMap.compute(toInsert, (s, i)->((i!=null)?i:0)+entry.getValue());
+    		}
+    	}
+    	
+    	component.histogram = newMap;
     }
     
     private Map<PBSolution, CompressedComponent> combineAuxiliaryStoreWithComponent(UnionFind<PBSolution> disjointSet, Map<PBSolution, CompressedComponent> store, CompressedComponent component){
@@ -282,13 +361,7 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     			return sol1;
     		});
     	
-    	otherSolution.ifPresent(solution->{
-    		if (oneSolution.isPresent()) {
-    			disjointSet.union(oneSolution.get(), solution);
-    		} else {
-    			disjointSet.makeSet(solution);
-    		}
-    	});
+    	// oneSolution.ifPresent(sol->disjointSet.union(sol, otherSolution.get()));
     	
     	CompressedComponent combinedComponent = Stream.concat(Stream.of(component),
     			merging.stream().map(solution->store.remove(solution)))
@@ -297,6 +370,7 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     	
     	store.values().stream()
     		.forEach(c->adjustHistograms(disjointSet, c));
+    	adjustHistograms(disjointSet, combinedComponent);
     	
     	PBSolution newKey = disjointSet.findSet(otherSolution.get());
     	store.put(newKey, combinedComponent);
@@ -318,7 +392,7 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     				(storage1, storage2)->combineAuxiliaryStores(computedSolutions, storage1, storage2))
     		.entrySet()
     		.stream()
-    		.map(e->e.getValue())
+    		.map(Map.Entry::getValue)
     		.collect(Collectors.toSet());
     }
     
@@ -329,6 +403,9 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     	component.solutionsCombined.add(solution);
     	component.otherSolutionsInComponent = new HashSet<>();
     	component.histogram = histogram.entrySet().stream().filter(entry->{
+    		if (entry.getKey().equals(solution)) {
+    			return false;
+    		}
     		if (pbf.evaluate(entry.getKey()) == component.fitness) {
     			component.otherSolutionsInComponent.add(entry.getKey());
     			return false;
@@ -345,6 +422,7 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     			.reduce(this::combineCLONs).orElse(Collections.EMPTY_SET);
     }
     
+    /*
     private Map<PBSolution, Integer> adjustHistogram(UnionFind<PBSolution> unionFind, PBSolution solution, Stream<Map.Entry<PBSolution, Integer>> histogram) {
     	return histogram
     			.filter(e->!unionFind.contains(e.getKey()) || !unionFind.sameSet(solution, e.getKey()))
@@ -352,10 +430,29 @@ public class CompressedLocalOptimaNetworkComputation implements Process {
     					e->unionFind.findSetIfContained(e.getKey()).orElse(e.getKey()),
     					e->e.getValue(),
     					(a,b)->a+b));
-    }
+    }*/
     
     private Map<PBSolution, Integer> combineHistograms(UnionFind<PBSolution> unionFind, PBSolution solution, Map<PBSolution, Integer> h1, Map<PBSolution, Integer> h2) {
-    	return adjustHistogram(unionFind, solution, Stream.concat(h1.entrySet().stream(),h2.entrySet().stream()));
+    	
+    	PBSolution representative = solution;
+    	Map<PBSolution, Integer> newMap = new HashMap<>();
+    	for (Map<PBSolution, Integer> h: new Map[] {h1, h2}) {
+    		for (Entry<PBSolution, Integer> entry: h.entrySet()) {
+    			if (unionFind.contains(entry.getKey()) && unionFind.sameSet(entry.getKey(), representative)) {
+    				// Not included
+    			} else {
+    				PBSolution toInsert = entry.getKey();
+    				if (unionFind.contains(entry.getKey())) {
+    					toInsert = unionFind.findSet(toInsert);
+    				}
+    				newMap.compute(toInsert, (s, i)->((i!=null)?i:0)+entry.getValue());
+    			}
+    		}
+    	}
+    	
+    	return newMap;
+    	
+    	// return adjustHistogram(unionFind, solution, Stream.concat(h1.entrySet().stream(),h2.entrySet().stream()));
     }
 
 }

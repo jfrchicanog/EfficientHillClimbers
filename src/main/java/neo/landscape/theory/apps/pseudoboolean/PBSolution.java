@@ -10,6 +10,13 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 	private int data[];
 	private int n;
 
+	
+	public static PBSolution readFromHex(int n, String hex) {
+		PBSolution solution = new PBSolution(n);
+		solution.fromHex(hex);
+		return solution;
+	}
+	
 	public PBSolution(int n) {
 		this.n = n;
 		data = new int[n / 32 + 1];
