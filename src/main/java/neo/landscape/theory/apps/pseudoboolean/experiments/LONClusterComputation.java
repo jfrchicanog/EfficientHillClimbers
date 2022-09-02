@@ -84,52 +84,95 @@ public class LONClusterComputation implements Process {
     }
     
     private void lonClustering() {
-        try (OutputStream file = new FileOutputStream(clusterOutputFileName); 
-             OutputStream out = new GZIPOutputStream(file);
-        	 JsonGenerator generator = Json.createGenerator(out)) {
-            
-        	loadLocalOptima();
-        	prepareClusterDataStructure();
-            clusterLON(generator);
-                    
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    	loadLocalOptima();
+    	prepareClusterDataStructure();
+    	clusterLON();
+    	writeOutput();
     }
-    
+
     private void prepareClusterDataStructure() {
     	clusters = UnionFindLong.basicImplementation(solutions.length);
+    	for (int i=0; i < solutions.length; i++) {
+    		clusters.makeSet(i);
+    	}
 	}
 
 	private Long longFromSolution(PBSolution solution) {
     	return invertMapping.get(solution);
     }
     
-    private void clusterLON(JsonGenerator generator) {
-    	generator.writeStartObject();
+    private void clusterLON() {
     	inputFileNames.stream()
-    			.flatMap(this::processFile)
-    			.forEach(entry->{
-    				generator.write(Long.toString(entry.getKey()), 
-    						jsonHistogram(entry.getValue()));
-    			});
-    	generator.writeEnd();
+    			.forEach(this::processFile);
     }
     
-    private Stream<Map.Entry<Long, Map<Long, Integer>>> processFile(String inputFile) {
+    private void writeOutput() {
+    	try (OutputStream file = new FileOutputStream(clusterOutputFileName); 
+    			OutputStream out = new GZIPOutputStream(file);
+    			JsonGenerator generator = Json.createGenerator(out)) {
+
+    		generator.writeStartObject();
+    		writeNumberOfClusters(generator);
+    		writeMapping(generator);
+    		generator.writeEnd();
+    	} catch (IOException e) {
+    		throw new RuntimeException(e);
+    	}
+    }
+
+	private void writeMapping(JsonGenerator generator) {
+		generator.writeKey("mapping");
+		generator.writeStartArray();
+		for (long lo = 0; lo < solutions.length; ++lo) {
+			generator.writeStartArray();
+			generator.write(lo);
+			generator.write(clusters.findSet(lo));
+			generator.writeEnd();
+		}
+		generator.writeEnd();
+	}
+
+	private void writeNumberOfClusters(JsonGenerator generator) {
+		generator.writeKey("clusters");
+		generator.write(clusters.getNumberOfSets());
+	}
+    
+    private void processFile(String inputFile) {
     	
     	try {
     		InputStream is = new FileInputStream(inputFile);
 			GZIPInputStream gzip = new GZIPInputStream (is);
 			JsonParser parser = Json.createParser(gzip);
     		parser.next();
-    		return parser.getObjectStream()
+    		parser.getObjectStream()
     				.onClose(()->parser.close())
-    				.map(translation());
+    				.forEach(e->processLocalOptima(e.getKey(), e.getValue()));
     	} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
     }
+    
+    private void processLocalOptima(String lo, JsonValue histogramJson) {
+    	int solutionIndex = Integer.parseInt(lo);
+    	PBSolution solution = solutions[solutionIndex];
+    	double fitness = pbf.evaluate(solution);
+    	getHistogramStream(histogramJson.asJsonObject())
+    		.forEach(entry->{
+    			long neighboringSolutionIndex = entry.getKey();
+    			PBSolution neighbor = solutions[(int)neighboringSolutionIndex];
+    			if (fitness == pbf.evaluate(neighbor)) {
+    				clusters.union(neighboringSolutionIndex, solutionIndex);
+    			}
+    		});
+    }
+    
+    private Function<Entry<String, JsonValue>, Entry<Long, Map<Long, Integer>>> translation() {
+		return entry->{
+    		return new AbstractMap.SimpleEntry<Long,Map<Long,Integer>>(
+    				longFromSolution(solutionFromString(entry.getKey())), 
+    				getHistogram((JsonObject)entry.getValue()));
+    		};
+	}
 
     
     private JsonObject jsonHistogram(Map<Long, Integer> histogram) {
@@ -148,13 +191,13 @@ public class LONClusterComputation implements Process {
     			));
     }
     
-    private Function<Entry<String, JsonValue>, Entry<Long, Map<Long, Integer>>> translation() {
-		return entry->{
-    		return new AbstractMap.SimpleEntry<Long,Map<Long,Integer>>(
-    				longFromSolution(solutionFromString(entry.getKey())), 
-    				getHistogram((JsonObject)entry.getValue()));
-    		};
-	}
+    private Stream<Map.Entry<Long, Integer>> getHistogramStream(JsonObject object) {
+    	return object.entrySet().stream()
+    			.map(entry->new AbstractMap.SimpleEntry<Long,Integer>(
+    					Long.parseLong(entry.getKey()),
+    					((JsonNumber)entry.getValue()).intValue())
+    			);
+    }
     
     private PBSolution solutionFromString(String val) {
     	PBSolution solution = new PBSolution(pbf.getN());
