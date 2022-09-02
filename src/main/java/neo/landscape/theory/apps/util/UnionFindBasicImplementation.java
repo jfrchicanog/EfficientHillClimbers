@@ -52,7 +52,7 @@ public class UnionFindBasicImplementation<E> implements UnionFind<E> {
 			throw new NoSuchElementException();
 		}
 		E v = e;
-		while (!parent.get(e).equals(v)) {
+		while (!parent.get(v).equals(v)) {
 			v = parent.get(v);
 		}
 		while (!parent.get(e).equals(v)) {
