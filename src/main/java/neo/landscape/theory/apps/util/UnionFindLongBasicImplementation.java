@@ -12,6 +12,7 @@ public class UnionFindLongBasicImplementation implements UnionFindLong {
 	public UnionFindLongBasicImplementation(long n) {
 		parent = new int [(int)n];
 		rank = new int [(int)n];
+		clear();
 	}
 
 	@Override
