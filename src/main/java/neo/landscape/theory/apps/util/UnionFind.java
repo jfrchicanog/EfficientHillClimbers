@@ -14,6 +14,7 @@ public interface UnionFind<E> {
 	boolean contains(E e);
 	boolean sameSet(E e1, E e2);
 	Stream<E> elementsInSameSetAs(E e);
+	Stream<E> canonicalRepresentatives();
 	
 	static <E> UnionFind<E> basicImplementation() {
 		return new UnionFindBasicImplementation<>();

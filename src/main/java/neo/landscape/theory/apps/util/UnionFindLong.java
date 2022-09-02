@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.util;
 
 import java.util.OptionalLong;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 public interface UnionFindLong {
 	void clear();
@@ -14,6 +15,7 @@ public interface UnionFindLong {
 	boolean contains(long e);
 	boolean sameSet(long e1, long e2);
 	LongStream elementsInSameSetAs(long e);
+	LongStream canonicalRepresentatives();
 	
 	static UnionFindLong basicImplementation(long n) {
 		return new UnionFindLongBasicImplementation(n);

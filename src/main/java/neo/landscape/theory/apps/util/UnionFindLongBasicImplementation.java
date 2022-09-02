@@ -107,4 +107,10 @@ public class UnionFindLongBasicImplementation implements UnionFindLong {
 		return true;
 	}
 
+	@Override
+	public LongStream canonicalRepresentatives() {
+		return LongStream.range(0, parent.length)
+			.filter(l->rank[(int)l] >=0 && parent[(int)l]==l);
+	}
+
 }

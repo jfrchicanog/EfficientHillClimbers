@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class UnionFindBasicImplementation<E> implements UnionFind<E> {
@@ -101,4 +102,10 @@ public class UnionFindBasicImplementation<E> implements UnionFind<E> {
 		return true;
 	}
 
+	@Override
+	public Stream<E> canonicalRepresentatives() {
+		return parent.entrySet().stream()
+			.filter(entry->entry.getKey().equals(entry.getValue()))
+			.map(entry->entry.getKey());
+	}
 }
