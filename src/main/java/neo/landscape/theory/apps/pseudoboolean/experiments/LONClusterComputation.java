@@ -114,11 +114,20 @@ public class LONClusterComputation implements Process {
     		generator.writeStartObject();
     		writeNumberOfClusters(generator);
     		writeMapping(generator);
+    		writeClusterIDs(generator);
     		generator.writeEnd();
     	} catch (IOException e) {
     		throw new RuntimeException(e);
     	}
     }
+
+	private void writeClusterIDs(JsonGenerator generator) {
+		generator.writeKey("clusterIDs");
+		generator.writeStartArray();
+		clusters.canonicalRepresentatives()
+			.forEach(l->generator.write(l));
+		generator.writeEnd();
+	}
 
 	private void writeMapping(JsonGenerator generator) {
 		generator.writeKey("mapping");
