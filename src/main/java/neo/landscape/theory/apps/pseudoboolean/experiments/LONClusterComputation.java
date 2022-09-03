@@ -52,6 +52,8 @@ public class LONClusterComputation implements Process {
     private PBSolution [] solutions;
     private Map<PBSolution, Long> invertMapping;
     private UnionFindLong clusters;
+    
+    private long processedLocalOptima =0;
 
     @Override
     public String getDescription() {
@@ -149,6 +151,7 @@ public class LONClusterComputation implements Process {
     private void processFile(String inputFile) {
     	
     	try {
+    		System.out.println("Processing file: "+inputFile);
     		InputStream is = new FileInputStream(inputFile);
 			GZIPInputStream gzip = new GZIPInputStream (is);
 			JsonParser parser = Json.createParser(gzip);
@@ -162,6 +165,7 @@ public class LONClusterComputation implements Process {
     }
     
     private void processLocalOptima(String lo, JsonValue histogramJson) {
+    	processedLocalOptima++;
     	int solutionIndex = Integer.parseInt(lo);
     	PBSolution solution = solutions[solutionIndex];
     	double fitness = pbf.evaluate(solution);
@@ -173,6 +177,9 @@ public class LONClusterComputation implements Process {
     				clusters.union(neighboringSolutionIndex, solutionIndex);
     			}
     		});
+    	if ((processedLocalOptima % 10000) == 0) {
+    		System.out.println("Processed "+ processedLocalOptima+ " local optima in the file");
+    	}
     }
     
     private Function<Entry<String, JsonValue>, Entry<Long, Map<Long, Integer>>> translation() {
