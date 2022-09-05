@@ -149,7 +149,7 @@ public class CLONBuilding implements Process {
 			 OutputStream out = new GZIPOutputStream(file);
 			 PrintWriter pw = new PrintWriter(out);) {
 
-			pw.println("Start\tEnd\tFrequency");
+			//pw.println("Start\tEnd\tFrequency");
 			for (int i=0; i < clusterId.length; i++) {
 				if (histogram[i] >  0) {
 					pw.println(cnodeId+"\t"+clusterId[i]+"\t"+histogram[i]);
