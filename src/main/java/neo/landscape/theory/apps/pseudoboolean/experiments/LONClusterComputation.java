@@ -12,12 +12,9 @@ import java.io.Reader;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
@@ -26,7 +23,6 @@ import java.util.zip.GZIPOutputStream;
 import javax.json.Json;
 import javax.json.JsonNumber;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 import javax.json.stream.JsonGenerator;
 import javax.json.stream.JsonParser;
@@ -50,7 +46,6 @@ public class LONClusterComputation implements Process {
     private String loFile;
     private List<String> inputFileNames;
     private PBSolution [] solutions;
-    private Map<PBSolution, Long> invertMapping;
     private UnionFindLong clusters;
     
     private long processedLocalOptima =0;
@@ -79,10 +74,6 @@ public class LONClusterComputation implements Process {
     	catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-    	invertMapping = new HashMap<>();
-    	for (int i=0; i < solutions.length; i++) {
-    		invertMapping.put(solutions[i], (long)i);
-    	}
     }
     
     private void lonClustering() {
@@ -98,10 +89,6 @@ public class LONClusterComputation implements Process {
     		clusters.makeSet(i);
     	}
 	}
-
-	private Long longFromSolution(PBSolution solution) {
-    	return invertMapping.get(solution);
-    }
     
     private void clusterLON() {
     	inputFileNames.stream()
@@ -182,31 +169,6 @@ public class LONClusterComputation implements Process {
     	}
     }
     
-    private Function<Entry<String, JsonValue>, Entry<Long, Map<Long, Integer>>> translation() {
-		return entry->{
-    		return new AbstractMap.SimpleEntry<Long,Map<Long,Integer>>(
-    				longFromSolution(solutionFromString(entry.getKey())), 
-    				getHistogram((JsonObject)entry.getValue()));
-    		};
-	}
-
-    
-    private JsonObject jsonHistogram(Map<Long, Integer> histogram) {
-    	JsonObjectBuilder objectBuilder = Json.createObjectBuilder();
-    	histogram.forEach((solution, frequency)->{
-    		objectBuilder.add(Long.toString(solution), frequency);
-    	});
-    	return objectBuilder.build();
-    }
-    
-    private Map<Long, Integer> getHistogram(JsonObject object) {
-    	return object.entrySet().stream()
-    			.collect(Collectors.toMap(
-    					entry->longFromSolution(solutionFromString(entry.getKey())), 
-    					entry->((JsonNumber)entry.getValue()).intValue()
-    			));
-    }
-    
     private Stream<Map.Entry<Long, Integer>> getHistogramStream(JsonObject object) {
     	return object.entrySet().stream()
     			.map(entry->new AbstractMap.SimpleEntry<Long,Integer>(
@@ -215,12 +177,6 @@ public class LONClusterComputation implements Process {
     			);
     }
     
-    private PBSolution solutionFromString(String val) {
-    	PBSolution solution = new PBSolution(pbf.getN());
-		solution.fromHex(val);
-		return solution;
-    }
-
 	@Override
     public String getInvocationInfo() {
         return "Arguments: " + getID() + " <output-cluster-file.json.gz> <lo-list.gz> <lon-file.json.gz>+ - (nk <n> <k> <q> <circular> <r> [<seed>] | maxsat <instance> <r> [<seed>])";
