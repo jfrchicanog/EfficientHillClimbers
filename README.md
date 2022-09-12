@@ -1,6 +1,9 @@
-# Dynastic Potential Crossover Operator (paper submitted to Evolutionary Computation)
+# Dynastic Potential Crossover Operator
 
-In this file we provide instructions to build and run the code associated to the paper "Dynastic Potential Crossover Operator" by F. Chicano, G. Ochoa, D. Whitley and R. Tinós. This paper is currently under review. 
+In this file we provide instructions to build and run the code associated to the paper "Dynastic Potential Crossover Operator" by F. Chicano, G. Ochoa, D. Whitley and R. Tinós. This paper is accepted in Evolutionary Computation Journal. The full reference is:
+
+* Francisco Chicano, Gabriela Ochoa, Darrell Whitley, Renato Tinós, "Dynastic Potential Crossover Operator",  Evolutionary Computation Journal 30 (3): 409-446 (https://doi.org/10.1162/evco_a_00305) Open Access. 
+
 This paper is an extension of the paper Quasi-Optimal Recombination Operator (EvoCOP 2019). The source code of the EvoCOP paper can be found in this repository in the [EvoCOP2019 tag](https://github.com/jfrchicanog/EfficientHillClimbers/tree/EvoCOP2019).
 
 Please, be sure that you select the correct branch before running the commands (otherwise you will not generate the same binary file). The branch is [dpx-ecj](https://github.com/jfrchicanog/EfficientHillClimbers/tree/dpx-ecj).
