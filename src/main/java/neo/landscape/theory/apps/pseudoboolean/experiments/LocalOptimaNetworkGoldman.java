@@ -243,7 +243,7 @@ public class LocalOptimaNetworkGoldman implements Process {
     		 PrintWriter writer = new PrintWriter(gzos)) 
     	{
     		localOptima.forEach(solution->{
-    			writer.println(solution.toHex());
+    			writer.println(solution.toHex()+" "+pbf.evaluate(solution));
     		});
     		
     		
