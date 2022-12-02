@@ -56,6 +56,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
     private long timeAfterCrossover;
     protected RBallEfficientHillClimberForInstanceOf rballfio;
     protected long seed;
+	private LocalOptimaNetworkGoldman goldman;
 
 	public LocalOptimaExperimentAllChildren() {
 		localOptima = new ArrayList<PBSolution>();
@@ -119,11 +120,19 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		createInstance(n, k, q, circular);
         String file_name = computeFileName(n, k, q, circular);
         
+        
+        goldman = new LocalOptimaNetworkGoldman();
+        goldman.r = r;
+        goldman.seed = seed;
+        goldman.setPbf(pbf);
+        goldman.prepareRBallExplorationAlgorithm();
+        goldman.findLocalOptima();
+        
 		createAndOpenOutputFiles(file_name);
 
-		prepareRBallExplorationAlgorithm();
+		// prepareRBallExplorationAlgorithm();
 
-		localOptima = findLocalOptima();
+		localOptima = goldman.localOptima;
 		
 		Collections.sort(localOptima, Comparator.comparing(s->pbf.evaluate(s)));
 		
@@ -201,12 +210,12 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
     private void reportStatistics() {
         System.out.println("Problem init time: "
-				+ rballfio.getProblemInitTime());
+				+ goldman.rballfio.getProblemInitTime());
 		System.out
-				.println("Solution init time: " + rball.getSolutionInitTime());
+				.println("Solution init time: " + goldman.rball.getSolutionInitTime());
 		System.out.println("Move time: " + (finalTime - initTime));
 		System.out.println("Move+crossover time: " + (timeAfterCrossover - initTime));
-		System.out.println("Stored scores:" + rballfio.getStoredScores());
+		System.out.println("Stored scores:" + goldman.rballfio.getStoredScores());
 		System.out.println("Var appearance (max):" + max_app);
 		System.out.println("Var interaction (max):" + max_interactions);
     }

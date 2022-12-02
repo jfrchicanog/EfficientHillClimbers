@@ -27,7 +27,7 @@ import neo.landscape.theory.apps.util.Seeds;
 public class LocalOptimaNetworkGoldman implements Process {
     
     private static final long REPORT_PERIOD = 1L<<30;
-    protected EmbeddedLandscape pbf;
+    private EmbeddedLandscape pbf;
     protected int r;
     protected RBallEfficientHillClimberSnapshot rball;
     protected RBallEfficientHillClimberForInstanceOf rballfio;
@@ -55,7 +55,7 @@ public class LocalOptimaNetworkGoldman implements Process {
     }
 
     protected long findLocalOptima() {
-        int n = pbf.getN();
+        int n = getPbf().getN();
         int index = n-1;
         long solutions=0;
         long nextSolutionsReport = solutions + REPORT_PERIOD;
@@ -118,7 +118,7 @@ public class LocalOptimaNetworkGoldman implements Process {
     }
 
     private void preparePrefix() {
-        int index=pbf.getN()-1;
+        int index=getPbf().getN()-1;
         for (char c: prefix.toCharArray()) {
             if (c == '1') {
                 rball.moveOneBit(variableOrder[index]);
@@ -128,8 +128,8 @@ public class LocalOptimaNetworkGoldman implements Process {
     }
 
     private void initializeVariableArrays() {
-        int n = pbf.getN();
-        int [][] interactions = pbf.getInteractions();
+        int n = getPbf().getN();
+        int [][] interactions = getPbf().getInteractions();
         variableOrder = IntStream.range(0, n)
                    .boxed()
                    //.sorted(Comparator.comparingInt(i->interactions[i].length))
@@ -153,14 +153,14 @@ public class LocalOptimaNetworkGoldman implements Process {
     }
     
     protected void initializeMoveBin() {
-        moveBin = new List[pbf.getN()];
+        moveBin = new List[getPbf().getN()];
         for (int i = 0; i < moveBin.length; i++) {
             moveBin[i] = new ArrayList<RBallPBMove>();
         }
         for (RBallPBMove move: rball.iterateOverMoves()) {
             int min = Integer.MAX_VALUE;
             for (int subfn : rballfio.subFunctionsAffected(move.flipVariables)) {
-                int [] mask = pbf.getMasks()[subfn];
+                int [] mask = getPbf().getMasks()[subfn];
                 for (int var: mask) {
                     if (variableRank[var] < min) {
                         min = variableRank[var];
@@ -179,8 +179,8 @@ public class LocalOptimaNetworkGoldman implements Process {
 
     protected void prepareRBallExplorationAlgorithm() {
         rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(
-                r).initialize(pbf);
-        PBSolution pbs = new PBSolution(pbf.getN());
+                r).initialize(getPbf());
+        PBSolution pbs = new PBSolution(getPbf().getN());
         
         rball = rballfio.initialize(pbs);
         rball.setSeed(seed);
@@ -202,13 +202,13 @@ public class LocalOptimaNetworkGoldman implements Process {
 
         if ("nk".equals(args[0])) {
             args= Arrays.copyOfRange(args, 1, args.length);
-            pbf = configureNKInstance(args);
+            setPbf(configureNKInstance(args));
         } else if ("maxsat".equals(args[0])) {
             args= Arrays.copyOfRange(args, 1, args.length);
-            pbf = configureMaxsatInstance(args);
+            setPbf(configureMaxsatInstance(args));
         }
         
-        if (pbf == null) {
+        if (getPbf() == null) {
             System.out.println(getInvocationInfo());
             return;
         }
@@ -221,8 +221,8 @@ public class LocalOptimaNetworkGoldman implements Process {
         System.out.println("Seed: "+seed);
         
         prepareRBallExplorationAlgorithm();
-
-        long localOptima = findLocalOptima();        
+        long localOptima = findLocalOptima();  
+        
         System.out.println("Local optima: "+localOptima);
         System.out.println("Writing in file "+outputFileName);
         
@@ -230,7 +230,7 @@ public class LocalOptimaNetworkGoldman implements Process {
         
         System.out.println("written");
         
-        if (pbf instanceof NKLandscapes) {
+        if (getPbf() instanceof NKLandscapes) {
             reportNKInstanceToStandardOutput();
         }
 
@@ -243,7 +243,7 @@ public class LocalOptimaNetworkGoldman implements Process {
     		 PrintWriter writer = new PrintWriter(gzos)) 
     	{
     		localOptima.forEach(solution->{
-    			writer.println(solution.toHex()+" "+pbf.evaluate(solution));
+    			writer.println(solution.toHex()+" "+getPbf().evaluate(solution));
     		});
     		
     		
@@ -298,7 +298,7 @@ public class LocalOptimaNetworkGoldman implements Process {
     }
 
     private void reportNKInstanceToStandardOutput() {
-        ((NKLandscapes)pbf).writeTo(new OutputStreamWriter(System.out));
+        ((NKLandscapes)getPbf()).writeTo(new OutputStreamWriter(System.out));
     }
     
     private EmbeddedLandscape createNKInstance(String n, String k, String q, String circular) {
@@ -320,5 +320,13 @@ public class LocalOptimaNetworkGoldman implements Process {
         
         return pbf;
     }
+
+	protected EmbeddedLandscape getPbf() {
+		return pbf;
+	}
+
+	protected void setPbf(EmbeddedLandscape pbf) {
+		this.pbf = pbf;
+	}
 
 }
