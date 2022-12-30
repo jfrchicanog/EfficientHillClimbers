@@ -24,19 +24,6 @@ import neo.landscape.theory.apps.util.Seeds;
 
 public class LocalOptimaExperimentAllChildren implements Process {
 
-	private class SolutionFrequency {
-		public PBSolution solution;
-		public double fitness;
-		public int frequency;
-
-		public SolutionFrequency(PBSolution s, int freq) {
-			this.solution = s;
-			this.frequency = freq;
-			fitness = pbf.evaluate(solution);
-		}
-
-	}
-
 	protected List<PBSolution> localOptima;
 	private PrintWriter nodesFile;
 	private PrintWriter edgesFile;
@@ -145,8 +132,8 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		localOptimaHistogram = createLocalOptimaHistogram(localOptima);
 		applyPartitionCrossoverToAllPairsOfLocalOptima();
 
-		writeHistogram(localOptimaHistogram);
-		writeGNUPlotProgram(file_name);
+		//writeHistogram(localOptimaHistogram);
+		//writeGNUPlotProgram(file_name);
 
 		computeVariablesStatistics();
 
@@ -278,38 +265,6 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		return localOptima;
     }
 
-	private void writeHistogram(int[] localOptimaHistogram) {
-
-		List<SolutionFrequency> aux = new ArrayList<SolutionFrequency>();
-		int index = 0;
-		for (PBSolution sol : localOptima) {
-			aux.add(new SolutionFrequency(sol, localOptimaHistogram[index++]));
-		}
-
-		Collections.sort(aux, new Comparator<SolutionFrequency>() {
-			@Override
-			public int compare(SolutionFrequency o1, SolutionFrequency o2) {
-				return -Double.compare(o1.fitness, o2.fitness);
-			}
-		});
-
-		for (SolutionFrequency sf : aux) {
-			histogramFile.println(sf.fitness + " " + sf.frequency);
-		}
-
-	}
-
-	private void writeGNUPlotProgram(String fileName) {
-		gpProgram.println("set style histogram gap 5");
-		gpProgram.println("set style data histograms");
-		gpProgram.println("set style fill solid 1.0 border -1");
-		gpProgram.println("set boxwidth 0.9 absolute");
-		gpProgram.println("set xrange [0 : " + localOptima.size() + "]");
-		gpProgram.println("set terminal postscript color solid");
-		gpProgram.println("set output '" + fileName + ".ps'");
-		gpProgram.println("plot '" + fileName + ".hist' using 2");
-		gpProgram.println("exit");
-	}
 
 	private String wI(int i) {
 		return "" + (i + 1);
@@ -334,7 +289,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	    }
 	    
 	    System.out.println("R:" + localOptima.get(i) + "(" + wI(i) + ", "+ pbf.evaluate(localOptima.get(i))+") x "
-                + localOptima.get(j) + "(" + wI(j) +", "+ pbf.evaluate(localOptima.get(j)) + ") -> ");
+                + localOptima.get(j) + "(" + wI(j) +", "+ pbf.evaluate(localOptima.get(j)) + ") -> (size: "+allChildren.size()+")");
 	    for (PBSolution res: allChildren) {
 	        int index = localOptima.indexOf(res);
 	        System.out.print("\t"+ res
