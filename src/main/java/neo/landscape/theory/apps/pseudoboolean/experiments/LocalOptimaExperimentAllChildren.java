@@ -29,7 +29,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	private PrintWriter edgesFile;
 	private PrintWriter histogramFile;
 	private PrintWriter gpProgram;
-	private Set<Integer> appearedEdges;
+	//private Set<Integer> appearedEdges;
 
 	private int[] localOptimaHistogram;
 
@@ -149,7 +149,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
     }
 
     private void prepareEdgesList() {
-        appearedEdges = new HashSet<Integer>();
+        //appearedEdges = new HashSet<Integer>();
     }
 
     private int[] createLocalOptimaHistogram(List<PBSolution> localOptima) {
@@ -276,10 +276,10 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 	private void notifyEdge(int i, int j, int kind) {
 		int eid = edgeID(i, j, kind);
-		if (!appearedEdges.contains(eid)) {
-			appearedEdges.add(eid);
-			edgesFile.println(wI(i) + " " + wI(j) + " "+kind);
-		}
+//		if (!appearedEdges.contains(eid)) {
+//			appearedEdges.add(eid);
+//			edgesFile.println(wI(i) + " " + wI(j) + " "+kind);
+//		}
 	}
 
 	private void notifyCrossover(int i, int j, List<PBSolution> allChildren) {
