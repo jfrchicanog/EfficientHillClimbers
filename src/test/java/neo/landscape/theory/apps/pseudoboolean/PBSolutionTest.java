@@ -16,7 +16,7 @@ public class PBSolutionTest {
 		for (int n : new int[] { 1, 5, 31, 32, 63, 64, 2000 }) {
 			PBSolution pbs = new PBSolution(n);
 			for (int i = 0; i < n; i++) {
-				assertEquals("Not all bits set to zer at the beginning", 0,
+				assertEquals("Not all bits set to zero at the beginning", 0,
 						pbs.getBit(i));
 			}
 		}
@@ -165,6 +165,26 @@ public class PBSolutionTest {
 				PBSolution newSolution = new PBSolution(n);
 				newSolution.fromHex(hex);
 				assertEquals("Solutions are not equal", solution, newSolution);
+			}
+		}
+	}
+	
+	@Test
+	public void testHamming() {
+		rnd = new Random (0);
+		for (int n: new Integer[] {4, 7, 9, 15, 16, 17, 23, 24, 25, 31, 32, 33, 63, 64, 65}) {
+			for (int it=0; it < 10; it++) {
+				PBSolution solution1 = generateRandomSolution (n);
+				PBSolution solution2 = generateRandomSolution (n);
+				
+				int distance = solution1.hammingDistance(solution2);
+				int computedDistance = 0;
+				for (int i=0; i < n; i++) {
+					if (solution1.getBit(i)!=solution2.getBit(i)) {
+						computedDistance++;
+					}
+				}
+				assertEquals("Error in Hamming distance computation", computedDistance, distance);
 			}
 		}
 	}

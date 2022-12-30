@@ -38,6 +38,18 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 			data[i] = other.data[i];
 		}
 	}
+	
+	public int hammingDistance(PBSolution solution) {
+		if (solution.n!=n) {
+			throw new IllegalArgumentException("The binary strings have different lengths");
+		}
+		
+		int distance = 0;
+		for(int i=0; i < data.length; i++) {
+			distance += Integer.bitCount(data[i] ^ solution.data[i]);
+		}
+		return distance;
+	}
 
 	public int getBit(int i) {
 		return (data[i >>> 5] >>> (i & 0x1f)) & 0x1;
