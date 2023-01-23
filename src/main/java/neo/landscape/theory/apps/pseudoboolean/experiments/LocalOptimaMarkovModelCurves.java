@@ -2,8 +2,10 @@ package neo.landscape.theory.apps.pseudoboolean.experiments;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -17,15 +19,16 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.commons.math3.fraction.BigFraction;
 
 import neo.landscape.theory.apps.util.Process;
 
 public class LocalOptimaMarkovModelCurves implements Process {
 
 	public static enum PerturbationType {
-		//BIT_FLIP("bit-flip"),
-		FIXED_HAMMING_DISTANCE("fixed-hamming");
-		//FLIPS_WITH_REPLACEMENT("fixed-flips");
+		BIT_FLIP("bit-flip"),
+		FIXED_HAMMING_DISTANCE("fixed-hamming"),
+		FLIPS_WITH_REPLACEMENT("fixed-flips");
 
 		private String name;
 		PerturbationType(String name) {
@@ -51,12 +54,22 @@ public class LocalOptimaMarkovModelCurves implements Process {
 		ProbabilityDistribution getProbabilityDistribution(int n, int alpha);
 	}
 	
+	public static class BinomialProbabilityFamily implements ProbabilityFamily {
+		private double bitflipProbability;
+
+		@Override
+		public ProbabilityDistribution getProbabilityDistribution(int n, int alpha) {
+			bitflipProbability = ((double)alpha)/n;
+			return d->Math.pow(bitflipProbability,d)*Math.pow(1-bitflipProbability,n-d);
+		}
+	}
+	
 	public static class HammingProbabilityFamily implements ProbabilityFamily {
-		private long binom(int n, int d) {
-			long result = 1;
+		private static BigInteger binom(int n, int d) {
+			BigInteger result = BigInteger.ONE;
 			for (int dd=1; dd <= d; dd++) {
-				result *= n;
-				result /= dd;
+				result = result.multiply(BigInteger.valueOf(n));
+				result = result.divide(BigInteger.valueOf(dd));
 				n--;
 			}
 			return result;
@@ -64,8 +77,54 @@ public class LocalOptimaMarkovModelCurves implements Process {
 		
 		@Override
 		public ProbabilityDistribution getProbabilityDistribution(int n, int alpha) {
-			double value = binom(n,alpha); 
+			double value = binom(n,alpha).doubleValue(); 
 			return d->(d!=alpha)?0.0:1.0/value;
+		}
+	}
+	
+	public static class PerturbationWithReplacementFamily implements ProbabilityFamily {
+		private List<BigInteger> upsilon = new ArrayList<>();
+		private BigInteger nToAlpha;
+		private int n;
+		private int alpha;
+		
+		@Override
+		public ProbabilityDistribution getProbabilityDistribution(int n, int alpha) {
+			this.n=n;
+			this.alpha=alpha;
+			nToAlpha = BigInteger.valueOf(n).pow(alpha);
+			return this::computeProbability;
+		}
+		
+		private void ensureUpsilon(int d) {
+			if (upsilon.size() < d+1) {
+				updateUpsilon(d);
+			}
+		}
+
+		private void updateUpsilon(int d) {
+			int previousD = upsilon.size()-1;
+			if (previousD < 0) {
+				upsilon.add(BigInteger.ZERO);
+				previousD=0;
+			}
+			int k = previousD+1;
+			while (k <= d) {
+				BigInteger value = BigInteger.valueOf(k).pow(alpha);
+				for (int l=0; l < k; l++) {
+					BigInteger minuend = HammingProbabilityFamily.binom(k, l).multiply(upsilon.get(l));
+					value = value.subtract(minuend);
+				}
+				upsilon.add(k, value);
+				k++;
+			}
+		}
+		
+		private double computeProbability(int d) {
+			ensureUpsilon(d);
+			//BigInteger numerator = HammingProbabilityFamily.binom(n, d).multiply(upsilon.get(d));
+			BigFraction fraction = new BigFraction(upsilon.get(d), nToAlpha);
+			return fraction.doubleValue();
 		}
 		
 	}
@@ -242,6 +301,12 @@ public class LocalOptimaMarkovModelCurves implements Process {
 		switch (perturbation) {
 		case FIXED_HAMMING_DISTANCE:
 			family = new HammingProbabilityFamily();
+			return;
+		case BIT_FLIP:
+			family = new BinomialProbabilityFamily();
+			return;
+		case FLIPS_WITH_REPLACEMENT:
+			family = new PerturbationWithReplacementFamily();
 			return;
 		default:
 			throw new IllegalArgumentException("Unsupported perturbation: "+perturbation);
