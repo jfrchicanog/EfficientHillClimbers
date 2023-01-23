@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.experiments.loma;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -18,10 +18,10 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
-import neo.landscape.theory.apps.pseudoboolean.experiments.LocalOptimaMarkovModelCurves.HammingProbabilityFamily;
-import neo.landscape.theory.apps.pseudoboolean.experiments.LocalOptimaMarkovModelCurves.PerturbationType;
-import neo.landscape.theory.apps.pseudoboolean.experiments.LocalOptimaMarkovModelCurves.ProbabilityDistribution;
-import neo.landscape.theory.apps.pseudoboolean.experiments.LocalOptimaMarkovModelCurves.ProbabilityFamily;
+import neo.landscape.theory.apps.pseudoboolean.experiments.loma.LocalOptimaMarkovModelCurves.HammingProbabilityFamily;
+import neo.landscape.theory.apps.pseudoboolean.experiments.loma.LocalOptimaMarkovModelCurves.PerturbationType;
+import neo.landscape.theory.apps.pseudoboolean.experiments.loma.LocalOptimaMarkovModelCurves.ProbabilityDistribution;
+import neo.landscape.theory.apps.pseudoboolean.experiments.loma.LocalOptimaMarkovModelCurves.ProbabilityFamily;
 import neo.landscape.theory.apps.util.Process;
 
 public class LocalOptimaMarkovModelTransition implements Process {

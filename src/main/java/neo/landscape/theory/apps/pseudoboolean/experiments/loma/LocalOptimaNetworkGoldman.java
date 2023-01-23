@@ -1,6 +1,5 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.experiments.loma;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -12,7 +11,6 @@ import java.util.Properties;
 import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
 
-import neo.landscape.theory.apps.efficienthc.HillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;

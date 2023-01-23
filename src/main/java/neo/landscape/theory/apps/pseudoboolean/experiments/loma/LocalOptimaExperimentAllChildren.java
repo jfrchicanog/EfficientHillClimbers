@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.experiments.loma;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;

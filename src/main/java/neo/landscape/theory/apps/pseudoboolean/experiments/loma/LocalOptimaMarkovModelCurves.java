@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.experiments.loma;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -82,6 +82,7 @@ public class LocalOptimaMarkovModelCurves implements Process {
 		}
 	}
 	
+	// FIXME: this is wrong
 	public static class PerturbationWithReplacementFamily implements ProbabilityFamily {
 		private List<BigInteger> upsilon = new ArrayList<>();
 		private BigInteger nToAlpha;
