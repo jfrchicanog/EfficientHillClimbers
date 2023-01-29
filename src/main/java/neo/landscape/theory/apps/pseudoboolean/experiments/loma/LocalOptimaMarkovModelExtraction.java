@@ -24,6 +24,7 @@ import neo.landscape.theory.apps.util.Seeds;
 public class LocalOptimaMarkovModelExtraction implements Process {
 
 	protected List<PBSolution> localOptima;
+	private Map<PBSolution, Integer> inverseMapping;
 	private PrintWriter markovModel;
 
 	protected NKLandscapes pbf;
@@ -32,11 +33,12 @@ public class LocalOptimaMarkovModelExtraction implements Process {
     protected RBallEfficientHillClimberForInstanceOf rballfio;
     protected long seed;
 	private LocalOptimaNetworkGoldman goldman;
-	private Map<Triple<PBSolution, Integer, PBSolution>, Integer> markovSample;
+	//private Map<Triple<PBSolution, Integer, PBSolution>, Integer> markovSample;
+	private int [] markovSampleArray;
 
 	public LocalOptimaMarkovModelExtraction() {
 		localOptima = new ArrayList<PBSolution>();
-		markovSample = new HashMap<>();
+		//markovSample = new HashMap<>();
 	}
 
 	@Override
@@ -89,6 +91,9 @@ public class LocalOptimaMarkovModelExtraction implements Process {
 		// prepareRBallExplorationAlgorithm();
 
 		localOptima = goldman.localOptima;
+		computeInverseMapping();
+		int nbLo = localOptima.size();
+		markovSampleArray = new int [nbLo*nbLo*(pbf.getN()+1)];
 		
 		Collections.sort(localOptima, Comparator.comparing(s->pbf.evaluate(s)));
 		
@@ -119,22 +124,44 @@ public class LocalOptimaMarkovModelExtraction implements Process {
 				int indZ = localOptima.indexOf(z);
 				markovModel.print(indX+"\t"+fitness+"\t"+indY+"\t"+indZ+"\t");
 				for (int d=0; d < pbf.getN(); d++) {
-					markovModel.print(markovSample.getOrDefault(Triple.of(x, d, y), 0)+"\t");
+					//markovModel.print(markovSample.getOrDefault(Triple.of(x, d, y), 0)+"\t");
+					markovModel.print(markovSampleArray[computeIndex(x,d,y)]+"\t");
 				}
-				markovModel.println(markovSample.getOrDefault(Triple.of(x, pbf.getN(), y), 0));
+				//markovModel.println(markovSample.getOrDefault(Triple.of(x, pbf.getN(), y), 0));
+				markovModel.println(markovSampleArray[computeIndex(x,pbf.getN(),y)]);
 			}
 		}
 		markovModel.close();
 		
 	}
 	
+	private void computeInverseMapping() {
+		inverseMapping = new HashMap<>();
+		for (int i=0; i < localOptima.size(); i++) {
+			inverseMapping.put(localOptima.get(i), i);
+		}
+	}
+	
+	private int computeIndex(PBSolution lox, int d, PBSolution loy) {
+		return computeIndex(inverseMapping.get(lox), d, inverseMapping.get(loy));
+	}
+	
+	private int computeIndex(int lox, int d, int loy) {
+		int nbLo = localOptima.size();
+		int n = pbf.getN();
+		
+		//return (lox * (n+1)+d)*nbLo+loy;
+		return (loy * (n+1)+d)*nbLo+lox;
+	}
+
 	private void processSolution(PBSolution z) {
 		PBSolution aux = new PBSolution(z);
 		PBSolution y = climbToLocalOptima(aux);
 		for (PBSolution x: localOptima) {
 			int d = x.hammingDistance(z);
-			Triple<PBSolution, Integer, PBSolution> t = Triple.of(x, d, y);
-			markovSample.compute(t, (k,v)->(v==null)?1:(v+1));
+			//Triple<PBSolution, Integer, PBSolution> t = Triple.of(x, d, y);
+			//markovSample.compute(t, (k,v)->(v==null)?1:(v+1));
+			markovSampleArray[computeIndex(x, d, y)]++;
 		}
 	}
 
