@@ -83,8 +83,8 @@ public class LocalOptimaNetworkGoldman implements Process {
             }
             solutions += (1L << index);
             if (solutions > nextSolutionsReport) {
-                System.out.println("Solutions explored: "+(double)solutions);
-                System.out.println("Local optima: "+localOptima);
+                //System.out.println("Solutions explored: "+(double)solutions);
+                //System.out.println("Local optima: "+localOptima);
                 nextSolutionsReport = solutions + REPORT_PERIOD;
             }
             long previousCounterValue = counterValue;
@@ -102,7 +102,7 @@ public class LocalOptimaNetworkGoldman implements Process {
             }
             
         }
-        System.out.println("Total solutions explored: "+solutions);
+        //System.out.println("Total solutions explored: "+solutions);
         return localOptima;
     }
     
@@ -167,11 +167,12 @@ public class LocalOptimaNetworkGoldman implements Process {
             }
             
             moveBin[min].add(move);
-            System.out.println("Move "+move+" in "+min);
+            //System.out.println("Move "+move+" in "+min);
         }
+        /*
         for (int i=0; i < moveBin.length; i++) {
             System.out.println("Bin["+i+"]: "+moveBin[i].size());
-        }
+        }*/
 
     }
 
