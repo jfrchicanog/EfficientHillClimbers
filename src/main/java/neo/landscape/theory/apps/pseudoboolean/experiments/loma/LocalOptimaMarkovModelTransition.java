@@ -17,6 +17,13 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.DecompositionSolver;
+import org.apache.commons.math3.linear.LUDecomposition;
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.linear.SingularMatrixException;
 
 import neo.landscape.theory.apps.pseudoboolean.experiments.loma.LocalOptimaMarkovModelCurves.HammingProbabilityFamily;
 import neo.landscape.theory.apps.pseudoboolean.experiments.loma.LocalOptimaMarkovModelCurves.PerturbationType;
@@ -35,6 +42,11 @@ public class LocalOptimaMarkovModelTransition implements Process {
 	private int [] fitness;
 	private double [] fitnessValue;
 	private int [] basin;
+	private double [] expectedHittingTime;
+	private double [] stationaryDistribution;
+	private int numberOfGlobalOptima;
+	private double [] probabilityOfHittingGlobalOptima;
+	private double [] expectedHittingTimeIfGlobalOptimaReached;
 	
 	// This is the transition matrix
 	private double [][] transitionMatrix;
@@ -98,15 +110,157 @@ public class LocalOptimaMarkovModelTransition implements Process {
 		}
 		
 		computeTransitionMatrix(alpha);
+		computeExpectedHittingTime();
+		computeStationaryProbability();
+		computeGlobalOptimaExpectedHittingTime();
 
 		try(PrintWriter output = new PrintWriter(System.out, true);
 				Formatter formatter  = new Formatter(output, Locale.US)){
 			
 			writeLocalOptimaInformation(formatter);
+			writeGlobalOptimaInformation(formatter);
 			writeTransitionMatrix(formatter);
 		}
 	}
 	
+	private double delta(int i, int j) {
+		return i==j?1:0;
+	}
+	
+	private void computeExpectedHittingTime() {
+		int numberOfLocalOptima = basin.length;
+		expectedHittingTime = new double [numberOfLocalOptima];
+		
+		RealMatrix matrix = MatrixUtils.createRealMatrix(numberOfLocalOptima-1, numberOfLocalOptima-1);
+		RealVector ones = new ArrayRealVector(numberOfLocalOptima-1, 1.0);
+		for (int lo=0; lo < numberOfLocalOptima; lo++) {
+			for (int i=0, ii=0; i < numberOfLocalOptima; i++) {
+				if (i!=lo) {
+					for (int j=0, jj=0; j < numberOfLocalOptima; j++) {
+						if (j!=lo) {
+							matrix.setEntry(ii, jj, delta(ii,jj)-transitionMatrix[i][j]);
+							jj++;
+						}
+					}
+					ii++;
+				}
+			}
+						
+			try {
+				DecompositionSolver solver = new LUDecomposition(matrix).getSolver();
+				RealVector hittingTimes = solver.solve(ones);
+
+				expectedHittingTime[lo] = 0;
+
+				for (int i=0, ii=0; i < numberOfLocalOptima; i++) {
+					if (i!=lo) {
+						expectedHittingTime[lo] += (basin[i] * hittingTimes.getEntry(ii))/(1 << n);
+						ii++;
+					}
+				}
+			} catch (SingularMatrixException e) {
+				// FIXME: I am assuming here that the Markov chain is reducible
+				expectedHittingTime[lo] = Double.POSITIVE_INFINITY;
+			}
+		}
+	}
+	
+	private void computeGlobalOptimaExpectedHittingTime() {
+		int numberOfLocalOptima = basin.length;
+		int goStartIndex = numberOfLocalOptima-numberOfGlobalOptima;
+		
+		RealMatrix matrix = MatrixUtils.createRealMatrix(numberOfLocalOptima-numberOfGlobalOptima, numberOfLocalOptima-numberOfGlobalOptima);
+		
+		for (int i=0; i < goStartIndex; i++) {
+			for (int j=0; j < goStartIndex; j++) {
+				matrix.setEntry(i, j, delta(i,j)-transitionMatrix[i][j]);
+			}
+		}
+		
+		RealMatrix recurrent = MatrixUtils.createRealMatrix(numberOfLocalOptima-numberOfGlobalOptima, numberOfGlobalOptima);
+		
+		for (int i=0; i < goStartIndex; i++) {
+			for (int j=0; j < numberOfGlobalOptima; j++) {
+				recurrent.setEntry(i, j, transitionMatrix[i][j+goStartIndex]);
+			}
+		}
+		
+		RealMatrix inverse = MatrixUtils.inverse(matrix);
+		RealMatrix probs = inverse.multiply(recurrent);
+		RealMatrix times = inverse.multiply(probs);
+		
+		// Check probs
+//		RealVector ones = new ArrayRealVector(numberOfGlobalOptima, 1.0);
+//		RealVector shouldBeOnes = probs.operate(ones);
+//		System.err.println(shouldBeOnes);
+//		for (int i=0; i < shouldBeOnes.getDimension(); i++) {
+//			if (Math.abs(shouldBeOnes.getEntry(i)-1.0) > 0.01) {
+//				System.err.println("Arg");
+//			}
+//		}
+		
+		RealVector initial = new ArrayRealVector(numberOfLocalOptima-numberOfGlobalOptima);
+		for (int i = 0; i < goStartIndex; i++) {
+			initial.setEntry(i, ((double)basin[i])/(1<<n));
+		}
+		
+		RealVector goals = new ArrayRealVector(numberOfGlobalOptima);
+		for (int i=0; i < numberOfGlobalOptima; i++) {
+			goals.setEntry(i, ((double)basin[i+goStartIndex])/(1<<n));
+		}
+		
+		RealVector probsGo = probs.preMultiply(initial);
+		probsGo = probsGo.add(goals);
+		
+		RealVector timesGo = times.preMultiply(initial);
+		
+		RealVector ones = new ArrayRealVector(numberOfGlobalOptima, 1.0);
+		double val = ones.dotProduct(probsGo);
+		System.err.println("Prob: "+val);
+		
+		/*
+		RealVector onesTrans = new ArrayRealVector(numberOfLocalOptima-numberOfGlobalOptima, 1.0);
+		RealVector expected = inverse.operate(onesTrans);
+		double totalExpectedTime = expected.dotProduct(initial);		
+		System.err.println("Total expected time: "+totalExpectedTime);
+		double shouldBeExpected = timesGo.dotProduct(ones);
+		System.err.println("Should expected time: "+shouldBeExpected);
+		*/
+		
+		probabilityOfHittingGlobalOptima = probsGo.toArray();
+		timesGo = timesGo.ebeDivide(probsGo);
+		expectedHittingTimeIfGlobalOptimaReached = timesGo.toArray();
+
+	}
+
+	
+	private void computeStationaryProbability() {
+		int numberOfLocalOptima = basin.length;
+		RealMatrix matrix = MatrixUtils.createRealMatrix(numberOfLocalOptima, numberOfLocalOptima);
+		RealVector constant = new ArrayRealVector(numberOfLocalOptima);
+		constant.setEntry(numberOfLocalOptima-1, 1.0);
+		for (int i=0; i < numberOfLocalOptima-1; i++) {
+			for (int j=0; j < numberOfLocalOptima; j++) {
+				matrix.setEntry(i, j, transitionMatrix[j][i]-delta(i,j));
+			}
+		}
+		for (int j=0; j < numberOfLocalOptima; j++) {
+			matrix.setEntry(numberOfLocalOptima-1, j, 1.0);
+		}
+						
+		try {
+			DecompositionSolver solver = new LUDecomposition(matrix).getSolver();
+			RealVector result = solver.solve(constant);
+			stationaryDistribution = result.toArray();
+		} catch (SingularMatrixException e) {
+			// FIXME: I am assuming here that the Markov chain is reducible
+			stationaryDistribution = new double [numberOfLocalOptima];
+			for (int j=0; j < numberOfLocalOptima; j++) {
+				stationaryDistribution[j] = Double.NaN;
+			}
+		}		
+	}
+
 	private void writeTransitionMatrix(Formatter formatter) {
 		formatter.format("LO from\tLO to\tProbability\n");
 		int numberOfLocalOptima = fitness.length;
@@ -118,10 +272,18 @@ public class LocalOptimaMarkovModelTransition implements Process {
 	}
 
 	private void writeLocalOptimaInformation(Formatter formatter) {
-		formatter.format("LO\tFitness\tSize of basin of attraction\n");
+		formatter.format("LO\tFitness\tSize of basin of attraction\tExpected hitting time\tStationary distribution\n");
 		int numberOfLocalOptima = fitness.length;
-		for (int x=0; x < numberOfLocalOptima; x++) {
-			formatter.format("%d\t%f\t%d\n",x,fitnessValue[fitness[x]],basin[x]);
+		for (int lo=0; lo < numberOfLocalOptima; lo++) {
+			formatter.format("%d\t%f\t%d\t%f\t%f\n",lo,fitnessValue[fitness[lo]],basin[lo],expectedHittingTime[lo], stationaryDistribution[lo]);
+		}
+	}
+	
+	private void writeGlobalOptimaInformation(Formatter formatter) {
+		formatter.format("GO\tHitting probability\tExpected hitting time if reached\n");
+		int goStartIndex = fitness.length-numberOfGlobalOptima;
+		for (int go=0; go < numberOfGlobalOptima; go++) {
+			formatter.format("%d\t%f\t%f\n",go+goStartIndex,probabilityOfHittingGlobalOptima[go], expectedHittingTimeIfGlobalOptimaReached[go]);
 		}
 	}
 
@@ -203,6 +365,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			fitnessMap.entrySet().forEach(entry->{
 				this.fitness[entry.getKey()] = inverseMap.get(entry.getValue());
 			});
+			computeNumberOfGlobalOptima();
 			checkFitnessNonDecreasing();
 
 		}
@@ -210,6 +373,15 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			throw new RuntimeException(e);
 		}
 
+	}
+
+	private void computeNumberOfGlobalOptima() {
+		numberOfGlobalOptima = 0;
+		for (int lo=0; lo < fitness.length; lo++) {
+			if (fitness[lo] == fitnessValue.length-1) {
+				numberOfGlobalOptima++;
+			}
+		}
 	}
 
 	private void checkFitnessNonDecreasing() {
