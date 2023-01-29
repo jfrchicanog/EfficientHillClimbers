@@ -33,12 +33,10 @@ public class LocalOptimaMarkovModelExtraction implements Process {
     protected RBallEfficientHillClimberForInstanceOf rballfio;
     protected long seed;
 	private LocalOptimaNetworkGoldman goldman;
-	//private Map<Triple<PBSolution, Integer, PBSolution>, Integer> markovSample;
 	private int [] markovSampleArray;
 
 	public LocalOptimaMarkovModelExtraction() {
 		localOptima = new ArrayList<PBSolution>();
-		//markovSample = new HashMap<>();
 	}
 
 	@Override
@@ -124,10 +122,8 @@ public class LocalOptimaMarkovModelExtraction implements Process {
 				int indZ = localOptima.indexOf(z);
 				markovModel.print(indX+"\t"+fitness+"\t"+indY+"\t"+indZ+"\t");
 				for (int d=0; d < pbf.getN(); d++) {
-					//markovModel.print(markovSample.getOrDefault(Triple.of(x, d, y), 0)+"\t");
 					markovModel.print(markovSampleArray[computeIndex(x,d,y)]+"\t");
 				}
-				//markovModel.println(markovSample.getOrDefault(Triple.of(x, pbf.getN(), y), 0));
 				markovModel.println(markovSampleArray[computeIndex(x,pbf.getN(),y)]);
 			}
 		}
@@ -159,8 +155,6 @@ public class LocalOptimaMarkovModelExtraction implements Process {
 		PBSolution y = climbToLocalOptima(aux);
 		for (PBSolution x: localOptima) {
 			int d = x.hammingDistance(z);
-			//Triple<PBSolution, Integer, PBSolution> t = Triple.of(x, d, y);
-			//markovSample.compute(t, (k,v)->(v==null)?1:(v+1));
 			markovSampleArray[computeIndex(x, d, y)]++;
 		}
 	}
