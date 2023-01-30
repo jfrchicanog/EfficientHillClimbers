@@ -48,14 +48,18 @@ public class LocalOptimaMarkovModelAlgorithm implements Process {
 
 	// This is what we read
 	private Map<Triple<Integer, Integer, Integer>, Integer> markovSample;
+	private int [] markovSampleArray;
 	private Map<Integer, Double> fitness;
 	private int [] basin;
 	private Map<Pair<Integer, Integer>, Integer> crossover;
+	private int [] crossoverArray;
 	private int n;
+	private int nbLocalOptima=-1;
 
 
 	// This is what we produce
 	private Map<Triple<Integer, Integer, Integer>, Integer> markovStrategy;
+	private int [] markovStrategyArray;
 	private PrintWriter markovModel;
 
 	public LocalOptimaMarkovModelAlgorithm() {
@@ -114,9 +118,9 @@ public class LocalOptimaMarkovModelAlgorithm implements Process {
 				int sumSamples = 0;
 				for (int d = 0; d <= n; d++) {
 					int w = acceptance(y, x);
-					final int sample = markovSample.getOrDefault(Triple.of(x, d, y),0);
+					final int sample = getMarkovSampleInfo(x, d, y);
 					sumSamples += sample;
-					markovStrategy.compute(Triple.of(x, d, w), (k,v)->((v==null)?0:v)+sample);
+					putMarkovStrategyInfo(x, d, w, sample);
 				}
 				basin[y] = sumSamples;
 			}
@@ -136,13 +140,37 @@ public class LocalOptimaMarkovModelAlgorithm implements Process {
 			for (int indW=0; indW < numberOfLocalOptima; indW++) {
 				markovModel.print(indX+"\t"+fitness+"\t"+basin[indX]+"\t"+indW+"\t");
 				for (int d=0; d < n; d++) {
-					markovModel.print(markovStrategy.getOrDefault(Triple.of(indX, d, indW), 0)+"\t");
+					markovModel.print(getMarkovStrategyInfo(indX, d, indW)+"\t");
 				}
-				markovModel.println(markovStrategy.getOrDefault(Triple.of(indX, n, indW), 0));
+				markovModel.println(getMarkovStrategyInfo(indX, n, indW));
 			}
 		}
 		markovModel.close();
 
+	}
+
+	private void putMarkovStrategyInfo(int x, int d, int w, final int sample) {
+		if (markovStrategyArray != null) {
+			markovStrategyArray[markovSampleCoordinates(x, d, w)] += sample;
+		} else {
+			markovStrategy.compute(Triple.of(x, d, w), (k,v)->((v==null)?0:v)+sample);
+		}
+	}
+
+	private int getMarkovStrategyInfo(int indX, int d, int indW) {
+		if (markovStrategyArray != null) {
+			return markovStrategyArray[markovSampleCoordinates(indX, d, indW)];
+		} else {
+			return markovStrategy.getOrDefault(Triple.of(indX, d, indW), 0);
+		}
+	}
+
+	private int getMarkovSampleInfo(int x, int d, int y) {
+		if (markovSampleArray != null) {
+			return markovSampleArray[markovSampleCoordinates(x, d, y)];
+		} else {
+			return markovSample.getOrDefault(Triple.of(x, d, y),0);
+		}
 	}
 
 	private int acceptance(int y, int x) {
@@ -152,14 +180,14 @@ public class LocalOptimaMarkovModelAlgorithm implements Process {
 		case ILS_NON_ELITIST:
 			return y;
 		case DRILS:
-			int z = crossover.get(Pair.of(y,x));
+			int z = getCrossoverInfo(y,x);
 			if (z == x || z == y) {
 				return y;
 			} else {
 				return z;
 			}
 		case DRILS_ELITIST:
-			int zz = crossover.get(Pair.of(y,x));
+			int zz = getCrossoverInfo(y,x);
 			if (zz == x || zz == y) {
 				return elitistStrategy(y, x);
 			} else {
@@ -167,6 +195,14 @@ public class LocalOptimaMarkovModelAlgorithm implements Process {
 			}
 		default:
 			throw new IllegalStateException("There is no algorithm specificed or algorithm not considered: "+algorithm);
+		}
+	}
+	
+	private int getCrossoverInfo(int y, int x) {
+		if (crossoverArray != null) {
+			return crossoverArray[crossoverCoordinates(y, x)];
+		} else {
+			return crossover.get(Pair.of(y,x));
 		}
 	}
 
@@ -202,11 +238,16 @@ public class LocalOptimaMarkovModelAlgorithm implements Process {
 					this.fitness.computeIfAbsent(x, k->fitness);
 					int y = Integer.parseInt(fields[2]);
 					int z = Integer.parseInt(fields[3]);
-					this.crossover.put(Pair.of(x,y), z);
+					
+					checkIfSwithcIsPossible(y);
+					
+					putCrossoverInformation(x, y, z);
+					//this.crossover.put(Pair.of(x,y), z);
 					
 					for (int d=0; d <= n; d++) {
 						int sample = Integer.parseInt(fields[4+d]);
-						this.markovSample.put(Triple.of(x, d, y), sample);
+						putSampleInformation(x, d, y, sample);
+						// this.markovSample.put(Triple.of(x, d, y), sample);
 					}
 				}
 			});
@@ -215,6 +256,63 @@ public class LocalOptimaMarkovModelAlgorithm implements Process {
 			throw new RuntimeException(e);
 		}
 
+	}
+
+	private void checkIfSwithcIsPossible(int y) {
+		if (crossover == null) {
+			// Switch already done
+			return;
+		}
+		if (y > nbLocalOptima) {
+			nbLocalOptima = y;
+		} else {
+			nbLocalOptima = nbLocalOptima+1;
+			switchToArray();
+			crossover.entrySet().stream().forEach(e->{
+				Pair<Integer, Integer> pair = e.getKey();
+				putCrossoverInformation(pair.getLeft(), pair.getRight(), e.getValue());
+			});
+			crossover = null;
+			
+			markovSample.entrySet().stream().forEach(e->{
+				Triple<Integer, Integer,  Integer> triple = e.getKey();
+				putSampleInformation(triple.getLeft(), triple.getMiddle(), triple.getRight(), e.getValue());
+			});
+			markovSample = null;
+		}
+	}
+	
+	private void switchToArray() {
+		if (nbLocalOptima < 0 || n <= 0) {
+			throw new IllegalStateException("Number of local optima not initialized");
+		}
+		markovSampleArray = new int [nbLocalOptima * nbLocalOptima * (n+1)];
+		crossoverArray = new int [nbLocalOptima * nbLocalOptima];
+		markovStrategyArray = new int [nbLocalOptima * nbLocalOptima * (n+1)];
+	}
+	
+	private void putCrossoverInformation(int x, int y, int z) {
+		if (crossoverArray != null) {
+			crossoverArray[crossoverCoordinates(x, y)] = z;
+		} else {
+			crossover.put(Pair.of(x,y), z);
+		}
+	}
+	
+	private int crossoverCoordinates(int x, int y) {
+		return x * nbLocalOptima + y;
+	}
+	
+	private int markovSampleCoordinates (int x, int d, int y) {
+		return (x*nbLocalOptima+y)*(n+1)+d;
+	}
+	
+	private void putSampleInformation(int x, int d, int y, int sample) {
+		if (markovSampleArray != null) {
+			markovSampleArray[markovSampleCoordinates(x, d, y)] = sample;
+		} else {
+			markovSample.put(Triple.of(x, d, y), sample);
+		}
 	}
 
 }
