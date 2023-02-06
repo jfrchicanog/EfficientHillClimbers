@@ -38,6 +38,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 
 	// This is what we read
 	private Map<Triple<Integer, Integer, Integer>, Integer> markovStrategy;
+	private int [] markovStrategyArray;
 	private int n;
 	private int [] fitness;
 	private double [] fitnessValue;
@@ -47,6 +48,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 	private int numberOfGlobalOptima;
 	private double [] probabilityOfHittingGlobalOptima;
 	private double [] expectedHittingTimeIfGlobalOptimaReached;
+	private int nbLocalOptima = -1;
 	
 	// This is the transition matrix
 	private double [][] transitionMatrix;
@@ -125,6 +127,25 @@ public class LocalOptimaMarkovModelTransition implements Process {
 	
 	private double delta(int i, int j) {
 		return i==j?1:0;
+	}
+	
+	private void putMarkovStrategyInfo(int x, int d, int w, final int sample) {
+		if (markovStrategyArray != null) {
+			markovStrategyArray[markovSampleCoordinates(x, d, w)] += sample;
+		} else {
+			markovStrategy.put(Triple.of(x, d, w), sample);
+		}
+	}
+	
+	private int markovSampleCoordinates (int x, int d, int y) {
+		return (x*nbLocalOptima+y)*(n+1)+d;
+	}
+	
+	private void switchToArray() {
+		if (nbLocalOptima < 0 || n <= 0) {
+			throw new IllegalStateException("Number of local optima not initialized");
+		}
+		markovStrategyArray = new int [nbLocalOptima * nbLocalOptima * (n+1)];
 	}
 	
 	private void computeExpectedHittingTime() {
@@ -216,7 +237,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 		
 		RealVector ones = new ArrayRealVector(numberOfGlobalOptima, 1.0);
 		double val = ones.dotProduct(probsGo);
-		System.err.println("Prob: "+val);
+		//System.err.println("Prob: "+val);
 		
 		/*
 		RealVector onesTrans = new ArrayRealVector(numberOfLocalOptima-numberOfGlobalOptima, 1.0);
@@ -310,7 +331,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			
 			for (int x=0; x < numberOfLocalOptima; x++) {
 				for (int y=0; y < numberOfLocalOptima; y++) {
-					transitionMatrix[x][y] += probability * markovStrategy.getOrDefault(Triple.of(x, d, y), 0);
+					transitionMatrix[x][y] += probability * markovStrategyArray[markovSampleCoordinates(x, d, y)];
 				}
 			}
 		}		
@@ -341,10 +362,13 @@ public class LocalOptimaMarkovModelTransition implements Process {
 					fitnessMap.computeIfAbsent(x, k->Double.parseDouble(fields[1]));
 					basin.computeIfAbsent(x, k->Integer.parseInt(fields[2]));
 					int y = Integer.parseInt(fields[3]);
+					
+					checkIfSwithcIsPossible(y);
 
 					for (int d=0; d <= n; d++) {
 						int sample = Integer.parseInt(fields[4+d]);
-						this.markovStrategy.put(Triple.of(x, d, y), sample);
+						putMarkovStrategyInfo(x, d, y, sample);
+						//this.markovStrategy.put(Triple.of(x, d, y), sample);
 					}
 				}
 			});
@@ -373,6 +397,24 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			throw new RuntimeException(e);
 		}
 
+	}
+	
+	private void checkIfSwithcIsPossible(int y) {
+		if (markovStrategy == null) {
+			// Switch already done
+			return;
+		}
+		if (y > nbLocalOptima) {
+			nbLocalOptima = y;
+		} else {
+			nbLocalOptima = nbLocalOptima+1;
+			switchToArray();
+			markovStrategy.entrySet().stream().forEach(e->{
+				Triple<Integer, Integer,  Integer> triple = e.getKey();
+				putMarkovStrategyInfo(triple.getLeft(), triple.getMiddle(), triple.getRight(), e.getValue());
+			});
+			markovStrategy = null;
+		}
 	}
 
 	private void computeNumberOfGlobalOptima() {
