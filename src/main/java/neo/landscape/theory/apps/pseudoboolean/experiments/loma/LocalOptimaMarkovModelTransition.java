@@ -59,7 +59,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 
 	@Override
 	public String getDescription() {
-		return "This experiment computes the evolution curves for the algorithm "
+		return "This experiment computes the transition probability matrix for the algorithm "
 				+ "based on the dynamics computed by lo-markov-algorithm including the perturbation parameter";
 	}
 
