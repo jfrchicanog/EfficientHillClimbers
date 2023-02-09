@@ -43,16 +43,18 @@ public class LocalOptimaMarkovModelTransition implements Process {
 	private int [] fitness;
 	private double [] fitnessValue;
 	private int [] basin;
+	
+	// This is what we compute
 	private double [] expectedHittingTime;
 	private double [] stationaryDistribution;
 	private int numberOfGlobalOptima;
 	private double [] probabilityOfHittingGlobalOptima;
 	private double [] expectedHittingTimeIfGlobalOptimaReached;
 	private int nbLocalOptima = -1;
-	
+
 	// This is the transition matrix
 	private double [][] transitionMatrix;
-	
+
 	public LocalOptimaMarkovModelTransition() {
 		markovStrategy = new HashMap<>();
 	}
@@ -89,7 +91,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 		String markovStrategyFile = args[0];
 		String perturbationType = args[1];
 		Optional<PerturbationType> optional = PerturbationType.byName(perturbationType);
-		
+
 		if (optional.isPresent()) {
 			perturbation = optional.get();
 			configureProbabiliytFamily();
@@ -98,7 +100,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			System.err.println(String.format("Valid options are %s",getPerturbationTypes()));
 			return;
 		}
-		
+
 		int alpha = Integer.parseInt(args[2]);
 		if (alpha < 0) {
 			System.err.println("Alpha cannot be less than zero");
@@ -110,7 +112,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			System.err.println(String.format("Alpha cannot be larger than n (=%d)",n));
 			return;
 		}
-		
+
 		computeTransitionMatrix(alpha);
 		computeExpectedHittingTime();
 		computeStationaryProbability();
@@ -118,17 +120,17 @@ public class LocalOptimaMarkovModelTransition implements Process {
 
 		try(PrintWriter output = new PrintWriter(System.out, true);
 				Formatter formatter  = new Formatter(output, Locale.US)){
-			
+
 			writeLocalOptimaInformation(formatter);
 			writeGlobalOptimaInformation(formatter);
 			writeTransitionMatrix(formatter);
 		}
 	}
-	
+
 	private double delta(int i, int j) {
 		return i==j?1:0;
 	}
-	
+
 	private void putMarkovStrategyInfo(int x, int d, int w, final int sample) {
 		if (markovStrategyArray != null) {
 			markovStrategyArray[markovSampleCoordinates(x, d, w)] += sample;
@@ -136,24 +138,24 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			markovStrategy.put(Triple.of(x, d, w), sample);
 		}
 	}
-	
+
 	private int markovSampleCoordinates (int x, int d, int y) {
 		return (x*nbLocalOptima+y)*(n+1)+d;
 	}
-	
+
 	private void switchToArray() {
 		if (nbLocalOptima < 0 || n <= 0) {
 			throw new IllegalStateException("Number of local optima not initialized");
 		}
 		markovStrategyArray = new int [nbLocalOptima * nbLocalOptima * (n+1)];
 	}
-	
+
 	private void computeExpectedHittingTime() {
 		int numberOfLocalOptima = basin.length;
-		expectedHittingTime = new double [numberOfLocalOptima];
-		
-		RealMatrix matrix = MatrixUtils.createRealMatrix(numberOfLocalOptima-1, numberOfLocalOptima-1);
-		RealVector ones = new ArrayRealVector(numberOfLocalOptima-1, 1.0);
+		expectedHittingTime = new double [numberOfLocalOptima]; // TODO: this should be fraction
+
+		RealMatrix matrix = MatrixUtils.createRealMatrix(numberOfLocalOptima-1, numberOfLocalOptima-1); // TODO: Matrix of fraction
+		RealVector ones = new ArrayRealVector(numberOfLocalOptima-1, 1.0); // TODO: fraction
 		for (int lo=0; lo < numberOfLocalOptima; lo++) {
 			for (int i=0, ii=0; i < numberOfLocalOptima; i++) {
 				if (i!=lo) {
@@ -166,10 +168,10 @@ public class LocalOptimaMarkovModelTransition implements Process {
 					ii++;
 				}
 			}
-						
+
 			try {
-				DecompositionSolver solver = new LUDecomposition(matrix).getSolver();
-				RealVector hittingTimes = solver.solve(ones);
+				DecompositionSolver solver = new LUDecomposition(matrix).getSolver(); // TODO: fraction
+				RealVector hittingTimes = solver.solve(ones); // TODO: Fractions
 
 				expectedHittingTime[lo] = 0;
 
@@ -185,76 +187,84 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			}
 		}
 	}
-	
+
 	private void computeGlobalOptimaExpectedHittingTime() {
 		int numberOfLocalOptima = basin.length;
 		int goStartIndex = numberOfLocalOptima-numberOfGlobalOptima;
-		
+
 		RealMatrix matrix = MatrixUtils.createRealMatrix(numberOfLocalOptima-numberOfGlobalOptima, numberOfLocalOptima-numberOfGlobalOptima);
-		
+
 		for (int i=0; i < goStartIndex; i++) {
 			for (int j=0; j < goStartIndex; j++) {
 				matrix.setEntry(i, j, delta(i,j)-transitionMatrix[i][j]);
 			}
 		}
-		
+
 		RealMatrix recurrent = MatrixUtils.createRealMatrix(numberOfLocalOptima-numberOfGlobalOptima, numberOfGlobalOptima);
-		
+
 		for (int i=0; i < goStartIndex; i++) {
 			for (int j=0; j < numberOfGlobalOptima; j++) {
 				recurrent.setEntry(i, j, transitionMatrix[i][j+goStartIndex]);
 			}
 		}
-		
-		RealMatrix inverse = MatrixUtils.inverse(matrix);
-		RealMatrix probs = inverse.multiply(recurrent);
-		RealMatrix times = inverse.multiply(probs);
-		
-		// Check probs
-//		RealVector ones = new ArrayRealVector(numberOfGlobalOptima, 1.0);
-//		RealVector shouldBeOnes = probs.operate(ones);
-//		System.err.println(shouldBeOnes);
-//		for (int i=0; i < shouldBeOnes.getDimension(); i++) {
-//			if (Math.abs(shouldBeOnes.getEntry(i)-1.0) > 0.01) {
-//				System.err.println("Arg");
-//			}
-//		}
-		
-		RealVector initial = new ArrayRealVector(numberOfLocalOptima-numberOfGlobalOptima);
-		for (int i = 0; i < goStartIndex; i++) {
-			initial.setEntry(i, ((double)basin[i])/(1<<n));
-		}
-		
-		RealVector goals = new ArrayRealVector(numberOfGlobalOptima);
-		for (int i=0; i < numberOfGlobalOptima; i++) {
-			goals.setEntry(i, ((double)basin[i+goStartIndex])/(1<<n));
-		}
-		
-		RealVector probsGo = probs.preMultiply(initial);
-		probsGo = probsGo.add(goals);
-		
-		RealVector timesGo = times.preMultiply(initial);
-		
-		RealVector ones = new ArrayRealVector(numberOfGlobalOptima, 1.0);
-		double val = ones.dotProduct(probsGo);
-		//System.err.println("Prob: "+val);
-		
-		/*
+
+		try {
+			RealMatrix inverse = MatrixUtils.inverse(matrix);
+			RealMatrix probs = inverse.multiply(recurrent);
+			RealMatrix times = inverse.multiply(probs);
+
+			// Check probs
+			//		RealVector ones = new ArrayRealVector(numberOfGlobalOptima, 1.0);
+			//		RealVector shouldBeOnes = probs.operate(ones);
+			//		System.err.println(shouldBeOnes);
+			//		for (int i=0; i < shouldBeOnes.getDimension(); i++) {
+			//			if (Math.abs(shouldBeOnes.getEntry(i)-1.0) > 0.01) {
+			//				System.err.println("Arg");
+			//			}
+			//		}
+
+			RealVector initial = new ArrayRealVector(numberOfLocalOptima-numberOfGlobalOptima);
+			for (int i = 0; i < goStartIndex; i++) {
+				initial.setEntry(i, ((double)basin[i])/(1<<n));
+			}
+
+			RealVector goals = new ArrayRealVector(numberOfGlobalOptima);
+			for (int i=0; i < numberOfGlobalOptima; i++) {
+				goals.setEntry(i, ((double)basin[i+goStartIndex])/(1<<n));
+			}
+
+			RealVector probsGo = probs.preMultiply(initial);
+			probsGo = probsGo.add(goals);
+
+			RealVector timesGo = times.preMultiply(initial);
+
+			RealVector ones = new ArrayRealVector(numberOfGlobalOptima, 1.0);
+			double val = ones.dotProduct(probsGo);
+			//System.err.println("Prob: "+val);
+
+			/*
 		RealVector onesTrans = new ArrayRealVector(numberOfLocalOptima-numberOfGlobalOptima, 1.0);
 		RealVector expected = inverse.operate(onesTrans);
 		double totalExpectedTime = expected.dotProduct(initial);		
 		System.err.println("Total expected time: "+totalExpectedTime);
 		double shouldBeExpected = timesGo.dotProduct(ones);
 		System.err.println("Should expected time: "+shouldBeExpected);
-		*/
-		
-		probabilityOfHittingGlobalOptima = probsGo.toArray();
-		timesGo = timesGo.ebeDivide(probsGo);
-		expectedHittingTimeIfGlobalOptimaReached = timesGo.toArray();
+			 */
+
+			probabilityOfHittingGlobalOptima = probsGo.toArray();
+			timesGo = timesGo.ebeDivide(probsGo);
+			expectedHittingTimeIfGlobalOptimaReached = timesGo.toArray();
+		} catch (SingularMatrixException e) {
+			probabilityOfHittingGlobalOptima = new double[numberOfGlobalOptima];
+			Arrays.fill(probabilityOfHittingGlobalOptima, Double.NaN);
+			
+			expectedHittingTimeIfGlobalOptimaReached = new double [numberOfGlobalOptima];
+			Arrays.fill(expectedHittingTimeIfGlobalOptimaReached, Double.NaN);
+		}
 
 	}
 
-	
+
 	private void computeStationaryProbability() {
 		int numberOfLocalOptima = basin.length;
 		RealMatrix matrix = MatrixUtils.createRealMatrix(numberOfLocalOptima, numberOfLocalOptima);
@@ -268,7 +278,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 		for (int j=0; j < numberOfLocalOptima; j++) {
 			matrix.setEntry(numberOfLocalOptima-1, j, 1.0);
 		}
-						
+
 		try {
 			DecompositionSolver solver = new LUDecomposition(matrix).getSolver();
 			RealVector result = solver.solve(constant);
@@ -299,7 +309,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 			formatter.format("%d\t%f\t%d\t%f\t%f\n",lo,fitnessValue[fitness[lo]],basin[lo],expectedHittingTime[lo], stationaryDistribution[lo]);
 		}
 	}
-	
+
 	private void writeGlobalOptimaInformation(Formatter formatter) {
 		formatter.format("GO\tHitting probability\tExpected hitting time if reached\n");
 		int goStartIndex = fitness.length-numberOfGlobalOptima;
@@ -321,14 +331,14 @@ public class LocalOptimaMarkovModelTransition implements Process {
 	private void computeTransitionMatrix(int alpha) {
 		ProbabilityDistribution distribution = family.getProbabilityDistribution(this.n, alpha);
 		int numberOfLocalOptima = fitness.length;
-		transitionMatrix = new double[numberOfLocalOptima][numberOfLocalOptima];
-		
+		transitionMatrix = new double[numberOfLocalOptima][numberOfLocalOptima]; // TODO: this should be fraction
+
 		for (int d=0; d <= n; d++) {
-			double probability = distribution.getProbability(d);
+			double probability = distribution.getProbability(d); // TODO: this should be fraction
 			if (probability == 0.0) {
 				continue;
 			}
-			
+
 			for (int x=0; x < numberOfLocalOptima; x++) {
 				for (int y=0; y < numberOfLocalOptima; y++) {
 					transitionMatrix[x][y] += probability * markovStrategyArray[markovSampleCoordinates(x, d, y)];
@@ -362,7 +372,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 					fitnessMap.computeIfAbsent(x, k->Double.parseDouble(fields[1]));
 					basin.computeIfAbsent(x, k->Integer.parseInt(fields[2]));
 					int y = Integer.parseInt(fields[3]);
-					
+
 					checkIfSwithcIsPossible(y);
 
 					for (int d=0; d <= n; d++) {
@@ -373,9 +383,9 @@ public class LocalOptimaMarkovModelTransition implements Process {
 				}
 			});
 			this.basin = IntStream.range(0, basin.size())
-				.map(i->basin.get(i))
-				.toArray();
-			
+					.map(i->basin.get(i))
+					.toArray();
+
 			fitnessValue = fitnessMap.values().stream()
 					.sorted()
 					.distinct()
@@ -398,7 +408,7 @@ public class LocalOptimaMarkovModelTransition implements Process {
 		}
 
 	}
-	
+
 	private void checkIfSwithcIsPossible(int y) {
 		if (markovStrategy == null) {
 			// Switch already done
