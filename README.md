@@ -5,7 +5,7 @@ This branch of the repository contains the source code (in Java) of the algorith
 * Francisco Chicano, Gabriela Ochoa, Lorenzo Canonne and Bilel Derbel, "Local Optima Markov Chains: A New Tool for Landscape-aware Analysis of Algorithm Dynamics", GECCO 2023,
 [https://doi.org/10.1145/3583131.3590422](https://doi.org/10.1145/3583131.3590422).
 
-The exact version of the code used in the paper is the one tagged with [gecco2023-loma]().
+The exact version of the code used in the paper is in the commit tagged with [GECCO2023](https://github.com/jfrchicanog/EfficientHillClimbers/tree/GECCO2023).
 
 The results of the experiments together with a snapshot of the source code can be found in Zenodo at [https://doi.org/10.5281/zenodo.7851465](https://doi.org/10.5281/zenodo.7851465).
 
@@ -31,11 +31,11 @@ java -jar {path to EfficientHillClimbers-0.22.0-SNAPSHOT.jar}
 ```
 
 When you run the code with no arguments a list of possible experiments appear. The ones relevant for LOMA experimentation are:
-* `lo-markov-extraction`: it runs Algorithm 2 in the GECCO 2023 paper to compute function `b`. It takes as input the parameters of the NK Landscape instance (n, k, q, the model and the seed).
-* `lo-markov-algorithm`:
-* `lo-markov-transition`:
-* `lo-markov-transition-precise`:
-* `lo-markov-components`:
+* `lo-markov-extraction`: it runs Algorithm 2 in the GECCO 2023 paper to compute function `b` defined in Eq. (22) and some other information. It takes as input the parameters of the NK Landscape instance (n, k, q, the model and the seed).
+* `lo-markov-algorithm`: it runs Algorithm 3 in the GECCO 2023 paper to compute function `c` defined in Eq. (25).
+* `lo-markov-transition`: it uses Eq. (24) of the GECCO 2023 paper to compute the transition probaiblity of the Markov Chain.
+* `lo-markov-transition-precise`: it does the same as the one above but uses arbitrary precision fractions to do the computation exact and avoid ill-conditioning problems that appear with floating point numbers.
+* `lo-markov-components`: it computes the comunicating components of the Markov Chain to produce the results shown in Section 4.5 of the GECCO 2023 paper.
 
 ## Running the experiments of the GECCO 2023 paper
 
