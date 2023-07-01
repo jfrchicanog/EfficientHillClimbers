@@ -419,6 +419,11 @@ public class LocalOptimaMarkovModelTransitionPrecise implements Process {
 			}
 		}
 	}
+	
+	private double nullableBigFraction(BigFraction bf) {
+		return (bf==null)?Double.NaN:bf.doubleValue(); 
+		
+	}
 
 	private void writeLocalOptimaInformation(Formatter formatter) {
 		formatter.format("LO\tFitness\tSize of basin of attraction\tExpected hitting time\tStationary distribution\tCommunicating component\n");
@@ -426,8 +431,8 @@ public class LocalOptimaMarkovModelTransitionPrecise implements Process {
 		for (int lo=0; lo < numberOfLocalOptima; lo++) {
 			if (doubleOutput) {
 				formatter.format("%d\t%f\t%d\t%f\t%f\t%d\n",lo,fitnessValue[fitness[lo]],basin[lo],
-						expectedHittingTime[lo].doubleValue(), 
-						stationaryDistribution[lo].doubleValue(), 
+						nullableBigFraction(expectedHittingTime[lo]), 
+						nullableBigFraction(stationaryDistribution[lo]), 
 						component[lo]);
 			} else {
 				formatter.format("%d\t%f\t%d\t%s\t%s\t%d\n",lo,fitnessValue[fitness[lo]],basin[lo],expectedHittingTime[lo], stationaryDistribution[lo], component[lo]);
@@ -440,7 +445,7 @@ public class LocalOptimaMarkovModelTransitionPrecise implements Process {
 		int goStartIndex = fitness.length-numberOfGlobalOptima;
 		for (int go=0; go < numberOfGlobalOptima; go++) {
 			if (doubleOutput) {
-				formatter.format("%d\t%f\t%f\n",go+goStartIndex,probabilityOfHittingGlobalOptima[go].doubleValue(), expectedHittingTimeIfGlobalOptimaReached[go].doubleValue());
+				formatter.format("%d\t%f\t%f\n",go+goStartIndex,nullableBigFraction(probabilityOfHittingGlobalOptima[go]), nullableBigFraction(expectedHittingTimeIfGlobalOptimaReached[go]));
 			} else {
 				formatter.format("%d\t%s\t%s\n",go+goStartIndex,probabilityOfHittingGlobalOptima[go], expectedHittingTimeIfGlobalOptimaReached[go]);
 			}
