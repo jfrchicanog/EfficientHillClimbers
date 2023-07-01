@@ -40,4 +40,10 @@ When you run the code with no arguments a list of possible experiments appear. T
 ## Running the experiments of the GECCO 2023 paper
 
 We provide some scripts to run the same experiments conducted in the GECCO 2023 paper. They are shell script files that are prepsred to run in a cluster managed by the Slurm Workload manager (used by the Picasso supercomputer in the University of Malaga). The scripts are:
-* `1-launch
+* `1-launch-markov-extraction.sh`: It applies the `lo-markov-extraction` experiment to the instances used in the GECCO 2023 paper. As a result it generates a set of (compressed) files with extension `me.xz` that are used as input to the next script.
+* `2-launch-markov-algorithm.sh`: It applies the `lo-markov-algorithm` experiment to the `me.xz` files computed by the previous script to generate (compressed) files with extension `al.xz` that will be the input for the next script.
+* `3-launch-markov-transition.sh`: It applies the `lo-markov-transition` to the `al.xz` files computed by the previous script to generate (compressed) files with extension `tr.xz`. These files already contain a lot of metrics used in visualizations and tables in the GECCO 2023 paper.
+* `4-launch-markov-components.sh`: It applies the `lo-markov-components` to the `tr.xz` files computed by the previous script to generate (compressed) files with extension `co.xz`. These files contains information about the communicating compnents of the Markov Chain.
+
+We have uploaded the `tr.xz` and the `co.xz` files produced for the GECCO 2023 paper in Zenodo, at [https://doi.org/10.5281/zenodo.7851465](https://doi.org/10.5281/zenodo.7851465).
+
