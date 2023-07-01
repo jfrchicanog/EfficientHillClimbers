@@ -30,12 +30,12 @@ If you plan to move the code to different folder or machine, you should copy the
 java -jar {path to EfficientHillClimbers-0.22.0-SNAPSHOT.jar}
 ```
 
-When you run the code with no arguments a list of possible experiments appear. The ones relevant for LOMA experimentation are:
-* `lo-markov-extraction`: it runs Algorithm 2 in the GECCO 2023 paper to compute function `b` defined in Eq. (22) and some other information. It takes as input the parameters of the NK Landscape instance (n, k, q, the model and the seed).
-* `lo-markov-algorithm`: it runs Algorithm 3 in the GECCO 2023 paper to compute function `c` defined in Eq. (25).
-* `lo-markov-transition`: it uses Eq. (24) of the GECCO 2023 paper to compute the transition probaiblity of the Markov Chain.
-* `lo-markov-transition-precise`: it does the same as the one above but uses arbitrary precision fractions to do the computation exact and avoid ill-conditioning problems that appear with floating point numbers.
-* `lo-markov-components`: it computes the comunicating components of the Markov Chain to produce the results shown in Section 4.5 of the GECCO 2023 paper.
+When you run the code with no arguments a list of possible experiments appear. Running the code with the name of one experiment provides more information about the arguments required for that experimetns. The experiments related to LOMAs are:
+* `lo-markov-extraction`: it runs Algorithm 2 in the GECCO 2023 paper to compute function `b` defined in Eq. (22) and some other information. It takes as input the parameters of the NK Landscape instance (n, k, q, the model and the seed) and the radius (r) of the hill climber used (Hamming Ball Hill Climber, see the GECCO 2014 paper referenced at [https://doi.org/10.1145/2576768.2598304](https://doi.org/10.1145/2576768.2598304) for more information)
+* `lo-markov-algorithm`: it runs Algorithm 3 in the GECCO 2023 paper to compute function `c` defined in Eq. (25). It takes as input the file obtained from the `lo-markov-extraction` experiment and the algorithm to use (they include ILS and DRILS, used in the GECCO 2023 paper). The algorithms available can be seen by running this experiment without arguments.
+* `lo-markov-transition`: it uses Eq. (24) of the GECCO 2023 paper to compute the transition probaiblity of the Markov Chain. It requires a file with the information computed by the `lo-markov-algorithm` experiment, a perturbation operator and the perturbation strength alpha.
+* `lo-markov-transition-precise`: it does the same as the one above but uses arbitrary precision fractions to do the computation exact and avoid ill-conditioning problems that appear with floating point numbers. In addition to the parameters required by the previous experiment, this one has a flag `-double` that allows to write the final result with floating point values instead of fractions (that could be quite verbose). In any case, the intermediate results are computed using arbitrary precision fractions.
+* `lo-markov-components`: it computes the comunicating components of the Markov Chain to produce the results shown in Section 4.5 of the GECCO 2023 paper. It requires a file with the information provided by `lo-markov-transition` or `lo-markov-transition-precise` (in this latter case the flag `-double` should be used because this experiment can only read floating point numbers form the input file).
 
 ## Running the experiments of the GECCO 2023 paper
 
