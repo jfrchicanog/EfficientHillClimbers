@@ -62,9 +62,9 @@ k=2
 q=100
 r=1
 mode=random
-for n in 15; do
-	for k in 4; do
-		for seed in 6; do 
+for n in 10 15 20; do
+	for k in 2 3 4 5; do
+		for seed in `seq 0 9`; do 
 			$LAUNCHER $n $k $q $mode $r $seed
 		done
 	done

@@ -65,10 +65,10 @@ k=2
 seed=0
 alg=drils
 perturbation=fixed-hamming
-for n in 20 ; do
-	for k in 2 ; do
-		for seed in `seq 8 9`; do
-			for alg in drils; do
+for n in 10 15 20 ; do
+	for k in `seq 2 5`; do
+		for seed in `seq 0 9`; do
+			for alg in ils drils; do
 				$LAUNCHER `find $OUTDIR -name loma-alg-n${n}k${k}q${q}${mode}r${r}s${seed}-${alg}\*.al.xz -printf "%f\n" ` $perturbation $n
 			done
 		done
