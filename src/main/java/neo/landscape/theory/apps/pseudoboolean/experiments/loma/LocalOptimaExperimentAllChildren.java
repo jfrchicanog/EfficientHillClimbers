@@ -125,7 +125,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		
 		int i=0;
 		for (PBSolution sol: localOptima) {
-		    System.out.println(wI(i) + ": " + sol + ": " + pbf.evaluate(sol));
+		    nodesFile.println(wI(i) + ": " + sol + ": " + pbf.evaluate(sol));
 		    i++;
 		}
 
@@ -287,35 +287,32 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	    if (allChildren.size() <= 2) {
 	        return;
 	    }
-	    
-	    System.out.println("R:" + localOptima.get(i) + "(" + wI(i) + ", "+ pbf.evaluate(localOptima.get(i))+") x "
-                + localOptima.get(j) + "(" + wI(j) +", "+ pbf.evaluate(localOptima.get(j)) + ") -> (size: "+allChildren.size()+")");
-	    for (PBSolution res: allChildren) {
-	        int index = localOptima.indexOf(res);
-	        System.out.print("\t"+ res
-                    + (index < 0 ? "("+pbf.evaluate(res)+")" : "(" + wI(index) + ", "+ pbf.evaluate(res) + ")"));
-	        
-	        int kind=1;
-            if (index < 0) {
-                res = climbToLocalOptima(res);
-                index = localOptima.indexOf(res);
-                kind=2;
-                if (index >= 0) {
-                    System.out.print(" -> " + res + "(" + wI(index) + ", "+ pbf.evaluate(res) + ")");
-                } else {
-                    System.out.print("Local Optima not found after climbing");
-                }
-            }
 
-            System.out.println();
+	    //System.out.println("R:" + localOptima.get(i) + "(" + wI(i) + ", "+ pbf.evaluate(localOptima.get(i))+") x "
+        //        + localOptima.get(j) + "(" + wI(j) +", "+ pbf.evaluate(localOptima.get(j)) + ") -> (size: "+allChildren.size()+")");
+	    for (PBSolution res: allChildren) {
+			int index = localOptima.indexOf(res);
+			if (index >= 0) {
+				edgesFile.print(wI(index) + "\t");
+			} else {
+					res = climbToLocalOptima(res);
+					index = localOptima.indexOf(res);
+
+					if (index >= 0) {
+						edgesFile.print("-"+wI(index) + "\t");
+					} else {
+						System.err.print("Local Optima not found after climbing");
+					}
+			}
+
+
 
             if (index >= 0) {
-                notifyEdge(i, index, kind);
-                notifyEdge(j, index, kind);
-
                 localOptimaHistogram[index]++;
             }
 	    }
+
+		edgesFile.println();
 	}
 
 	private PBSolution climbToLocalOptima(PBSolution res) {
