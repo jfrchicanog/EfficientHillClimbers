@@ -1,7 +1,5 @@
 package neo.landscape.theory.apps.pseudoboolean.parsers;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.InputStreamReader;
 
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
@@ -12,9 +10,10 @@ import neo.landscape.theory.apps.pseudoboolean.exactsolvers.CompleteEnumerationB
 import neo.landscape.theory.apps.pseudoboolean.exactsolvers.NKLandscapesCircularDynProg;
 import neo.landscape.theory.apps.pseudoboolean.exactsolvers.NKLandscapesCircularDynProgBigDecimal;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.withPrecision;
 
 public class TinosFormatTest {
 
@@ -29,15 +28,19 @@ public class TinosFormatTest {
         expectedSolution.parse("00111010101011100010");
         
         System.out.println("Optimal value:"+solutionQuality.quality);
-        assertEquals(expectedSolution, solutionQuality.solution);
-        
-        assertEquals("The solution quality does not correspond to the solution", solutionQuality.quality, instance.evaluate(solutionQuality.solution), 0.0001);
-        assertEquals("The exptected solution does not have the computes quality", instance.evaluate(expectedSolution), solutionQuality.quality, 0.0001);
+        assertThat(solutionQuality.solution).isEqualTo(expectedSolution);
+        assertThat(solutionQuality.quality)
+            .isEqualTo(instance.evaluate(solutionQuality.solution), withPrecision(0.0001d))
+            .withFailMessage("The solution quality does not correspond to the solution");
+
+        assertThat(instance.evaluate(expectedSolution))
+            .isEqualTo(solutionQuality.quality, withPrecision(0.0001d))
+            .withFailMessage("The expected solution does not have the computes quality");
         
     }
     
     @Test
-    @Ignore
+    @Disabled
     public void testCompleteEnumerationBigDecimal() {
         testWithProvidedSolverMethod(new CompleteEnumerationBigDecimal<NKLandscapes>());
     }

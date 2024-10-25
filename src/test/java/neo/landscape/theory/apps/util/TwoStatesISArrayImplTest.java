@@ -1,20 +1,23 @@
 package neo.landscape.theory.apps.util;
 
-import static org.junit.Assert.*;
+
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TwoStatesISArrayImplTest {
 
 	private TwoStatesIntegerSet set;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		set = new TwoStatesISArrayImpl(10);
 	}
@@ -23,7 +26,7 @@ public class TwoStatesISArrayImplTest {
 	public void testAllUnexplored() {
 		int n = set.getNumberOfElements();
 		for (int i = 0; i < n; i++) {
-			assertFalse("Unepected explored element", set.isExplored(i));
+			assertFalse(set.isExplored(i), "Unepected explored element");
 		}
 	}
 
@@ -51,19 +54,25 @@ public class TwoStatesISArrayImplTest {
 
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testIllegalArgumentException1() {
-		set.explored(set.getNumberOfElements() + 1);
+		assertThrows(IllegalArgumentException.class, () -> {
+			set.explored(set.getNumberOfElements() + 1);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test()
 	public void testIllegalArgumentException2() {
-		set.unexplored(set.getNumberOfElements() + 1);
+		assertThrows(IllegalArgumentException.class, ()->{
+			set.unexplored(set.getNumberOfElements() + 1);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testIllegalArgumentException3() {
-		set.isExplored(set.getNumberOfElements() + 1);
+		assertThrows(IllegalArgumentException.class, ()-> {
+			set.isExplored(set.getNumberOfElements() + 1);
+		});
 	}
 
 	@Test
@@ -97,7 +106,7 @@ public class TwoStatesISArrayImplTest {
 
 	private void checkSameState(TwoStatesIntegerSet set1,
 			TwoStatesIntegerSet set2) {
-		assertEquals(set1.getNumberOfElements(), set2.getNumberOfElements());
+		assertThat(set1.getNumberOfElements()).isEqualTo(set2.getNumberOfElements());
 		for (int i = 0; i < set1.getNumberOfElements(); i++) {
 			assertEquals(set1.isExplored(i), set2.isExplored(i));
 		}
@@ -118,14 +127,14 @@ public class TwoStatesISArrayImplTest {
 
 	private void checkExplored(TwoStatesIntegerSet set, List<Integer> explored) {
 		for (int i : explored) {
-			assertTrue("Unexpected unexplored element", set.isExplored(i));
+			assertTrue(set.isExplored(i),"Unexpected unexplored element");
 		}
 	}
 
 	private void checkUnexplored(TwoStatesIntegerSet set,
 			List<Integer> unexplored) {
 		for (int i : unexplored) {
-			assertFalse("Unexpected explored element", set.isExplored(i));
+			assertFalse(set.isExplored(i),"Unexpected explored element");
 		}
 	}
 

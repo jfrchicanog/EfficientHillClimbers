@@ -1,16 +1,19 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
-import static org.junit.Assert.assertEquals;
+
 
 import java.util.Properties;
 
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.withPrecision;
 
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod;
 import neo.landscape.theory.apps.efficienthc.ExactSolutionMethod.SolutionQuality;
 import neo.landscape.theory.apps.pseudoboolean.exactsolvers.CompleteEnumerationBigDecimal;
 import neo.landscape.theory.apps.pseudoboolean.exactsolvers.NKLandscapesCircularDynProgBigDecimal;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
+import org.junit.jupiter.api.Test;
 
 public class NKLandscapesCircularDynProgBigDecimalTest {
 
@@ -37,10 +40,10 @@ public class NKLandscapesCircularDynProgBigDecimalTest {
 
 				SolutionQuality<? super NKLandscapes> sq = es.solveProblem(pbf);
 
-				assertEquals("Error in computation of solution (N=" + N
-						+ ", K=" + K + ")", pbf.evaluate(sq.solution),
-						sq.quality, 0.00000001);
-
+				assertThat(pbf.evaluate(sq.solution))
+					.isEqualTo(sq.quality, withPrecision(0.00000001d))
+					.withFailMessage("Error in computation of solution (N=" + N
+							+ ", K=" + K + ")");
 			}
 	}
 	
@@ -69,9 +72,10 @@ public class NKLandscapesCircularDynProgBigDecimalTest {
                 SolutionQuality<? super NKLandscapes> completeEnumerationSolution = 
                         solveProblemWithExactMethod(new CompleteEnumerationBigDecimal(), pbf);
 
-                
-                assertEquals(dynamicProgrammingSolution.quality, completeEnumerationSolution.quality, 0.00001);
-                assertEquals(dynamicProgrammingSolution.solution, completeEnumerationSolution.solution);
+
+				assertThat(dynamicProgrammingSolution.quality).isEqualTo(completeEnumerationSolution.quality, withPrecision(0.00001d));
+                assertThat(dynamicProgrammingSolution.solution).isEqualTo(completeEnumerationSolution.solution);
+
 
             }
     }

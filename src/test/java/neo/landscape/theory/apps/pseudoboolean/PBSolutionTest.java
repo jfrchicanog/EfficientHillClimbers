@@ -1,10 +1,11 @@
 package neo.landscape.theory.apps.pseudoboolean;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.jupiter.api.Test;
 
 import java.util.Random;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 public class PBSolutionTest {
 
@@ -16,8 +17,7 @@ public class PBSolutionTest {
 		for (int n : new int[] { 1, 5, 31, 32, 63, 64, 2000 }) {
 			PBSolution pbs = new PBSolution(n);
 			for (int i = 0; i < n; i++) {
-				assertEquals("Not all bits set to zero at the beginning", 0,
-						pbs.getBit(i));
+				assertEquals(0, pbs.getBit(i), "Not all bits set to zero at the beginning");
 			}
 		}
 	}
@@ -34,7 +34,7 @@ public class PBSolutionTest {
 
 				pbs.setBit(i, v);
 
-				assertEquals("setBit of getBit not working", v, pbs.getBit(i));
+				assertEquals(v, pbs.getBit(i), "setBit of getBit not working");
 			}
 		}
 	}
@@ -49,7 +49,7 @@ public class PBSolutionTest {
 			}
 
 			for (int i = 0; i < n; i++) {
-				assertEquals("flipBit not working", 1, pbs.getBit(i));
+				assertEquals(1, pbs.getBit(i), "flipBit not working");
 			}
 
 		}
@@ -69,7 +69,7 @@ public class PBSolutionTest {
 				pbs.setBit(i, v);
 				pbs.flipBit(i);
 
-				assertEquals("flipBit not working", 1 - v, pbs.getBit(i));
+				assertEquals(1 - v, pbs.getBit(i), "flipBit not working");
 
 			}
 		}
@@ -92,8 +92,7 @@ public class PBSolutionTest {
 			pos.parse(pbs.toString());
 
 			for (int i = 0; i < n; i++) {
-				assertEquals("Error in parse or toString", pos.getBit(i),
-						pbs.getBit(i));
+				assertEquals(pos.getBit(i), pbs.getBit(i), "Error in parse or toString");
 			}
 
 		}
@@ -113,7 +112,7 @@ public class PBSolutionTest {
 				pbs2.setBit(i, v);
 
 			}
-			assertEquals("equals not working", pbs, pbs2);
+			assertEquals(pbs, pbs2, "equals not working");
 		}
 	}
 
@@ -130,7 +129,7 @@ public class PBSolutionTest {
 
 			}
 			PBSolution pbs2 = new PBSolution(pbs);
-			assertEquals("equals not working", pbs, pbs2);
+			assertEquals(pbs, pbs2, "equals not working");
 		}
 	}
 	
@@ -164,7 +163,7 @@ public class PBSolutionTest {
 				String hex = solution.toHex();
 				PBSolution newSolution = new PBSolution(n);
 				newSolution.fromHex(hex);
-				assertEquals("Solutions are not equal", solution, newSolution);
+				assertEquals(solution, newSolution, "Solutions are not equal");
 			}
 		}
 	}
@@ -184,7 +183,7 @@ public class PBSolutionTest {
 						computedDistance++;
 					}
 				}
-				assertEquals("Error in Hamming distance computation", computedDistance, distance);
+				assertEquals(computedDistance, distance, "Error in Hamming distance computation");
 			}
 		}
 	}
