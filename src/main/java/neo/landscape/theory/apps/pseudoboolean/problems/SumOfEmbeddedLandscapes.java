@@ -37,19 +37,22 @@ public class SumOfEmbeddedLandscapes extends EmbeddedLandscape {
 
 	@Override
 	public double evaluateSubfunction(int sf, PBSolution pbs) {
-		int variableCount=0;
 		int l=0;
 		while (sf >= nkLandscapes[l].getM()) {
 			sf -= nkLandscapes[l].getM();
-			variableCount += nkLandscapes[l].getN();
 			l++;
 		}
-		PBSolution subSolution = new PBSolution(nkLandscapes[l].getMaskLength(sf));
-		for (int var=0; var < subSolution.getN(); var++) {
-			subSolution.setBit(var, pbs.getBit(nkLandscapes[l].getMasks(sf, var)+variableCount));
+		return nkLandscapes[l].evaluateSubfunction(sf, pbs);
+	}
+
+	@Override
+	public double evaluateSubfunction(int sf, int value) {
+		int l=0;
+		while (sf >= nkLandscapes[l].getM()) {
+			sf -= nkLandscapes[l].getM();
+			l++;
 		}
-		
-		return nkLandscapes[l].evaluateSubfunction(sf, subSolution);
+		return nkLandscapes[l].evaluateSubfunction(sf, value);
 	}
 
 }
