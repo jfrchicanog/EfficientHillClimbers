@@ -164,7 +164,7 @@ public class MAXkSAT extends MAXSAT implements KBoundedEpistasisPBF {
 			mks.setConfiguration(prop);
 			if (args.length > 2) {
 				pbs = new PBSolution(mks.getN());
-				pbs.parse(args[2]);
+				pbs.parseBigEndian(args[2]);
 			}
 		} else if (args[0].equals("random")) {
 			prop.setProperty(N_STRING, args[1]);

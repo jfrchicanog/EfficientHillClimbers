@@ -59,6 +59,12 @@ public class PBSolution implements Solution<PseudoBooleanFunction>, Serializable
 		}
 		return solution;
 	}
+
+	public static PBSolution readFromHex(int n, String hex) {
+		PBSolution solution = new PBSolution(n);
+		solution.fromHex(hex);
+		return solution;
+	}
 	
 	public int hammingDistance(PBSolution other) {
 	    if (other.n!=n) {
@@ -80,6 +86,18 @@ public class PBSolution implements Solution<PseudoBooleanFunction>, Serializable
 	    }
         return ones;
     }
+
+	public PBSolution xor(PBSolution solution) {
+		if (solution.n!=n) {
+			throw new IllegalArgumentException("The binary strings have different lengths");
+		}
+
+		PBSolution result = new PBSolution(n);
+		for(int i=0; i < data.length; i++) {
+			result.data[i] = data[i] ^ solution.data[i];
+		}
+		return result;
+	}
 
     public int getN() {
 		return n;
@@ -122,6 +140,39 @@ public class PBSolution implements Solution<PseudoBooleanFunction>, Serializable
         }
         return sol;
     }
+
+	public String toHex() {
+		String str = "";
+		for (int i=data.length-1; i >= 0; i--) {
+			str += String.format("%08x", data[i]);
+		}
+		return str;
+	}
+
+	public void fromHex(String hex) {
+		hex = hex.trim();
+		if (hex.length() <= (data.length-1)*8) {
+			throw new IllegalArgumentException("Hex number nos long enough: "+hex);
+		}
+
+		for (int i=data.length-1; i >= 0; i--) {
+			int endIndex = hex.length() - i*8;
+			String val = hex.subSequence(Math.max(endIndex-8, 0), endIndex).toString();
+			data[i] = parseHexInt(val);
+		}
+	}
+
+	private int parseHexInt(String hex) {
+		assert hex.length() <= 8;
+		int result=0;
+		if (hex.length()==8) {
+			result = Integer.parseInt(""+hex.charAt(0), 16);
+			result <<= 28;
+			hex = hex.substring(1);
+		}
+		result += Integer.parseInt(hex, 16);
+		return result;
+	}
 
 	/**
 	 * This method assumes that the binary string is in Big Endian order.

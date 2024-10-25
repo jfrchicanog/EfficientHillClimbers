@@ -422,6 +422,7 @@ public class NKLandscapes extends EmbeddedLandscape implements
 			}
 			pw.println();
 		}
+		pw.flush();
 
 	}
 
