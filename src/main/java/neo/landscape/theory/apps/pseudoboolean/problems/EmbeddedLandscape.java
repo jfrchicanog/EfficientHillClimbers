@@ -42,6 +42,7 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 	 */
 
 	public abstract double evaluateSubfunction(int sf, PBSolution pbs);
+	public abstract double evaluateSubfunction(int sf, int value);
 
 	@Override
 	public double evaluate(Solution sol) {

@@ -47,6 +47,18 @@ public class PBSolution implements Solution<PseudoBooleanFunction>, Serializable
 	public void flipBit(int i) {
 		data[i >>> 5] ^= (1 << (i & 0x1f));
 	}
+
+	public static PBSolution readFromInt(int n, int value) {
+		if (n > 32) {
+			throw new IllegalArgumentException("The number of bits is greater than 32");
+		}
+		PBSolution solution = new PBSolution(n);
+		for (int i=0; i < n; i++) {
+			solution.setBit(i, value & 0x01);
+			value >>>= 1;
+		}
+		return solution;
+	}
 	
 	public int hammingDistance(PBSolution other) {
 	    if (other.n!=n) {

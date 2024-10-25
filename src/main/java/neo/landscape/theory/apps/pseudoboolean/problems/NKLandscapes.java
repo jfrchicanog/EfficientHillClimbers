@@ -254,6 +254,15 @@ public class NKLandscapes extends EmbeddedLandscape implements
 		return subFunctions[sf][index];
 	}
 
+	@Override
+	public double evaluateSubfunction(int sf, int value) {
+		if (subFunctions == null) {
+			throw new IllegalStateException(
+				"The NK-landscape has not been configured");
+		}
+		return subFunctions[sf][value];
+	}
+
 	public static void showHelp() {
 		System.err.println("Arguments: <N> <K> <q> <c> [<shift>] [<seed>] [<solution>]");
 		System.err.println("Use <q>=" + FORCE_NK

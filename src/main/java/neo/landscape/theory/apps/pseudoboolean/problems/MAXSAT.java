@@ -362,7 +362,18 @@ public class MAXSAT extends EmbeddedLandscape implements EmbeddedLandscapeSubfun
 				return min ? -res : res;
 			}
 			i++;
+		}
+		return 0;
+	}
 
+	@Override
+	public double evaluateSubfunction(int sf, int value) {
+		for (int v : clauses[sf]) {
+			int bit = value & 0x01;
+			if (bit > 0 && v > 0 || bit == 0 && v < 0) {
+				return min ? -1 : 1;
+			}
+			value >>>= 1;
 		}
 		return 0;
 	}
@@ -464,6 +475,18 @@ public class MAXSAT extends EmbeddedLandscape implements EmbeddedLandscapeSubfun
 		if (mks.isWeightedInstance()) {
 		    System.out.println("Hard clauses satisfied: "+mks.isHardClausesSatisfied());
 		}
+	}
+
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		for (int j=0; j < clauses.length; j++) {
+			for (int i=0; i < clauses[j].length; i++) {
+				sb.append(clauses[j][i]);
+				sb.append(" ");
+			}
+			sb.append("\n");
+		}
+		return sb.toString();
 	}
 
     @Override
