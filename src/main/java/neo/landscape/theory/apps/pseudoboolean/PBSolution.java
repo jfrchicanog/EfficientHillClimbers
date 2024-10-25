@@ -16,6 +16,18 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 		solution.fromHex(hex);
 		return solution;
 	}
+
+	public static PBSolution readFromInt(int n, int value) {
+		if (n > 32) {
+			throw new IllegalArgumentException("The number of bits is greater than 32");
+		}
+		PBSolution solution = new PBSolution(n);
+		for (int i=0; i < n; i++) {
+			solution.setBit(i, value & 0x01);
+			value >>>= 1;
+		}
+		return solution;
+	}
 	
 	public PBSolution(int n) {
 		this.n = n;
@@ -38,7 +50,7 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 			data[i] = other.data[i];
 		}
 	}
-	
+
 	public int hammingDistance(PBSolution solution) {
 		if (solution.n!=n) {
 			throw new IllegalArgumentException("The binary strings have different lengths");
@@ -49,6 +61,18 @@ public class PBSolution implements Solution<PseudoBooleanFunction> {
 			distance += Integer.bitCount(data[i] ^ solution.data[i]);
 		}
 		return distance;
+	}
+
+	public PBSolution xor(PBSolution solution) {
+		if (solution.n!=n) {
+			throw new IllegalArgumentException("The binary strings have different lengths");
+		}
+
+		PBSolution result = new PBSolution(n);
+		for(int i=0; i < data.length; i++) {
+			result.data[i] = data[i] ^ solution.data[i];
+		}
+		return result;
 	}
 
 	public int getBit(int i) {
