@@ -11,6 +11,8 @@ import java.util.Properties;
 import java.util.function.Predicate;
 import java.util.zip.GZIPOutputStream;
 
+import neo.landscape.theory.apps.pseudoboolean.problems.*;
+import neo.landscape.theory.apps.pseudoboolean.px.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -24,20 +26,6 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveExcep
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
-import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
-import neo.landscape.theory.apps.pseudoboolean.problems.MAXSATConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapeConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.px.ArticulationPointsPartitionCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.CrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.CrossoverInternal;
-import neo.landscape.theory.apps.pseudoboolean.px.DynasticPotentialCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.NetworkCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossover;
-import neo.landscape.theory.apps.pseudoboolean.px.RBallCrossoverAdaptor;
-import neo.landscape.theory.apps.pseudoboolean.px.SinglePointCrossoverConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.px.UniformCrossoverConfigurator;
 import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
@@ -64,6 +52,7 @@ public class DrilsExperiment implements Process {
     
     private static final String MAXSAT_PROBLEM = "maxsat";
     private static final String NK_PROBLEM = "nk";
+	private static final String WALSH_PROBLEM = "walsh";
     
     private static final String DPX="dpx";
     private static final String APX="apx";
@@ -71,6 +60,7 @@ public class DrilsExperiment implements Process {
     private static final String NX="nx";
     private static final String UX="ux";
     private static final String SPX="spx";
+	private static final String FPX="fpx";
     private static final String CROSSOVER_NONE = "none";
     
     private static final String TYPE_PERTURBATION="perturbation";
@@ -80,6 +70,7 @@ public class DrilsExperiment implements Process {
     {
     	configurators.put(MAXSAT_PROBLEM, new MAXSATConfigurator());
     	configurators.put(NK_PROBLEM, new NKLandscapeConfigurator());
+		configurators.put(WALSH_PROBLEM, new WalshBasedFunctionConfigurator());
     }
     
     private final Map<String, CrossoverConfigurator> crossoverConf = new HashMap<>();
@@ -90,6 +81,7 @@ public class DrilsExperiment implements Process {
     	crossoverConf.put(UX, new UniformCrossoverConfigurator());
     	crossoverConf.put(SPX, new SinglePointCrossoverConfigurator());
     	crossoverConf.put(NX, new NetworkCrossoverConfigurator());
+		crossoverConf.put(FPX, new FourierPartitionCrossoverConfigurator());
     }
      
     

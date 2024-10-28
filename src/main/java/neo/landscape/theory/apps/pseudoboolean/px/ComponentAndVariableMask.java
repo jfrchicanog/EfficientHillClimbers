@@ -6,13 +6,21 @@ public class ComponentAndVariableMask implements PartitionComponent, VariablePro
     
     private int[] componentOfPartition;
     private int sizeOfComponent;
+    private Double redValue;
 
     public ComponentAndVariableMask(int n)  {
         componentOfPartition = new int [n];
         sizeOfComponent=0;
+        redValue = null;
     }
 
+    public Double getRedValue() {
+        return redValue;
+    }
 
+    public void setRedValue(Double redValue) {
+        this.redValue=redValue;
+    }
 
     /* (non-Javadoc)
      * @see neo.landscape.theory.apps.pseudoboolean.px.PartitionComponent#clearComponent()

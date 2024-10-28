@@ -7,5 +7,7 @@ public interface PartitionComponent extends Iterable<Integer>{
     public void clearComponent();
     public void addVarToComponent(int var);
     public Iterator<Integer> iterator();
+    public Double getRedValue();
+    public void setRedValue(Double redValue);
 
 }

@@ -21,7 +21,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 
 
-//We need to fix this test, since it does not reflect the new wasy of expressing the NK Model
+//We need to fix this test, since it does not reflect the new easy of expressing the NK Model
 @Ignore
 public class PartitionCrossoverTest {
     
