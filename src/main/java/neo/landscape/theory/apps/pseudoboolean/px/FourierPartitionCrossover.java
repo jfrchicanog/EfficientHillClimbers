@@ -5,16 +5,13 @@ import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.WalshBasedFunction;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficient;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
-import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshConstraint;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 import java.io.PrintStream;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class FourierPartitionCrossover implements CrossoverInternal {
 
@@ -42,6 +39,8 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 	private WalshCoefficients wcsConstrained;
 
 	private boolean debug = false;
+	private List<Set<Integer>> varsInComponents;
+	private List<Double> redValues;
 
 	public FourierPartitionCrossover(WalshBasedFunction el) {
 		this.el = el;
@@ -179,10 +178,44 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 			ps.println(message);
 		}
 	}
-	
+
+	public List<Set<Integer>> getVarsInComponents() {
+		initializeVarsInComponents();
+		return varsInComponents;
+	}
+
+	public List<Double> getRedValues() {
+		initializeRedValues();
+		return redValues;
+	}
+
+	private void resetDebugInformation() {
+		initializeVarsInComponents();
+		varsInComponents.clear();
+
+		initializeRedValues();
+		redValues.clear();
+
+	}
+
+	private void initializeRedValues() {
+		if (redValues == null) {
+			redValues = new ArrayList<>();
+		}
+	}
+
+	private void initializeVarsInComponents() {
+		if (varsInComponents == null) {
+			varsInComponents = new ArrayList<>();
+		}
+	}
+
 	@Override
 	public PBSolution recombineInternal(PBSolution blue, PBSolution red) {
-		Set<Set<Integer>> varsInComponents = new HashSet<>();
+		if (debug) {
+			resetDebugInformation();
+		}
+
 		long initTime = System.nanoTime();
         bfsSet.reset();
         
@@ -215,38 +248,24 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 			// Tras este proceso tiene que cumplirse que para todos los coeficientes, solo puede haber como mucho
 			// un componente que tenga un número impar de variables
 
-			Set<Integer> varsInComponent = new HashSet<>();
-			for (int variable: component) {
-				varsInComponent.add(variable);
+			if (debug) {
+				Set<Integer> varsInComponent = new HashSet<>();
+				for (int variable: component) {
+					varsInComponent.add(variable);
+				}
+				getVarsInComponents().add(varsInComponent);
+				getRedValues().add(redVal);
 			}
-			varsInComponents.add(varsInComponent);
-
 		}
 		lastRuntime = System.nanoTime() - initTime;
-
-		if (debug) {
-			checkVariablesInComponents(varsInComponents);
-		}
 
 		reportIfPossible("* Number of components: "+getNumberOfComponents());
 
 		return child;
 	}
 
-	private void checkVariablesInComponents(Set<Set<Integer>> varsInComponents) {
-		wcsConstrained.stream()
-			.forEach(wc->{
-				long [] oddCounts = varsInComponents.stream().mapToLong(varSet ->
-					varSet.stream().filter(wc.variables::contains).count()
-				)
-					.filter(l-> (l&1)!=0).toArray();
-
-				if (oddCounts.length > 1) {
-					throw new AssertionError("There are more than one odd count in component. Walsh variables "
-					+wc.variables+".\n"+"Counts: "+Arrays.toString(oddCounts));
-				}
-
-		});
+	public WalshCoefficients getWcsConstrained() {
+		return wcsConstrained;
 	}
 
 	public int getNumberOfComponents() {
