@@ -6,6 +6,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.MAXkSAT;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.problems.WalshBasedFunction;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
+import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsInterface;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshConstraint;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshTransform;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ public class WalshTransformTest {
         System.out.println("Problem:");
         System.out.println(pbf);
 
-        WalshCoefficients wcs = WalshTransform.transform(pbf);
+        WalshCoefficients wcs = WalshTransform.transform(pbf, WalshCoefficients.factory());
         System.out.println("Walsh Transform:");
         System.out.println(wcs);
 
@@ -76,7 +77,7 @@ public class WalshTransformTest {
         pbf.setSeed(seed);
         pbf.setConfiguration(prop);
 
-        WalshCoefficients wcs = WalshTransform.transform(pbf);
+        WalshCoefficients wcs = WalshTransform.transform(pbf, WalshCoefficients.factory());
         EmbeddedLandscape el = WalshBasedFunction.inverseWalshTransform(wcs);
 
         for (int x = 0; x < 1 << N; x++) {

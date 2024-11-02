@@ -29,8 +29,6 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 	protected Set<Integer> varsInThisComponent = new HashSet<>();
     protected VariableProcedence varProcedence;
 
-	protected Map<Integer, List<WalshCoefficient>> wcByVariable = new HashMap<>();
-
 
     protected long lastRuntime;
     private int numberOfComponents;
@@ -122,7 +120,8 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 				continue;
 			}
 
-			wcByVariable.getOrDefault(var, (List<WalshCoefficient>)Collections.EMPTY_LIST).forEach(wc -> {
+			wcsConstrained.getCoefficientsForVariable(var)
+				.forEach(wc -> {
 				// 1. itera por cada coeficiente de Walsh que toca esta variable
 				int inThisComponent = 0;
 				int toBeAssigned = 0;
@@ -223,16 +222,6 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 		numberOfComponents = 0;
 
 		wcsConstrained = el.contraint(red, blue);
-		wcByVariable.clear();
-		wcsConstrained.stream().forEach(wc->{
-			wc.variables.forEach(var -> {
-				wcByVariable.computeIfAbsent(var,(v)-> new ArrayList<>());
-				wcByVariable.computeIfPresent(var, (v,l)-> {
-					l.add(wc);
-					return l;
-				});
-			});
-		});
 
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
 		    PartitionComponent component = bfs(node, blue, red);

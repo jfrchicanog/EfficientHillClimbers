@@ -25,7 +25,7 @@ public class FourierPartitionCrossoverTest {
         for (int N : new int [] {4, 5, 6, 7, 8, 9, 10, 50, 100, 500, 1000}) {
             LongStream.rangeClosed(1,10).forEach(seed-> {
                 EmbeddedLandscape el = createNKLandscape(N, seed);
-                WalshCoefficients wcs = WalshTransform.transform(el);
+                WalshCoefficients wcs = WalshTransform.transform(el, WalshCoefficients.factory());
                 WalshBasedFunction wbf = new WalshBasedFunction(el.getN(), wcs);
                 FourierPartitionCrossover fpx = new FourierPartitionCrossover(wbf);
                 fpx.setDebug(true);

@@ -8,6 +8,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.MAXSAT;
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 import neo.landscape.theory.apps.pseudoboolean.problems.WalshBasedFunction;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
+import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsInterface;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshTransform;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
@@ -52,7 +53,7 @@ public class WalshTransformExperiment implements Process {
             return;
         }
 
-        WalshCoefficients transform = WalshTransform.transform(pbf);
+        WalshCoefficients transform = WalshTransform.transform(pbf, WalshCoefficients.factory());
         reportWalshTransform(transform);
         if (showEvaluation) {
             reportEvaluation(pbf);

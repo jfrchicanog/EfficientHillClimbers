@@ -17,7 +17,7 @@ public class FourierPartitionCrossoverConfigurator implements CrossoverConfigura
 
 	@Override
 	public CrossoverInternal configureCrossover(Properties properties, EmbeddedLandscape el, PrintStream ps) {
-		WalshCoefficients wcs = WalshTransform.transform(el);
+		WalshCoefficients wcs = WalshTransform.transform(el, WalshCoefficients.factory());
 		WalshBasedFunction wbf = new WalshBasedFunction(el.getN(), wcs);
 		FourierPartitionCrossover fpx = new FourierPartitionCrossover(wbf);
 		fpx.setPrintStream(ps);

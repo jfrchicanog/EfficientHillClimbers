@@ -2,22 +2,26 @@ package neo.landscape.theory.apps.pseudoboolean.util.walsh;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.util.walsh.efficient.WalshCoefficientsArray;
 
 import java.util.HashSet;
 import java.util.Set;
 
 public class WalshTransform {
 
-    public static WalshCoefficients transform(EmbeddedLandscape el) {
-        WalshCoefficients result = new WalshCoefficients();
+    public static WalshCoefficientsInterface transform(EmbeddedLandscape el) {
+        return transform(el, WalshCoefficientsArray.factory());
+    }
+
+    public static <W extends WalshCoefficientsInterface> W transform(EmbeddedLandscape el, WalshCoefficientsFactory<W> factory) {
+        W result = factory.create(el.getN());
         for (int sf=0; sf < el.getM(); sf++) {
             computeTransformForSubfunction(el, sf, result);
         }
-
         return result;
     }
 
-    private static void computeTransformForSubfunction(EmbeddedLandscape el, int sf, WalshCoefficients result) {
+    private static void computeTransformForSubfunction(EmbeddedLandscape el, int sf, WalshCoefficientsInterface result) {
         int k = el.getMaskLength(sf);
         if (k > 29) {
             throw new IllegalArgumentException(String.format("The mask length (%1$d) is too big for the Walsh transform", k));
