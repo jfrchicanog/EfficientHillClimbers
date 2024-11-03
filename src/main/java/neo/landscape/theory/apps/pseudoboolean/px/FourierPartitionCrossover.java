@@ -5,22 +5,25 @@ import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.WalshBasedFunction;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficient;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
+import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsInterface;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 import java.io.PrintStream;
+import java.sql.Array;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
-public class FourierPartitionCrossover implements CrossoverInternal {
+public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> implements CrossoverInternal {
 
 	protected static final int VARIABLE_LIMIT = 1<<29;
 
 	private Logger log = Logger.getLogger(this.getClass().getName());
 
     protected Random rnd;
-	protected WalshBasedFunction el;
+	protected WalshBasedFunction<W> el;
 	protected TwoStatesIntegerSet bfsSet;
     protected Set<Integer> subfns;
     protected Queue<Integer> toExplore;
@@ -34,13 +37,13 @@ public class FourierPartitionCrossover implements CrossoverInternal {
     private int numberOfComponents;
 
     private PrintStream ps;
-	private WalshCoefficients wcsConstrained;
+	private W wcsConstrained;
 
 	private boolean debug = false;
 	private List<Set<Integer>> varsInComponents;
 	private List<Double> redValues;
 
-	public FourierPartitionCrossover(WalshBasedFunction el) {
+	public FourierPartitionCrossover(WalshBasedFunction<W> el) {
 		this.el = el;
 		bfsSet = new TwoStatesISArrayImpl(el.getN());
 		if (el.getN() > VARIABLE_LIMIT) {
@@ -111,7 +114,8 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 		component.addVarToComponent(node);
 		varsInThisComponent.add(node);
 
-		Set<WalshCoefficient> termsInThisComponent = new HashSet<>();
+		Set<Integer> termsInThisComponent = new HashSet<>();
+		//TwoStatesIntegerSet termsInThisComponent = new TwoStatesISArrayImpl(wcsConstrained.getNumberOfIDs());
 
 		while (toExplore.size() > 0) {
 			// Take one node to explore
@@ -122,42 +126,46 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 
 			wcsConstrained.getCoefficientsForVariable(var)
 				.forEach(wc -> {
-				// 1. itera por cada coeficiente de Walsh que toca esta variable
-				int inThisComponent = 0;
-				int toBeAssigned = 0;
-				Integer lastVarToBeAssigned=null;
-				// 2. miro las otras variables
-				for (int otherVar: wc.variables) {
-					if (varsInThisComponent.contains(otherVar)) {
-						inThisComponent++;
-					} else if (!bfsSet.isExplored(otherVar) && isNodeInReducedGraph(otherVar, blue, red)) {
-						toBeAssigned++;
-						lastVarToBeAssigned = otherVar; // TODO: añadir a lista para seleccionar de forma aleatoria
+					// 1. itera por cada coeficiente de Walsh que toca esta variable
+					final AtomicInteger inThisComponent = new AtomicInteger(0);
+					final AtomicInteger toBeAssigned = new AtomicInteger(0);
+					List<Integer> varToBeAssigned = new ArrayList<>();
+					// 2. miro las otras variables
+					wcsConstrained.getVarsForID(wc).forEach(otherVar -> {
+						if (varsInThisComponent.contains(otherVar)) {
+							inThisComponent.incrementAndGet();
+						} else if (!bfsSet.isExplored(otherVar) && isNodeInReducedGraph(otherVar, blue, red)) {
+							toBeAssigned.incrementAndGet();
+							varToBeAssigned.add(otherVar);
+						}
+					});
+
+					if ((inThisComponent.intValue() & toBeAssigned.intValue() & 0x01) != 0) {
+						// 4. Si hay un número impar en el componente actual y lo que queda es impar también,
+						// tomo una variable no asignada a ningún componente y se añade a este componmente
+						// y para explorar
+						int varsToSelect = varToBeAssigned.size();
+						int selectedVar = varToBeAssigned.get(rnd.nextInt(varsToSelect));
+
+						toExplore.add(selectedVar);
+						varsInThisComponent.add(selectedVar);
+						component.addVarToComponent(selectedVar);
+						toBeAssigned.decrementAndGet();
+						inThisComponent.incrementAndGet();
 					}
-				}
-				if ((inThisComponent & toBeAssigned & 0x01) != 0) {
-					// 4. Si hay un número impar en el componente actual y lo que queda es impar también,
-					// tomo una variable no asignada a ningún componente y se añade a este componmente
-					// y para explorar
-					toExplore.add(lastVarToBeAssigned);
-					varsInThisComponent.add(lastVarToBeAssigned);
-					component.addVarToComponent(lastVarToBeAssigned);
-					toBeAssigned--;
-					inThisComponent++;
-				}
 
-				if ((inThisComponent & 1) != 0) {
-					termsInThisComponent.add(wc);
-				} else {
-					termsInThisComponent.remove(wc);
-				}
-			});
-
+					if ((inThisComponent.intValue() & 1) != 0) {
+						termsInThisComponent.add(wc);
+					} else {
+						termsInThisComponent.remove(wc);
+					}
+				});
 			bfsSet.explored(var);
 		}
 
+
 		double redValue = termsInThisComponent.stream()
-			.mapToDouble(wc -> wc.evaluate(red))
+			.mapToDouble(wc -> wcsConstrained.evaluate(wc, red))
 			.sum();
 
 		component.setRedValue(redValue);
@@ -229,7 +237,7 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 
 			if (redVal < 0 || ((redVal==0) && rnd.nextDouble() < 0.5)) {
 			    for (int variable : component) {
-			        child.setBit(variable, blue.getBit(variable));
+			        child.flipBit(variable);
                     varProcedence.markAsBlue(variable);
                 }
 			}
@@ -253,7 +261,7 @@ public class FourierPartitionCrossover implements CrossoverInternal {
 		return child;
 	}
 
-	public WalshCoefficients getWcsConstrained() {
+	public WalshCoefficientsInterface getWcsConstrained() {
 		return wcsConstrained;
 	}
 

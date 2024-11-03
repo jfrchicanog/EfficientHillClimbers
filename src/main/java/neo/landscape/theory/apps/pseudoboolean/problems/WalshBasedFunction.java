@@ -3,7 +3,9 @@ package neo.landscape.theory.apps.pseudoboolean.problems;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficient;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
+import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsInterface;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshConstraint;
+import neo.landscape.theory.apps.pseudoboolean.util.walsh.efficient.WalshCoefficientsArray;
 
 import java.io.*;
 import java.util.Arrays;
@@ -11,20 +13,20 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class WalshBasedFunction extends EmbeddedLandscape implements KBoundedEpistasisPBF {
+public class WalshBasedFunction<W extends WalshCoefficientsInterface<W>> extends EmbeddedLandscape implements KBoundedEpistasisPBF {
     public static final String INSTANCE_STRING = "instance";
-    private WalshCoefficient [] wcs;
-    private WalshCoefficients wcsOriginal;
+    private W wcsOriginal;
+    private int walshCoefficientIDs[];
     private int k;
 
-    public WalshBasedFunction(int n, WalshCoefficients wc) {
+    public WalshBasedFunction(int n, W wc) {
         super();
         this.n=n;
         wcsOriginal = wc;
         initializeBasicDataStructures();
     }
 
-    public WalshBasedFunction(WalshCoefficients wc) {
+    public WalshBasedFunction(W wc) {
         super();
         wcsOriginal = wc;
         initializeBasicDataStructures();
@@ -32,10 +34,14 @@ public class WalshBasedFunction extends EmbeddedLandscape implements KBoundedEpi
     }
 
     private void computeN() {
-        n = wcsOriginal.stream()
-            .mapToInt(wc->wc.variables.stream()
-                .mapToInt(l->l).max().orElse(0))
-            .max().orElse(-1)+1;
+        n = 0;
+        wcsOriginal.getNonZeroCoefficients().forEach(id -> {
+            wcsOriginal.getVarsForID(id).forEach(v -> {
+                if (v >= n) {
+                    n = v+1;
+                }
+            });
+        });
     }
 
     public WalshBasedFunction() {
@@ -43,12 +49,12 @@ public class WalshBasedFunction extends EmbeddedLandscape implements KBoundedEpi
     }
 
     private void initializeBasicDataStructures() {
-        wcs = wcsOriginal.stream().collect(Collectors.toList()).toArray(new WalshCoefficient[0]);
-        m = wcs.length;
+        walshCoefficientIDs = wcsOriginal.getNonZeroCoefficients().toArray();
+        m = walshCoefficientIDs.length;
         masks = new int[m][];
         k=0;
         for (int sf=0; sf < m; sf++) {
-            masks[sf] = wcs[sf].variables.stream().mapToInt(Integer::intValue).toArray();
+            masks[sf] = wcsOriginal.getVarsForID(walshCoefficientIDs[sf]).toArray();
             if (masks[sf].length > k) {
                 k= masks[sf].length;
             }
@@ -57,21 +63,21 @@ public class WalshBasedFunction extends EmbeddedLandscape implements KBoundedEpi
 
     @Override
     public double evaluateSubfunction(int sf, PBSolution pbs) {
-        WalshCoefficient wc = wcs[sf];
-        int localK = wc.variables.size();
+        int localK = wcsOriginal.numberOfVarsForID(walshCoefficientIDs[sf]);
         int sign = 0;
         for (int i = 0; i < localK; i++) {
             sign ^= pbs.getBit(i);
         }
-        return sign == 0? wc.value: -wc.value;
+        double value = wcsOriginal.getCoefficient(walshCoefficientIDs[sf]);
+        return sign == 0? value: -value;
     }
 
     @Override
     public double evaluateSubfunction(int sf, int value) {
-        WalshCoefficient wc = wcs[sf];
-        int localK = wc.variables.size();
+        int localK = wcsOriginal.numberOfVarsForID(walshCoefficientIDs[sf]);
         int sign = Integer.bitCount(value & ((1 << localK)-1)) & 0x01;
-        return sign == 0? wc.value: -wc.value;
+        double coeff = wcsOriginal.getCoefficient(walshCoefficientIDs[sf]);
+        return sign == 0? coeff: -coeff;
     }
 
     private void loadInstance(File file) {
@@ -83,7 +89,7 @@ public class WalshBasedFunction extends EmbeddedLandscape implements KBoundedEpi
             String line;
             String[] parts;
 
-            wcsOriginal = new WalshCoefficients();
+
             while ((line = brd.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) {
@@ -95,6 +101,7 @@ public class WalshBasedFunction extends EmbeddedLandscape implements KBoundedEpi
                         break;
                     case 'p': // Instance information
                         n = Integer.parseInt(line.substring(1).trim());
+                        wcsOriginal = wcsOriginal.getFactory().create(n);
                         break;
                     case 'w':
                         parts = line.split(":");
@@ -131,15 +138,11 @@ public class WalshBasedFunction extends EmbeddedLandscape implements KBoundedEpi
         return k;
     }
 
-    public static WalshBasedFunction inverseWalshTransform(WalshCoefficients wcs) {
+    public static <W extends WalshCoefficientsInterface<W>> WalshBasedFunction<W> inverseWalshTransform(W wcs) {
         return new WalshBasedFunction(wcs);
     }
 
-    public WalshCoefficients contraint(PBSolution red, PBSolution blue) {
+    public W contraint(PBSolution red, PBSolution blue) {
         return WalshConstraint.constraint(wcsOriginal, red, blue);
-    }
-
-    public WalshCoefficients getWalshCoefficients(){
-        return wcsOriginal;
     }
 }

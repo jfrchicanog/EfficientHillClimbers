@@ -29,6 +29,7 @@ public class WalshTransform {
         long maxValue = 1 << k;
         for (int w=0; w < maxValue; w++) {
             Set<Integer> index = getIndex(el, sf, k, w);
+            assert w < maxValue-1 || index.size() == k;
             double value = 0.0;
             for (int x=0; x < maxValue; x++) {
                 double sfEval = el.evaluateSubfunction(sf, x);

@@ -57,8 +57,8 @@ public class WalshTransformTest {
     }
 
     private static Stream<Arguments> provideParamsForNKLandscpaes() {
-        return IntStream.rangeClosed(3, 12).mapToObj(
-                N -> IntStream.rangeClosed(1, 2).mapToObj(K -> arguments(N, K)))
+        return IntStream.rangeClosed(3, 15).mapToObj(
+                N -> IntStream.rangeClosed(1, Math.min(N-1, 5)).mapToObj(K -> arguments(N, K)))
             .flatMap(x -> x);
     }
 

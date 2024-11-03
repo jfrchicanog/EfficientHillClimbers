@@ -42,6 +42,9 @@ public class NKLandscapes extends EmbeddedLandscape implements
 
 		n = Integer.parseInt(prop.getProperty(N_STRING));
 		k = Integer.parseInt(prop.getProperty(K_STRING)) + 1;
+		if (k > n) {
+			throw new IllegalArgumentException("K must be strictly less than N");
+		}
 		m = n;
 
 		int twoToK = 1 << k;

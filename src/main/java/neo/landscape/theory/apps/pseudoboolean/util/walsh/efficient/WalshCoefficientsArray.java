@@ -1,13 +1,14 @@
 package neo.landscape.theory.apps.pseudoboolean.util.walsh.efficient;
 
-import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class WalshCoefficientsArray implements neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsInterface {
+public class WalshCoefficientsArray implements neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsInterface<WalshCoefficientsArray> {
+    private static WalshCoefficientsFactory<WalshCoefficientsArray> walshCoeffFactory = (int n) -> new WalshCoefficientsArray(n);
     private int n;
     private int nonZeroWalshCoefficients;
 
@@ -84,8 +85,10 @@ public class WalshCoefficientsArray implements neo.landscape.theory.apps.pseudob
         varSetToWalshCoefficientID.remove(vars);
         if (id == nextID-1) {
             nextID--;
-            nextVariableIndex = variableSetIndex[id];
-            varSetToVariableIndex.remove(vars);
+            if (variableSetIndex[id]+vars.size() == nextVariableIndex) {
+                nextVariableIndex = variableSetIndex[id];
+                varSetToVariableIndex.remove(vars);
+            }
         }
         walshCoefficientsByVariable = null;
     }
@@ -95,11 +98,17 @@ public class WalshCoefficientsArray implements neo.landscape.theory.apps.pseudob
         return nonZeroWalshCoefficients;
     }
 
-    public IntStream streamNonZeroCoefficients() {
-        return IntStream.range(0, nextID).filter(i -> coefficients[i] != 0);
+
+    @Override
+    public int getNumberOfIDs() {
+        return nextID;
     }
 
+    @Override
     public double getCoefficient(int id) {
+        if (id >= nextID) {
+            throw new IllegalArgumentException("ID " + id + " is greater than the largest index " + (nextID-1));
+        }
         return coefficients[id];
     }
 
@@ -113,16 +122,50 @@ public class WalshCoefficientsArray implements neo.landscape.theory.apps.pseudob
         return id == null? 0: coefficients[id];
     }
 
+    @Override
+    public int numberOfVarsForID(int id) {
+        if (id >= nextID) {
+            throw new IllegalArgumentException("ID " + id + " is greater than the largest index " + (nextID-1));
+        }
+        return variableSetSize[id];
+    }
+
+
+    @Override
     public IntStream getVarsForID(int id) {
         return Arrays.stream(variables, variableSetIndex[id], variableSetIndex[id] + variableSetSize[id]);
     }
 
-    public IntStream getCoefficientsPerVariable(int variable) {
+    @Override
+    public IntStream getCoefficientsForVariable(int variable) {
         if (walshCoefficientsByVariable == null) {
             buildWalshCoefficientsByVariable();
         }
         return IntStream.of(walshCoefficientsByVariable[variable]);
 
+    }
+
+    @Override
+    public IntStream getNonZeroCoefficients() {
+        return IntStream.range(0, nextID)
+            .filter(j->coefficients[j] !=0);
+    }
+
+    @Override
+    public double evaluate(int id, PBSolution solution) {
+        if (id >= nextID) {
+            throw new IllegalArgumentException("ID " + id + " is greater than the largest index " + (nextID-1));
+        }
+
+        if (coefficients[id] == 0) {
+            return 0;
+        }
+
+        int oneBits = 0;
+        for (int index=variableSetIndex[id]; index < variableSetIndex[id] + variableSetSize[id]; index++) {
+            oneBits += solution.getBit(variables[index]);
+        }
+        return ((oneBits&1)==0)?coefficients[id]:-coefficients[id];
     }
 
     private void buildWalshCoefficientsByVariable() {
@@ -131,8 +174,7 @@ public class WalshCoefficientsArray implements neo.landscape.theory.apps.pseudob
             auxiliaryList[i] = new ArrayList<>();
         }
 
-        IntStream.range(0, nextID)
-            .filter(j->coefficients[j] !=0)
+        getNonZeroCoefficients()
             .forEach(c->{
                 for (int i = variableSetIndex[c]; i < variableSetIndex[c] + variableSetSize[c]; i++) {
                     auxiliaryList[variables[i]].add(c);
@@ -146,7 +188,21 @@ public class WalshCoefficientsArray implements neo.landscape.theory.apps.pseudob
     }
 
     public static WalshCoefficientsFactory<WalshCoefficientsArray> factory() {
-        return (int n) -> new WalshCoefficientsArray(n);
+        return walshCoeffFactory;
+    }
+
+    public WalshCoefficientsFactory<WalshCoefficientsArray> getFactory() {
+        return WalshCoefficientsArray.factory();
+    }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        getNonZeroCoefficients().forEach(id -> {
+            Set<Integer> vars = getVarsForID(id).boxed().collect(Collectors.toSet());
+            sb.append(vars).append(" -> ").append(coefficients[id]).append("\n");
+        });
+
+        return sb.toString();
     }
 
 }

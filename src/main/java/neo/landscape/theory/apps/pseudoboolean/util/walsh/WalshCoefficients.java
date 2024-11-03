@@ -1,29 +1,33 @@
 package neo.landscape.theory.apps.pseudoboolean.util.walsh;
 
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+
 import java.util.*;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class WalshCoefficients implements Iterable<WalshCoefficient>, WalshCoefficientsInterface {
+public class WalshCoefficients implements Iterable<WalshCoefficient>, WalshCoefficientsInterface<WalshCoefficients> {
+    private static final WalshCoefficientsFactory<WalshCoefficients> walshCoefficientsWalshCoefficientsFactory = (int n) -> new WalshCoefficients();
     private Map<Set<Integer>, WalshCoefficient> coefficients = new HashMap<>();
     private Map<Integer, List<WalshCoefficient>> wcByVariable = new HashMap<>();
+    private Map<Integer, WalshCoefficient> wcByID = new HashMap<>();
+    private int nextID = 0;
 
     public double getCoefficient(Set<Integer> index) {
         return coefficients.getOrDefault(index, new WalshCoefficient(index)).value;
     }
 
-    public void setCoefficient(WalshCoefficient coefficient) {
-        if (coefficient.value == 0) {
-            removeCoefficientForVariables(coefficient.variables);
-        } else {
-            replaceCoefficientForVariables(coefficient);
-        }
+    @Override
+    public int numberOfVarsForID(int id) {
+        return wcByID.getOrDefault(id, new WalshCoefficient(Collections.emptySet())).variables.size();
     }
 
-    private void removeCoefficientForVariables(Set<Integer> variables) {
-        WalshCoefficient coeff = coefficients.remove(variables);
-        if (coeff != null) {
-            removeFromWcByVar(coeff);
-        }
+    @Override
+    public IntStream getVarsForID(int id) {
+        return wcByID.getOrDefault(id, new WalshCoefficient(Collections.emptySet()))
+            .variables
+            .stream()
+            .mapToInt(Integer::intValue);
     }
 
     private void removeFromWcByVar(WalshCoefficient coeff) {
@@ -35,13 +39,21 @@ public class WalshCoefficients implements Iterable<WalshCoefficient>, WalshCoeff
         });
     }
 
-    public List<WalshCoefficient> getCoefficientsForVariable(int var) {
-        return wcByVariable.getOrDefault(var, Collections.emptyList());
+    public IntStream getCoefficientsForVariable(int var) {
+        return wcByVariable.getOrDefault(var, Collections.emptyList())
+            .stream()
+            .mapToInt(wc -> wc.id);
     }
 
-    private void replaceCoefficientForVariables(WalshCoefficient coefficient) {
-        WalshCoefficient coeff = coefficients.put(coefficient.variables, coefficient);
-        replaceInWcByVar(coefficient, coeff);
+    @Override
+    public IntStream getNonZeroCoefficients() {
+        return coefficients.values().stream().mapToInt(wc -> wc.id);
+    }
+
+    @Override
+    public double evaluate(int id, PBSolution solution) {
+        return wcByID.getOrDefault(id, new WalshCoefficient(Collections.emptySet()))
+            .evaluate(solution);
     }
 
     private void replaceInWcByVar(WalshCoefficient coefficient, WalshCoefficient coeff) {
@@ -65,12 +77,15 @@ public class WalshCoefficients implements Iterable<WalshCoefficient>, WalshCoeff
         }
         coefficients.compute(coefficient.variables, (k, v) -> {
             if (v == null) {
+                coefficient.id = nextID++;
+                wcByID.put(coefficient.id, coefficient);
                 replaceInWcByVar(coefficient, null);
                 return coefficient;
             } else {
                 v.value += coefficient.value;
                 if (v.value == 0) {
                     removeFromWcByVar(v);
+                    wcByID.remove(v.id);
                     return null;
                 }
                 return v;
@@ -82,8 +97,18 @@ public class WalshCoefficients implements Iterable<WalshCoefficient>, WalshCoeff
         return coefficients.size();
     }
 
+    @Override
+    public int getNumberOfIDs() {
+        return nextID;
+    }
+
+    @Override
+    public double getCoefficient(int id) {
+        return wcByID.getOrDefault(id, new WalshCoefficient(Collections.emptySet())).value;
+    }
+
     public void addCoefficient(Set<Integer> vars, double value) {
-        addCoefficient(new WalshCoefficient(vars, value));
+        addCoefficient(new WalshCoefficient(vars, value, 0));
     }
 
     public void clear() {
@@ -108,6 +133,10 @@ public class WalshCoefficients implements Iterable<WalshCoefficient>, WalshCoeff
     }
 
     public static WalshCoefficientsFactory<WalshCoefficients> factory() {
-        return (int n) -> new WalshCoefficients();
+        return walshCoefficientsWalshCoefficientsFactory;
+    }
+
+    public WalshCoefficientsFactory<WalshCoefficients> getFactory() {
+        return WalshCoefficients.factory();
     }
 }
