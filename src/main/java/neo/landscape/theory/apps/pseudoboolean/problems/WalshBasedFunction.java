@@ -33,6 +33,10 @@ public class WalshBasedFunction<W extends WalshCoefficientsInterface<W>> extends
         computeN();
     }
 
+    public W getOriginalWalshTerms() {
+        return wcsOriginal;
+    }
+
     private void computeN() {
         n = 0;
         wcsOriginal.getNonZeroCoefficients().forEach(id -> {

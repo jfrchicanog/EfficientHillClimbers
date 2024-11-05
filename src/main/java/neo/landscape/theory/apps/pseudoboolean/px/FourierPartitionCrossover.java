@@ -14,6 +14,8 @@ import java.io.PrintStream;
 import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> implements CrossoverInternal {
@@ -42,6 +44,8 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 	private boolean debug = false;
 	private List<Set<Integer>> varsInComponents;
 	private List<Double> redValues;
+	private Set<Integer> termsWithOtherComponentsToo;
+	private boolean numberOfOriginalWalshTermsPrinted;
 
 	public FourierPartitionCrossover(WalshBasedFunction<W> el) {
 		this.el = el;
@@ -56,6 +60,7 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 		ComponentAndVariableMask componentAndVariableProcedence = new ComponentAndVariableMask(el.getN());
 		component = componentAndVariableProcedence;
 		varProcedence = componentAndVariableProcedence;
+		termsWithOtherComponentsToo = new HashSet<>();
 
 	}
 
@@ -130,7 +135,7 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 					final AtomicInteger inThisComponent = new AtomicInteger(0);
 					final AtomicInteger toBeAssigned = new AtomicInteger(0);
 					List<Integer> varToBeAssigned = new ArrayList<>();
-					// 2. miro las otras variables
+					// 2. miro todas las variables del término
 					wcsConstrained.getVarsForID(wc).forEach(otherVar -> {
 						if (varsInThisComponent.contains(otherVar)) {
 							inThisComponent.incrementAndGet();
@@ -159,6 +164,13 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 					} else {
 						termsInThisComponent.remove(wc);
 					}
+
+					if (inThisComponent.intValue() == wcsConstrained.numberOfVarsForID(wc)) {
+						termsWithOtherComponentsToo.remove(wc);
+					} else {
+						termsWithOtherComponentsToo.add(wc);
+					}
+
 				});
 			bfsSet.explored(var);
 		}
@@ -175,14 +187,14 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 
 	public PBSolution recombine(PBSolution blue, PBSolution red) {
 	    PBSolution solution = recombineInternal(blue, red);
-		reportIfPossible("Recombination time:" + getLastRuntime());
+		reportIfPossible(() -> "Recombination time:" + getLastRuntime());
 	    
 	    return solution;
 	}
 
-	private void reportIfPossible(String message) {
+	private void reportIfPossible(Supplier<String> message) {
 		if (ps!=null) {
-			ps.println(message);
+			ps.println(message.get());
 		}
 	}
 
@@ -229,7 +241,13 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 		PBSolution child = new PBSolution(red); //child, copy of red
 		numberOfComponents = 0;
 
+		if (!numberOfOriginalWalshTermsPrinted) {
+			reportIfPossible(() -> "* Number of original Walsh terms: "+el.getOriginalWalshTerms().getNonzeroTerms());
+			numberOfOriginalWalshTermsPrinted=true;
+		}
+
 		wcsConstrained = el.contraint(red, blue);
+		termsWithOtherComponentsToo.clear();
 
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
 		    PartitionComponent component = bfs(node, blue, red);
@@ -256,7 +274,9 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 		}
 		lastRuntime = System.nanoTime() - initTime;
 
-		reportIfPossible("* Number of components: "+getNumberOfComponents());
+		reportIfPossible(() -> "* Number of components: "+getNumberOfComponents());
+		reportIfPossible(() -> "* Constrained Walsh terms: "+getWcsConstrained().getNonzeroTerms());
+		reportIfPossible(() -> "* Walsh terms with several components: "+termsWithOtherComponentsToo.size());
 
 		return child;
 	}
