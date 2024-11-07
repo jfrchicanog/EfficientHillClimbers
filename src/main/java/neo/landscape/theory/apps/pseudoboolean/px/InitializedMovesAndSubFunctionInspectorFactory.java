@@ -25,10 +25,12 @@ class InitializedMovesAndSubFunctionInspectorFactory
 
 	@Override
 	public MovesAndSubFunctionsInspector getInspectorForSubFunction(int subFunction) {
-	    int [][] masks = el.getMasks();
+	    //int [][] masks = el.getMasks();
 	    int color = VariableProcedence.PURPLE;
-	    
-	    for (int variable: masks[subFunction]) {
+		int k = el.getMaskLength(subFunction);
+
+	    for (int index=0; index < k; index++) {
+			int variable = el.getMasks(subFunction, index);
 	        color &= varProcedence.getColor(variable);
 	    }
 

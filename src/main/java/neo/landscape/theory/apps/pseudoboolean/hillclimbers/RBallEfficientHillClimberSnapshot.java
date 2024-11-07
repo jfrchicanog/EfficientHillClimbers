@@ -216,7 +216,7 @@ public class RBallEfficientHillClimberSnapshot implements
 	public double move() {
 	    RBallPBMove move;
 	    if (nextMove == null) {
-            move = movesSelector.getMovement();;
+            move = movesSelector.getMovement();
         } else {
             move = nextMove;
             nextMove=null;

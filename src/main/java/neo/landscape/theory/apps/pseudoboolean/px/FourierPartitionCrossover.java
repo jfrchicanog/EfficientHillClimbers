@@ -3,18 +3,14 @@ package neo.landscape.theory.apps.pseudoboolean.px;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.WalshBasedFunction;
-import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficient;
-import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsInterface;
 import neo.landscape.theory.apps.util.Seeds;
 import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
 import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
 
 import java.io.PrintStream;
-import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
@@ -25,7 +21,8 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 	private Logger log = Logger.getLogger(this.getClass().getName());
 
     protected Random rnd;
-	protected WalshBasedFunction<W> el;
+	protected WalshBasedFunction<W> wbf;
+	protected EmbeddedLandscape originalEL;
 	protected TwoStatesIntegerSet bfsSet;
     protected Set<Integer> subfns;
     protected Queue<Integer> toExplore;
@@ -47,17 +44,18 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 	private Set<Integer> termsWithOtherComponentsToo;
 	private boolean numberOfOriginalWalshTermsPrinted;
 
-	public FourierPartitionCrossover(WalshBasedFunction<W> el) {
-		this.el = el;
-		bfsSet = new TwoStatesISArrayImpl(el.getN());
-		if (el.getN() > VARIABLE_LIMIT) {
+	public FourierPartitionCrossover(WalshBasedFunction<W> wbf, EmbeddedLandscape originaEL) {
+		this.wbf = wbf;
+		this.originalEL = originaEL;
+		bfsSet = new TwoStatesISArrayImpl(wbf.getN());
+		if (wbf.getN() > VARIABLE_LIMIT) {
 		    throw new RuntimeException("Solution too large, the maximum allowed is "+VARIABLE_LIMIT);
 		}
 		
 		rnd = new Random(Seeds.getSeed());
 		subfns = new HashSet<Integer>();
 		toExplore = new LinkedList<Integer>();
-		ComponentAndVariableMask componentAndVariableProcedence = new ComponentAndVariableMask(el.getN());
+		ComponentAndVariableMask componentAndVariableProcedence = new ComponentAndVariableMask(wbf.getN());
 		component = componentAndVariableProcedence;
 		varProcedence = componentAndVariableProcedence;
 		termsWithOtherComponentsToo = new HashSet<>();
@@ -242,11 +240,11 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 		numberOfComponents = 0;
 
 		if (!numberOfOriginalWalshTermsPrinted) {
-			reportIfPossible(() -> "* Number of original Walsh terms: "+el.getOriginalWalshTerms().getNonzeroTerms());
+			reportIfPossible(() -> "* Number of original Walsh terms: "+ wbf.getOriginalWalshTerms().getNonzeroTerms());
 			numberOfOriginalWalshTermsPrinted=true;
 		}
 
-		wcsConstrained = el.contraint(red, blue);
+		wcsConstrained = wbf.contraint(red, blue);
 		termsWithOtherComponentsToo.clear();
 
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
@@ -299,7 +297,7 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 
 	@Override
 	public EmbeddedLandscape getEmbddedLandscape() {
-		return el;
+		return originalEL;
 	}
 
 	@Override

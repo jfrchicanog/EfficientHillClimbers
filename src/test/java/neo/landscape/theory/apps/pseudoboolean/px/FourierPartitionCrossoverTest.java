@@ -51,7 +51,7 @@ public class FourierPartitionCrossoverTest {
         EmbeddedLandscape el = createNKLandscape(N, K, seed);
         WalshCoefficientsInterface wcs = WalshTransform.transform(el, WalshCoefficients.factory());
         WalshBasedFunction wbf = new WalshBasedFunction(el.getN(), wcs);
-        FourierPartitionCrossover<WalshCoefficients> fpx = new FourierPartitionCrossover(wbf);
+        FourierPartitionCrossover<WalshCoefficients> fpx = new FourierPartitionCrossover(wbf, el);
         fpx.setDebug(true);
         //fpx.setPrintStream(System.out);
 
@@ -71,7 +71,7 @@ public class FourierPartitionCrossoverTest {
         EmbeddedLandscape el = createNKLandscape(N, K, seed);
         WalshCoefficientsInterface wcs = WalshTransform.transform(el, WalshCoefficientsArray.factory());
         WalshBasedFunction wbf = new WalshBasedFunction(el.getN(), wcs);
-        FourierPartitionCrossover<WalshCoefficients> fpx = new FourierPartitionCrossover(wbf);
+        FourierPartitionCrossover<WalshCoefficients> fpx = new FourierPartitionCrossover(wbf, el);
         fpx.setDebug(true);
         //fpx.setPrintStream(System.out);
 

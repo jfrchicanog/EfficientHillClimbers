@@ -306,16 +306,17 @@ public class DynasticPotentialCrossover implements CrossoverInternal {
 
 		lastRuntime = System.nanoTime() - initTime;
 		//System.out.println("DPX finishes at: "+lastRuntime);
-		
-		ps.println("* Number of components: "+getNumberOfComponents());
-		int logarithmOfExploredSolutions = getLogarithmOfExploredSolutions();
-		ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
-		ps.println("* Full dynastic potential explored: "
+
+		if (ps !=null) {
+			ps.println("* Number of components: " + getNumberOfComponents());
+			int logarithmOfExploredSolutions = getLogarithmOfExploredSolutions();
+			ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
+			ps.println("* Full dynastic potential explored: "
 				+ (getDifferingVariables() == logarithmOfExploredSolutions));
-		ps.println("* Number of articulation points: " + getNumberOfArticulationPoints());
-		ps.println("* All articulation points exhaustively explored: "
+			ps.println("* Number of articulation points: " + getNumberOfArticulationPoints());
+			ps.println("* All articulation points exhaustively explored: "
 				+ cliqueManagement.allArticulationPointsExhaustivelyExplored());
-		
+		}
 		return child;
 	}
 	
