@@ -51,6 +51,7 @@ public class CrossoverExperiment implements Process {
     private static final String UX="ux";
     private static final String SPX="spx";
 	private static final String FPX="fpx";
+	private static final String FDPX="fdpx";
 
     private final Map<String, EmbeddedLandscapeConfigurator> configurators = new HashMap<>();
     {
@@ -68,6 +69,7 @@ public class CrossoverExperiment implements Process {
     	crossoverConf.put(SPX, new SinglePointCrossoverConfigurator());
     	crossoverConf.put(NX, new NetworkCrossoverConfigurator());
 		crossoverConf.put(FPX, new FourierPartitionCrossoverConfigurator());
+		crossoverConf.put(FDPX, new FourierDynasticPotentialCrossoverConfigurator());
     }
      
     
