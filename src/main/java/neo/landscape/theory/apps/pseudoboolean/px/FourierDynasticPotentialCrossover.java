@@ -1,0 +1,390 @@
+package neo.landscape.theory.apps.pseudoboolean.px;
+
+import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+import neo.landscape.theory.apps.pseudoboolean.problems.WalshBasedFunction;
+import neo.landscape.theory.apps.pseudoboolean.util.DisjointSetArrays;
+import neo.landscape.theory.apps.pseudoboolean.util.DisjointSets;
+import neo.landscape.theory.apps.pseudoboolean.util.graphs.*;
+import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficientsInterface;
+import neo.landscape.theory.apps.util.TwoStatesISArrayImpl;
+import neo.landscape.theory.apps.util.TwoStatesIntegerSet;
+
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.IntStream;
+
+public class FourierDynasticPotentialCrossover<W extends WalshCoefficientsInterface<W>> implements CrossoverInternal {
+
+	private static final int DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE = 28;
+	protected static final int VARIABLE_LIMIT = 1<<29;
+	protected EmbeddedLandscape el;
+	protected WalshBasedFunction<W> wbf;
+	protected W wcConstrained;
+
+	int [] alpha;
+	private int [] alphaInverted;
+	private VerticesWithNMarks verticesWithNMarks;
+	private VerticesWithNMarksFactory verticesWithNMarksFactory = VerticesWithNMarksEfficientImplementation.FACTORY;
+	int [] marks;
+	private boolean differentSolutions;
+	private int topLabel;
+	private int initialLabel;
+	// Chordal graph
+	private UndirectedGraph chordalGraph;
+	private UndirectedGraphFactory graphFactory = MemoryEfficientUndirectedGraph.FACTORY;
+	// Clique tree
+	private CliqueManagementFactory cmFactory = CliqueManagementMemoryEfficient.FACTORY;
+	public CliqueManagement cliqueManagement;
+	// Subfunctions
+	private List<Integer> [] subFunctionsPartition;
+	private TwoStatesIntegerSet subfunctions;
+
+    protected long lastRuntime;
+
+    private int numberOfComponents;
+	private int [] fFillin;
+	private int [] indexFillin;
+	private List<Integer> [] mSets;
+	private int [] cliqueOfVariable;
+	private int [] last;
+
+	private PBSolution red;
+	private PBSolution blue;
+
+	protected VariableProcedence varProcedence;
+	protected PartitionComponent component;
+
+	protected PrintStream ps;
+	protected boolean debug;
+
+	protected int [][] interactions;
+
+	private DisjointSets disjointSets;
+
+	public FourierDynasticPotentialCrossover(WalshBasedFunction<W> wbf, EmbeddedLandscape el) {
+		this.wbf = wbf;
+		int n = el.getN();
+		
+		alpha = new int [n];
+		topLabel = n-1;
+		alphaInverted = new int [topLabel+1];
+		verticesWithNMarks = verticesWithNMarksFactory.createVerticesWithNMarks(n, n);
+		marks = new int [n];
+		chordalGraph = graphFactory.createGraph(n);
+		fFillin = new int[n];
+		indexFillin = new int [n];
+		mSets = new List[n];
+		for (int i=0; i <n; i++) mSets[i] = new ArrayList<>();
+		cliqueOfVariable = new int [n];
+		cliqueManagement = cmFactory.createCliqueManagement(n);
+		cliqueManagement.setMaximumVariablesToExhaustivelyExplore(DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE);
+		last = new int[n];
+		subFunctionsPartition = new List[n];
+		for (int i=0; i < n; i++) {
+			subFunctionsPartition[i] = new ArrayList<>();
+		}
+		subfunctions = new TwoStatesISArrayImpl(wbf.getM());
+		
+		disjointSets = new DisjointSetArrays(fFillin, indexFillin);
+		cliqueManagement.setDisjointSets(disjointSets);
+		interactions = new int[n][];
+		
+		this.el = el;
+		
+		if (el.getN() > VARIABLE_LIMIT) {
+		    throw new RuntimeException("Solution too large, the maximum allowed is "+VARIABLE_LIMIT);
+		}
+		
+		ComponentAndVariableMask componentAndVariableProcedence = new ComponentAndVariableMask(el.getN());
+		component = componentAndVariableProcedence;
+		varProcedence = componentAndVariableProcedence;
+	}
+
+	private void maximumCardinalitySearch() {
+		int n = wbf.getN();
+		
+		verticesWithNMarks.clear();
+		
+		differentSolutions = false;
+		
+		for (int i=0; i < n; i++) {
+			varProcedence.markAsPurple(i);
+		}
+		
+		IntStream.range(0, n).filter(v -> (blue.getBit(v) != red.getBit(v))).forEach(vertex -> 
+			{marks[vertex] = 0; 
+			verticesWithNMarks.addVertexToLastNonEmptyBucketOrZero(vertex);
+			differentSolutions=true;
+			varProcedence.markAsRed(vertex);
+			}
+		);
+		
+		if (!differentSolutions) return;
+		
+		int i=topLabel;
+		initialLabel = i;
+		while (verticesWithNMarks.getLastNonEmptyBucket()>=0) {
+			int vertex = verticesWithNMarks.removeVertexFromLastNonEmptyBucket();
+			alpha[vertex] = i;
+			alphaInverted[i] = vertex;
+			initialLabel=i;
+			marks[vertex] = -1;
+
+			interactions[vertex] = getInteractions(vertex).toArray();
+			for (int w : interactions[vertex]) {
+				if (blue.getBit(w) != red.getBit(w)) {
+					if (marks[w] >= 0) {
+						verticesWithNMarks.moveVertexToNextBucket(marks[w], w);
+						marks[w]++;
+					}
+				}
+			}
+
+			i--;
+		}
+	}
+
+	private IntStream getInteractions(int vertex) {
+		return wcConstrained.getCoefficientsForVariable(vertex).flatMap(wcConstrained::getVarsForID).distinct();
+	}
+	
+	private void maximumCardinalitySearchBasedOnChordalGraph() {
+		int n = el.getN();
+		verticesWithNMarks.clear();
+		
+		for (int vertex: chordalGraph.getNodes()) {
+			marks[vertex] = 0; 
+			verticesWithNMarks.addVertexToLastNonEmptyBucketOrZero(vertex);
+		}
+
+		int i=topLabel;
+		initialLabel = i;
+		while (verticesWithNMarks.getLastNonEmptyBucket()>=0) {
+			int vertex = verticesWithNMarks.removeVertexFromLastNonEmptyBucket();
+			alpha[vertex] = i;
+			alphaInverted[i] = vertex;
+			initialLabel=i;
+			marks[vertex] = -1;
+			
+			for (int w : chordalGraph.getAdjacent(vertex)) {
+				if (marks[w] >= 0) {
+					verticesWithNMarks.moveVertexToNextBucket(marks[w], w);
+					marks[w]++;
+				}
+			}
+			i--;
+		}
+	}
+	
+	private void computeSubfunctinsPartition() {
+		subfunctions.reset();
+		for (int i=initialLabel; i <= topLabel; i++) {
+			int vertex = alphaInverted[i];
+			subFunctionsPartition[vertex].clear();
+
+			for (int fn: wbf.getAppearsIn()[vertex]) {
+				if (!subfunctions.isExplored(fn)) {
+					/*
+					int minIndex = topLabel;
+					for (int var: el.getMasks()[fn]) {
+						if (blue.getBit(var) != red.getBit(var)) {
+							if (alpha[var] < minIndex) {
+								minIndex= alpha[var];
+							}
+						}
+					}*/
+					subFunctionsPartition[vertex].add(fn);
+					subfunctions.explored(fn);
+				}
+			}
+		}
+	}
+	
+	private void fillIn() {
+		chordalGraph.clearGraph();
+		for (int i=initialLabel; i <= topLabel; i++) {
+			int w = alphaInverted[i];
+			chordalGraph.addNodeToGraph(w);
+			fFillin[w] = w;
+			indexFillin[w] = i;
+
+			for (int v: interactions[w]) {
+				if (blue.getBit(v) != red.getBit(v)) {
+					if (alpha[v] < i) {
+						int x=v;
+						while (indexFillin[x] < i) {
+							indexFillin[x] = i;
+							chordalGraph.addEdgeToGraph(x, w);
+							x = fFillin[x];
+						}
+						if (fFillin[x]==x) {
+							fFillin[x] = w;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private void cliqueTree() {
+		numberOfComponents=1;
+		for (int i=topLabel; i>=initialLabel; i--) {
+			int x = alphaInverted[i];
+			marks[x]=0;
+			last[x] = -1;
+		}
+		
+		int previousMark = -1;
+		
+		VariableClique currentClique=cliqueManagement.addNewVariableClique();
+		
+		for (int i=topLabel; i>=initialLabel; i--) {
+			int x = alphaInverted[i];
+			if (marks[x] <= previousMark) {
+				currentClique=cliqueManagement.addNewVariableClique();
+				currentClique.addAllVariables(mSets[x]);
+				currentClique.markSeparator();
+				currentClique.addVariable(x);
+				
+				if (currentClique.getVariablesOfSeparator() == 1) {
+					cliqueManagement.addArticulationPoint(currentClique.getVariable(0));
+				}
+				
+				if (last[x] >= 0) {
+					cliqueManagement.setVariableCliqueParent(currentClique.getId(), cliqueOfVariable[last[x]]);
+				} else {
+					numberOfComponents++;
+				}
+					
+			} else {
+				currentClique.addVariable(x);
+			}
+			for (Integer y: chordalGraph.getAdjacent(x)) {
+				mSets[y].add(x);
+				marks[y]++;
+				last[y] = x;
+			}
+			previousMark = marks[x];
+			cliqueOfVariable[x] = currentClique.getId();
+		}
+		for (int i=topLabel; i>=initialLabel; i--) {
+			// Cleaning memory, for the GC to work well
+			int x = alphaInverted[i];
+			mSets[x].clear();
+		}
+	}
+
+	public PBSolution recombineInternal(PBSolution blue, PBSolution red) {
+	    long initTime = System.nanoTime();
+	    //System.out.println("DPX starts: "+0);
+	    this.red = red;
+	    this.blue = blue;
+	    
+	    PBSolution child = new PBSolution(red); //child, copy of red
+
+		wcConstrained = wbf.contraint(red, blue);
+
+	    maximumCardinalitySearch();
+	    //System.out.println("Maximum cardinality search finished at: "+(System.nanoTime()-initTime));
+	    
+	    numberOfComponents = 0;
+	    cliqueManagement.clearCliqueTree();
+	    
+	    if (differentSolutions) {
+	    	fillIn();
+	    	//System.out.println("Fill in finished at: "+(System.nanoTime()-initTime));
+	    	maximumCardinalitySearchBasedOnChordalGraph();
+	    	//System.out.println("New MCS finished at: "+(System.nanoTime()-initTime));
+	    	computeSubfunctinsPartition();
+	    	//System.out.println("Subfunctions organization finished at: "+(System.nanoTime()-initTime));
+		    cliqueTree();
+		    //System.out.println("Clique tree computation finished at: "+(System.nanoTime()-initTime));
+		    cliqueManagement.cliqueTreeAnalysis();
+		    //System.out.println("Clique tree analysis finished at: "+(System.nanoTime()-initTime));
+		    if (debug && ps != null) {
+		    	ps.println("Initial label: "+initialLabel);
+		    	ps.println("Number of components: "+numberOfComponents);
+		    	ps.println(cliqueManagement.getCliqueTree());
+		    }
+		    cliqueManagement.applyDynamicProgramming(red, wbf, subFunctionsPartition);
+		    //System.out.println("Dynamic programming finished at: "+(System.nanoTime()-initTime));
+		    cliqueManagement.reconstructOptimalChild(child, red, varProcedence);
+	    }
+
+		lastRuntime = System.nanoTime() - initTime;
+		//System.out.println("DPX finishes at: "+lastRuntime);
+
+		if (ps !=null) {
+            ps.println("* Number of components: " + getNumberOfComponents());
+            int logarithmOfExploredSolutions = getLogarithmOfExploredSolutions();
+            ps.println("* Logarithm of explored solutions: " + logarithmOfExploredSolutions);
+            ps.println("* Full dynastic potential explored: "
+				+ (getDifferingVariables() == logarithmOfExploredSolutions));
+            ps.println("* Number of articulation points: " + getNumberOfArticulationPoints());
+            ps.println("* All articulation points exhaustively explored: "
+				+ cliqueManagement.allArticulationPointsExhaustivelyExplored());
+		}
+		return child;
+	}
+	
+	public PBSolution recombine(PBSolution blue, PBSolution red) {
+	    PBSolution solution = recombineInternal(blue, red);
+	    if (ps != null) {
+	    	ps.println("Recombination time:"+getLastRuntime());
+	    }
+	    return solution;
+	}
+	
+	public int getNumberOfComponents() {
+        return numberOfComponents;
+    }
+    
+    public long getLastRuntime() {
+        return lastRuntime;
+    }
+    
+	public void setPrintStream(PrintStream ps) {
+    	this.ps = ps;
+    }
+
+	public void setDebug(boolean debug) {
+		this.debug = debug;
+		cliqueManagement.setDebug(debug);
+	}
+	
+	public void setMaximumVariablesToExhaustivelyExplore(int numberOfVariables) {
+		if (numberOfVariables > DEFAULT_MAXIMUM_VARIABLES_TO_EXPLORE) {
+			throw new IllegalArgumentException("The number of variables to explore exhaustively is too large: "+numberOfVariables);
+		}
+		cliqueManagement.setMaximumVariablesToExhaustivelyExplore(numberOfVariables);
+	}
+
+	public int getLogarithmOfExploredSolutions() {
+		return cliqueManagement.getGroupsOfNonExhaustivelyExploredVariables() + (getDifferingVariables()-cliqueManagement.getNonExhaustivelyExploredVariables().getNumberOfExploredElements());
+	}
+	
+	public int getDifferingVariables() {
+		return differentSolutions?(topLabel-initialLabel+1):0;
+	}
+	
+	public int getNumberOfArticulationPoints() {
+		return cliqueManagement.getNumberOfArticulationPoints();
+	}
+	
+	public EmbeddedLandscape getEmbddedLandscape() {
+		return el;
+	}
+
+	public VariableProcedence getVarProcedence() {
+		return varProcedence;
+	}
+
+	@Override
+	public void setSeed(long seed) {
+	}
+	
+	
+    
+}

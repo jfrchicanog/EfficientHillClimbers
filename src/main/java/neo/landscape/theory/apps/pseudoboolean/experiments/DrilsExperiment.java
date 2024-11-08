@@ -61,6 +61,7 @@ public class DrilsExperiment implements Process {
     private static final String UX="ux";
     private static final String SPX="spx";
 	private static final String FPX="fpx";
+	private static final String FDPX="fdpx";
     private static final String CROSSOVER_NONE = "none";
     
     private static final String TYPE_PERTURBATION="perturbation";
@@ -82,6 +83,7 @@ public class DrilsExperiment implements Process {
     	crossoverConf.put(SPX, new SinglePointCrossoverConfigurator());
     	crossoverConf.put(NX, new NetworkCrossoverConfigurator());
 		crossoverConf.put(FPX, new FourierPartitionCrossoverConfigurator());
+		crossoverConf.put(FDPX, new FourierDynasticPotentialCrossoverConfigurator());
     }
      
     

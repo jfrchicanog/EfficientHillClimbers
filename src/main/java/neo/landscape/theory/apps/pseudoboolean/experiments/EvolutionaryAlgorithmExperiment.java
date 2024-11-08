@@ -57,6 +57,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     private static final String UX="ux";
     private static final String SPX="spx";
 	private static final String FPX="fpx";
+	private static final String FDPX="fdpx";
     
     private static final String BINARY_TOURNAMENT = "tournament";
     private static final String ROULETTE_WHEEL = "roulette";
@@ -80,6 +81,7 @@ public class EvolutionaryAlgorithmExperiment implements Process {
     	crossoverConf.put(SPX, new SinglePointCrossoverConfigurator());
     	crossoverConf.put(NX, new NetworkCrossoverConfigurator());
 		crossoverConf.put(FPX, new FourierPartitionCrossoverConfigurator());
+		crossoverConf.put(FDPX, new FourierDynasticPotentialCrossoverConfigurator());
     }
      
     
