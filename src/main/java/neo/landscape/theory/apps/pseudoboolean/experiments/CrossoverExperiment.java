@@ -188,11 +188,8 @@ public class CrossoverExperiment implements Process {
 
 			final double perturbFactor = Double.parseDouble(commandLine.getOptionValue(HAMMING_DISTANCE_ARGUMENT));
 			final int perturbMoves = (int)(perturbFactor*n);
-			
-			ps.println("Perturbation factor: " + perturbFactor);
-			ps.println("Seed: " + seed);
-			ps.println("Crossover: " + crossover);
-			ps.println("Experiment starts: "+timer.elapsedTimeInMilliseconds());
+
+			preamble(perturbFactor);
 
 			while (!shouldIStop.test(null)) {  
 				PBSolution redParent = pbf.getRandomSolution();
@@ -224,7 +221,14 @@ public class CrossoverExperiment implements Process {
 		}
 
     }
-	
+
+	private void preamble(double perturbFactor) {
+		ps.println("Perturbation factor: " + perturbFactor);
+		ps.println("Seed: " + seed);
+		ps.println("Crossover: " + crossover);
+		ps.println("Experiment starts: "+timer.elapsedTimeInMilliseconds());
+	}
+
 	protected void configureTimer() {
 		timer = Timers.getDefaultTimer();
 		if (commandLine.hasOption(TIMER_ARGUMENT)) {

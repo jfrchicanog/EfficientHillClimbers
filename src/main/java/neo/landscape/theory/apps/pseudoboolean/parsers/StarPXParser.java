@@ -6,13 +6,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.IntStream;
 import java.util.zip.GZIPInputStream;
 
 import neo.landscape.theory.apps.util.Process;
+import org.apache.commons.cli.*;
 
 public class StarPXParser implements Process {
 	
@@ -98,10 +97,14 @@ public class StarPXParser implements Process {
 
 	}
 
+	private final String EXPLORED_SOLUTIONS = "exploredSolutions";
+
 	private List<List<Sample>> traces; 
     
     private AveragedSample averagedSample = new AveragedSample();
-    
+    private boolean exploredSolutions = false;
+	private Options options;
+	private CommandLine commandLine;
 
     @Override
 	public String getDescription() {
@@ -121,16 +124,46 @@ public class StarPXParser implements Process {
 	@Override
 	public void execute(String[] args) {
 		if (args.length < 1) {
-			System.out.println(getInvocationInfo());
+			HelpFormatter helpFormatter = new HelpFormatter();
+			helpFormatter.printHelp(getID(), getOptions());
 			return;
 		}
+
+		commandLine = parseCommandLine(args);
+		exploredSolutions = commandLine.hasOption(EXPLORED_SOLUTIONS);
 
 		prepareAndClearStructures();
 		for (String file : args) {
 			computeTrace(file);
 		}
-		printResults();
 
+		if (exploredSolutions) {
+			printAveragedExploredSolutions();
+		} else {
+			printResults();
+		}
+	}
+
+	private CommandLine parseCommandLine(String[] args) {
+		try {
+			CommandLineParser parser = new DefaultParser();
+			return parser.parse(getOptions(), args);
+		} catch (ParseException e) {
+			throw new RuntimeException (e);
+		}
+	}
+
+	private Options getOptions() {
+		if (options == null) {
+			options = prepareOptions();
+		}
+		return options;
+	}
+
+	private Options prepareOptions() {
+		Options options = new Options();
+		options.addOption(EXPLORED_SOLUTIONS, false, "if we should report averaged per explored solution or time (default)");
+		return options;
 	}
 
 	private void prepareAndClearStructures() {
@@ -180,7 +213,7 @@ public class StarPXParser implements Process {
 		while ((line = brd.readLine()) != null) {
 		    if (line.isEmpty()) {
 		        continue;
-		    } else if (line.startsWith("* Number of components:")) {
+				} else if (line.startsWith("* Number of components:")) {
 				strs = line.split(":");
 				last.components = Double.parseDouble(strs[1].trim());
 				somethingToPrint=true;
@@ -229,6 +262,27 @@ public class StarPXParser implements Process {
 			if (lastTime == null || lastTime < averagedSample.minTime) {
 				System.out.println(averagedSample);
 				lastTime = averagedSample.minTime;
+			}
+		}
+
+		System.err.println("Total runs: " + trs.length);
+	}
+
+	private void printAveragedExploredSolutions() {
+		System.out.println("solIndex, components, logExploredSolutions, articulationPoints, recombinationTime, solutionQuality, bestSolutionQuality, samples");
+		List<Sample>[] trs = traces.toArray(new List[0]);
+
+		OptionalInt maxExpSols = traces.stream().mapToInt(List::size).max();
+		if (maxExpSols.isPresent()) {
+			for (int solIndex=0; solIndex < maxExpSols.getAsInt(); solIndex++) {
+				final int fSolIndex = solIndex;
+				Sample samples [] = IntStream.range(0, trs.length)
+						.filter(i-> trs[i].size() > fSolIndex)
+						.mapToObj(i-> trs[i].get(fSolIndex))
+						.toArray(Sample[]::new);
+				averagedSample.setMinTime(solIndex);
+				averagedSample.computeStatisticsForSelectedSamples(samples);
+				System.out.println(averagedSample);
 			}
 		}
 
