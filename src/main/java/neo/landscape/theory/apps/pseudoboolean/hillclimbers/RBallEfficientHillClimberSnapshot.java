@@ -1,5 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.hillclimbers;
 
+import java.util.Iterator;
 import java.util.Random;
 
 import neo.landscape.theory.apps.efficienthc.HillClimberSnapshot;
@@ -410,5 +411,9 @@ public class RBallEfficientHillClimberSnapshot implements
     public int getNumberOfMoves() {
         return movesSelector.getNumberOfMoves();
     }
+
+	public Iterable<RBallPBMove> iterateOverMoves() {
+		return movesSelector.allMoves();
+	}
 
 }
