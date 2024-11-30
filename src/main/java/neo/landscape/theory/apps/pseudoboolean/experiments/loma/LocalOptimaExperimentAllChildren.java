@@ -6,11 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
@@ -22,8 +18,42 @@ import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverAllChildren;
 import neo.landscape.theory.apps.util.GrayCodeBitFlipIterable;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
+import org.apache.commons.cli.Options;
 
 public class LocalOptimaExperimentAllChildren implements Process {
+
+	private class LatticeID {
+		public PBSolution minimumSolution;
+		public PBSolution mask;
+
+		public LatticeID(PBSolution minimum, PBSolution mask) {
+			this.minimumSolution = minimum;
+			this.mask = mask;
+		}
+
+		public String toString() {
+			return String.format("%s|%s", minimumSolution.toHex(), mask.toHex());
+		}
+
+		public int hashCode() {
+			return toString().hashCode();
+		}
+
+		public boolean equals(Object o) {
+			if (o instanceof LatticeID) {
+				LatticeID other = (LatticeID) o;
+				return minimumSolution.equals(other.minimumSolution) && mask.equals(other.mask);
+			}
+			return false;
+		}
+	}
+
+	private class LatticeInfo {
+		public long hitCount;
+		public List<Integer> localOptimaIndices;
+	}
+
+	private final static Comparator<PBSolution> SOLUTION_COMPARATOR = Comparator.comparing(s->s.toString());
 
 	protected List<PBSolution> localOptima;
 	private PrintWriter nodesFile;
@@ -45,6 +75,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	protected RBallEfficientHillClimberForInstanceOf rballfio;
 	protected long seed;
 	private LocalOptimaNetworkGoldman goldman;
+	private Map<LatticeID, LatticeInfo> latticeStatistics;
 
 	public LocalOptimaExperimentAllChildren() {
 		localOptima = new ArrayList<PBSolution>();
@@ -150,6 +181,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		}
 
 		localOptimaHistogram = createLocalOptimaHistogram(localOptima);
+		latticeStatistics = new HashMap<>();
 		applyPartitionCrossoverToAllPairsOfLocalOptima();
 
 		//writeHistogram(localOptimaHistogram);
@@ -159,8 +191,25 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 		reportStatistics();
 		reportInstanceToStandardOutput();
+		reportLatticeToLatticeFile();
 		closeOutputFiles();
 
+	}
+
+	private void reportLatticeToLatticeFile() {
+		for (Map.Entry<LatticeID, LatticeInfo> entry : latticeStatistics.entrySet()) {
+			LatticeID id = entry.getKey();
+			LatticeInfo info = entry.getValue();
+			edgesFile.print(id.toString() + "\t" + info.hitCount + "\t");
+			info.localOptimaIndices.stream()
+				.map(i -> Integer.toString(i))
+				.reduce((a, b) -> a + "|" + b)
+				.ifPresent(edgesFile::print);
+			long lo = info.localOptimaIndices.stream().filter(i -> i > 0).count();
+			edgesFile.print("\t" + info.localOptimaIndices.size() + "\t" + lo);
+			edgesFile.println();
+
+		}
 	}
 
 	private String computeFileName(String n, String k, String q, String circular) {
@@ -234,11 +283,26 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		PBSolution[] los = localOptima.toArray(new PBSolution[0]);
 		for (int i = 0; i < los.length; i++) {
 			for (int j = i + 1; j < los.length; j++) {
+				PBSolution mask = los[i].xor(los[j]);
 				List<PBSolution> res = px.getAllChildren(los[i], los[j]);
-				notifyCrossover(i, j, res);
+				List<Integer> localOptimaIndices = notifyCrossover(i, j, res);
+
+				if (localOptimaIndices.size() > 2) {
+					res.stream().min(SOLUTION_COMPARATOR)
+						.map(min-> new LatticeID(min, mask))
+						.ifPresent(id -> {
+							latticeStatistics.compute(id, (k, info) -> {
+								if (info == null) {
+									info = new LatticeInfo();
+									info.localOptimaIndices = localOptimaIndices;
+								}
+								info.hitCount++;
+								return info;
+							});
+						});
+				}
 			}
 		}
-
 		timeAfterCrossover = System.currentTimeMillis();
 	}
 
@@ -262,7 +326,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 					+ ".nodes"));
 			nodesFile.println("FITNESS");
 			edgesFile = new PrintWriter(new FileOutputStream(file_name
-					+ ".edges"));
+					+ ".lattices"));
 			histogramFile = new PrintWriter(new FileOutputStream(file_name
 					+ ".hist"));
 			gpProgram = new PrintWriter(new FileOutputStream(file_name + ".gp"));
@@ -302,21 +366,24 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		//		}
 	}
 
-	private void notifyCrossover(int i, int j, List<PBSolution> allChildren) {
+	private List<Integer> notifyCrossover(int i, int j, List<PBSolution> allChildren) {
 	    if (allChildren.size() <= 2) {
-	        return;
+	        return Arrays.asList(i, j);
 	    }
 
+		List<Integer> results = new ArrayList<>();
 	    for (PBSolution res: allChildren) {
 			int index = localOptima.indexOf(res);
 			if (index >= 0) {
 				edgesFile.print(wI(index) + "\t");
+				results.add((index+1));
 			} else {
 					res = climbToLocalOptima(res);
 					index = localOptima.indexOf(res);
 
 					if (index >= 0) {
 						edgesFile.print("-"+wI(index) + "\t");
+						results.add(-(index+1));
 					} else {
 						System.err.print("Local Optima not found after climbing");
 					}
@@ -326,6 +393,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
             }
 	    }
 		edgesFile.println();
+		return results;
 	}
 
 	private PBSolution climbToLocalOptima(PBSolution res) {
@@ -340,5 +408,6 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 		return rball.getSolution();
 	}
+
 
 }

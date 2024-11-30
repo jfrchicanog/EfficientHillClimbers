@@ -55,7 +55,7 @@ public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
 				throw new RuntimeException(e);
 			}
 		} else {
-			throw new IllegalArgumentException("Wrong format for NK Landscape input: expeting line starting with 'p' and found: "+line);
+			throw new IllegalArgumentException("Wrong format for NK Landscape input: expecting line starting with 'p' and found: "+line);
 		}
 
 	}
