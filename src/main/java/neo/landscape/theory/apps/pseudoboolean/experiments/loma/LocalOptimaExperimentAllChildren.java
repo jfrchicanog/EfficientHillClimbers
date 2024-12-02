@@ -2,24 +2,28 @@ package neo.landscape.theory.apps.pseudoboolean.experiments.loma;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.text.NumberFormat;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
-import neo.landscape.theory.apps.pseudoboolean.parsers.NKLandscapesDimacsLikeReader;
-import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
+import neo.landscape.theory.apps.pseudoboolean.problems.*;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverAllChildren;
 import neo.landscape.theory.apps.util.GrayCodeBitFlipIterable;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
-import org.apache.commons.cli.Options;
+import org.apache.commons.cli.*;
+import org.apache.commons.lang3.tuple.Pair;
+
+import javax.swing.text.NumberFormatter;
 
 public class LocalOptimaExperimentAllChildren implements Process {
 
@@ -55,18 +59,47 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		public List<Integer> localOptimaIndices;
 	}
 
+	private class LatticeStats {
+		public long latticeSize;
+		public long ways;
+		public long localOptima;
+
+		public LatticeStats(long latticeSize, long ways, long localOptima) {
+			this.latticeSize = latticeSize;
+			this.ways = ways;
+			this.localOptima = localOptima;
+		}
+
+		public String toString() {
+			return String.format("%d,%d,%d", latticeSize, ways, localOptima);
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+			LatticeStats that = (LatticeStats) o;
+			return latticeSize == that.latticeSize && ways == that.ways && localOptima == that.localOptima;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(latticeSize, ways, localOptima);
+		}
+	}
+
 	private final static Comparator<PBSolution> SOLUTION_COMPARATOR = Comparator.comparing(s->s.toString());
 
 	protected List<PBSolution> localOptima;
 	private PrintWriter nodesFile;
-	private PrintWriter edgesFile;
-	private PrintWriter histogramFile;
-	private PrintWriter gpProgram;
+	private PrintWriter latticeFile;
+	private PrintWriter latticeStatsFile;
+	private PrintWriter latticeVectorFile;
 	//private Set<Integer> appearedEdges;
 
 	private int[] localOptimaHistogram;
 
-	protected NKLandscapes pbf;
+	protected EmbeddedLandscape pbf;
 	protected int r;
 	protected RBallEfficientHillClimberSnapshot rball;
 	private long initTime;
@@ -77,7 +110,36 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	protected RBallEfficientHillClimberForInstanceOf rballfio;
 	protected long seed;
 	private LocalOptimaNetworkGoldman goldman;
-	private Map<LatticeID, LatticeInfo> latticeStatistics;
+	private Map<LatticeID, LatticeInfo> latticeCollection;
+	private Map<LatticeStats, Integer> latticeStatistics;
+
+	private static final String MAXSAT_PROBLEM = "maxsat";
+	private static final String NK_PROBLEM = "nk";
+	private static final String WALSH_PROBLEM = "walsh";
+
+	private static final String PROBLEM="problem";
+	private static final String RADIUS_ARGUMENT = "r";
+	private static final String PROBLEM_CHAR = "P";
+	private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
+	private static final String NODE_FILE_ARGUMENT = "nodes";
+	private static final String LATTICE_FILE_ARGUMENT = "lattices";
+	private static final String LATTICE_STATS_FILE_ARGUMENT = "latStats";
+	private static final String LATTICE_VECTORS_FILE_ARGUMENT = "latVectors";
+
+	private Options options;
+	private CommandLine commandLine;
+	private EmbeddedLandscapeConfigurator problemConfigurator;
+	private String problem;
+	private NumberFormat numberFormatter = NumberFormat.getInstance(Locale.US);
+
+	private final Map<String, EmbeddedLandscapeConfigurator> configurators = new HashMap<>();
+	{
+		configurators.put(MAXSAT_PROBLEM, new MAXSATConfigurator());
+		configurators.put(NK_PROBLEM, new NKLandscapeConfigurator());
+		configurators.put(WALSH_PROBLEM, new WalshBasedFunctionConfigurator());
+		numberFormatter.setMaximumFractionDigits(4);
+	}
+
 
 	public LocalOptimaExperimentAllChildren() {
 		localOptima = new ArrayList<PBSolution>();
@@ -99,14 +161,67 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		return "Arguments: " + getID() + " [<n> <k> <q> <circular> | -instance <instance file>] <r> [<seed>]";
 	}
 
+	private Options getOptions() {
+		if (options == null) {
+			options = prepareOptions();
+		}
+		return options;
+	}
+
+	private Options prepareOptions() {
+		Options options = new Options();
+		options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
+		options.addOption(PROBLEM, true, "problem to be solved: "+configurators.keySet());
+		options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
+		options.addOption(NODE_FILE_ARGUMENT, true, "file to store the local optima (optional)");
+		options.addOption(LATTICE_FILE_ARGUMENT, true, "file to store the lattices (optional)");
+		options.addOption(LATTICE_STATS_FILE_ARGUMENT, true, "file to store the lattice statistics (optional)");
+		options.addOption(LATTICE_VECTORS_FILE_ARGUMENT, true, "file to store the lattice vectors (optional)");
+		options.addOption(Option.builder(PROBLEM_CHAR)
+			.numberOfArgs(2)
+			.valueSeparator()
+			.argName("property=value")
+			.desc("properties for the problem")
+			.build());
+
+		return options;
+	}
+
+	protected void showOptions() {
+		HelpFormatter helpFormatter = new HelpFormatter();
+		helpFormatter.printHelp(getID(), getOptions());
+
+		try {
+			Options problemOptions = new Options();
+			getProblemConfigurator().prepareOptionsForProblem(problemOptions);
+			helpFormatter.printHelp("Problem: "+problem, problemOptions);
+		} catch (RuntimeException e) {
+		}
+	}
+
+	private EmbeddedLandscapeConfigurator getProblemConfigurator() {
+		if (problemConfigurator==null) {
+			problemConfigurator = createEmbeddedLandscapeConfigurator();
+		}
+		return problemConfigurator;
+	}
+
+	protected EmbeddedLandscapeConfigurator createEmbeddedLandscapeConfigurator() {
+		EmbeddedLandscapeConfigurator elc =  configurators.get(problem);
+		if (elc == null) {
+			throw new IllegalArgumentException("Problem "+problem+" is unknown");
+		}
+		return elc;
+	}
+
 	private void notifyLocalOptima(RBallEfficientHillClimberSnapshot rball,
-			NKLandscapes pbf) {
+			EmbeddedLandscape pbf) {
 		if (checkLocalOptima(rball)) {
 			addLocalOptima(rball, pbf);
 		}
 	}
 
-	protected void addLocalOptima(RBallEfficientHillClimberSnapshot rball, NKLandscapes pbf) {
+	protected void addLocalOptima(RBallEfficientHillClimberSnapshot rball, EmbeddedLandscape pbf) {
 		PBSolution lo = new PBSolution(rball.getSolution());
 		double val = pbf.evaluate(lo);
 		localOptima.add(lo);
@@ -119,108 +234,177 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 	@Override
 	public void execute(String[] args) {
-		if (args.length < 2) {
-			System.out.println(getInvocationInfo());
-			return;
-		}
-		
-		String file_name;
-		if (args[0].equals("-instance")) {
-			String instanceFile = args[1];
-			file_name = "mk-"+instanceFile;
-			NKLandscapesDimacsLikeReader instanceReader = new NKLandscapesDimacsLikeReader();
-			try (FileReader reader = new FileReader(instanceFile)) {
-				pbf = instanceReader.readInstance(reader);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
+		try {
+			if (args.length == 0) {
+				System.out.println(getInvocationInfo());
+				showOptions();
+				return;
 			}
-			r = Integer.parseInt(args[2]);
-			seed = 0;
-			if (args.length >= 4) {
-				seed = Long.parseLong(args[3]);
+
+			commandLine = parseCommandLine(args);
+			problem = commandLine.getOptionValue(PROBLEM);
+
+			pbf = getProblemConfigurator().configureProblem(
+				commandLine.getOptionProperties(PROBLEM_CHAR), System.out);
+
+			if (commandLine.hasOption(RADIUS_ARGUMENT)) {
+				r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
+			} else {
+				throw new IllegalArgumentException("Radius (r) is required");
+			}
+
+			if (commandLine.hasOption(ALGORITHM_SEED_ARGUMENT)) {
+				seed = Long.parseLong(commandLine.getOptionValue(ALGORITHM_SEED_ARGUMENT));
 			} else {
 				seed = Seeds.getSeed();
 			}
-			
-		} else {
 
-			String n = args[0];
-			String k = args[1];
-			String q = args[2];
-			String circular = args[3];
-			r = Integer.parseInt(args[4]);
-			seed = 0;
-			if (args.length >= 6) {
-				seed = Long.parseLong(args[5]);
-			} else {
-				seed = Seeds.getSeed();
-			}
-			createInstance(n, k, q, circular);
-			file_name = computeFileName(n, k, q, circular);
+			prepareOutputFiles();
+			computeLocalOptima();
+			Collections.sort(localOptima, Comparator.comparing(s -> pbf.evaluate(s)));
+
+			outputLocalOptimaIfNeeded();
+
+			localOptimaHistogram = createLocalOptimaHistogram(localOptima);
+			latticeCollection = new HashMap<>();
+			applyPartitionCrossoverToAllPairsOfLocalOptima();
+
+			computeVariablesStatistics();
+			reportStatistics();
+			reportLatticeToLatticeFile();
+			reportLatticeStatistics();
+			reportLatticeVectors();
+			closeOutputFiles();
+		} catch (Exception e) {
+			e.printStackTrace();
+			showOptions();
 		}
 
-		prepareEdgesList();
+	}
 
+	private void reportLatticeVectors() {
+		if (latticeVectorFile != null) {
+			latticeVectorFile.println("LatticeSize,LO,FVector,SumSamples,DVector");
+			computeLatticeStatisticsIfNeeded();
+			Map<Pair<Long, Long>,Pair<Long,Long>> vectors = latticeStatistics.entrySet().stream()
+				.collect(Collectors.toMap(
+				lst -> Pair.of(lst.getKey().latticeSize, lst.getKey().localOptima),
+				lst -> Pair.of(lst.getKey().ways * lst.getValue(), (long)lst.getValue()),
+				(a, b) -> Pair.of(a.getLeft() + b.getLeft(), a.getRight() + b.getRight()))
+			);
+
+			vectors.entrySet().stream()
+				.sorted(Comparator.<Map.Entry<Pair<Long, Long>, Pair<Long, Long>>, Long>comparing(e -> e.getKey().getLeft())
+								.thenComparing(e -> e.getKey().getRight()))
+				.forEach(e -> {
+					Pair<Long, Long> vector = e.getValue();
+					latticeVectorFile.println(e.getKey().getLeft() + "," + e.getKey().getRight()
+						+ "," + vector.getLeft() + "," + vector.getRight() + "," +
+						numberFormatter.format((vector.getLeft() / (double)vector.getRight())));
+				});
+		}
+	}
+
+	private void reportLatticeStatistics() {
+		if (latticeStatsFile != null) {
+			latticeStatsFile.println("LatticeSize,Ways,LO,Samples");
+			computeLatticeStatisticsIfNeeded();
+			latticeStatistics
+				.forEach((k, v) -> latticeStatsFile.println(k + "," + v));
+		}
+	}
+
+	private void computeLatticeStatisticsIfNeeded() {
+		if (latticeStatistics == null) {
+			latticeStatistics = latticeCollection.values().stream()
+				.map(li ->
+					new LatticeStats(li.localOptimaIndices.size(), li.hitCount,
+						(int) li.localOptimaIndices.stream().filter(i -> i > 0).count()))
+				.collect(Collectors.toMap(Function.identity(), v -> 1, Integer::sum));
+		}
+	}
+
+	private void outputLocalOptimaIfNeeded() {
+		if (nodesFile != null) {
+			int i = 0;
+			nodesFile.println("ID,Solution,Evaluation"); // Header
+			for (PBSolution sol : localOptima) {
+				nodesFile.println(wI(i) + "," + sol + "," + pbf.evaluate(sol));
+				i++;
+			}
+		}
+	}
+
+	private void computeLocalOptima() {
 		goldman = new LocalOptimaNetworkGoldman();
 		goldman.r = r;
 		goldman.seed = seed;
 		goldman.setPbf(pbf);
 		goldman.prepareRBallExplorationAlgorithm();
 		goldman.findLocalOptima();
-
-		createAndOpenOutputFiles(file_name);
-
-		// prepareRBallExplorationAlgorithm();
-
 		localOptima = goldman.localOptima;
+	}
 
-		Collections.sort(localOptima, Comparator.comparing(s->pbf.evaluate(s)));
-
-		int i=0;
-		for (PBSolution sol: localOptima) {
-		    nodesFile.println(wI(i) + ": " + sol + ": " + pbf.evaluate(sol));
-		    i++;
+	private void prepareOutputFiles() {
+		if (commandLine.hasOption(NODE_FILE_ARGUMENT)) {
+			try {
+				nodesFile = new PrintWriter(new FileOutputStream(commandLine.getOptionValue(NODE_FILE_ARGUMENT)));
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException("I cannot open the output file for the local optima");
+			}
 		}
 
-		localOptimaHistogram = createLocalOptimaHistogram(localOptima);
-		latticeStatistics = new HashMap<>();
-		applyPartitionCrossoverToAllPairsOfLocalOptima();
+		if (commandLine.hasOption(LATTICE_FILE_ARGUMENT)) {
+			try {
+				latticeFile = new PrintWriter(new FileOutputStream(commandLine.getOptionValue(LATTICE_FILE_ARGUMENT)));
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException("I cannot open the output file for the lattices");
+			}
+		}
 
-		//writeHistogram(localOptimaHistogram);
-		//writeGNUPlotProgram(file_name);
+		if (commandLine.hasOption(LATTICE_STATS_FILE_ARGUMENT)) {
+			try {
+				latticeStatsFile = new PrintWriter(new FileOutputStream(commandLine.getOptionValue(LATTICE_STATS_FILE_ARGUMENT)));
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException("I cannot open the output file for the lattice statistics");
+			}
+		}
 
-		computeVariablesStatistics();
+		if (commandLine.hasOption(LATTICE_VECTORS_FILE_ARGUMENT)) {
+			try {
+				latticeVectorFile = new PrintWriter(new FileOutputStream(commandLine.getOptionValue(LATTICE_VECTORS_FILE_ARGUMENT)));
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException("I cannot open the output file for the lattice vectors");
+			}
+		}
+	}
 
-		reportStatistics();
-		reportInstanceToStandardOutput();
-		reportLatticeToLatticeFile();
-		closeOutputFiles();
-
+	private CommandLine parseCommandLine(String[] args) {
+		try {
+			CommandLineParser parser = new DefaultParser();
+			return parser.parse(getOptions(), args);
+		} catch (ParseException e) {
+			throw new RuntimeException (e);
+		}
 	}
 
 	private void reportLatticeToLatticeFile() {
-		for (Map.Entry<LatticeID, LatticeInfo> entry : latticeStatistics.entrySet()) {
-			LatticeID id = entry.getKey();
-			LatticeInfo info = entry.getValue();
-			edgesFile.print(id.toString() + "\t" + info.hitCount + "\t");
-			info.localOptimaIndices.stream()
-				.map(i -> Integer.toString(i))
-				.reduce((a, b) -> a + "|" + b)
-				.ifPresent(edgesFile::print);
-			long lo = info.localOptimaIndices.stream().filter(i -> i > 0).count();
-			edgesFile.print("\t" + info.localOptimaIndices.size() + "\t" + lo);
-			edgesFile.println();
+		if (latticeFile != null) {
+			latticeFile.println("ID,Ways,LocalOptimaIndices,LocalOptima,LatticeSize");
+			for (Map.Entry<LatticeID, LatticeInfo> entry : latticeCollection.entrySet()) {
+				LatticeID id = entry.getKey();
+				LatticeInfo info = entry.getValue();
+				latticeFile.print(id.toString() + "," + info.hitCount + ",");
+				info.localOptimaIndices.stream()
+					.map(i -> Integer.toString(i))
+					.reduce((a, b) -> a + "|" + b)
+					.ifPresent(latticeFile::print);
+				long lo = info.localOptimaIndices.stream().filter(i -> i > 0).count();
+				latticeFile.print("," + info.localOptimaIndices.size() + "," + lo);
+				latticeFile.println();
 
+			}
 		}
-	}
-
-	private String computeFileName(String n, String k, String q, String circular) {
-		return "nkq-" + n + "-" + k + "-" + q + "-" + circular
-				+ "-" + r + "-" + seed;
-	}
-
-	private void prepareEdgesList() {
-		//appearedEdges = new HashSet<Integer>();
 	}
 
 	private int[] createLocalOptimaHistogram(List<PBSolution> localOptima) {
@@ -228,44 +412,10 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		return localOptimaHistogram;
 	}
 
-	private void createInstance(String n, String k, String q, String circular) {
-		pbf = new NKLandscapes();
-		Properties prop = new Properties();
-		prop.setProperty(NKLandscapes.N_STRING, n);
-		prop.setProperty(NKLandscapes.K_STRING, k);
-
-		if (!q.equals("-")) {
-			prop.setProperty(NKLandscapes.Q_STRING, q);
-		}
-
-		if (circular.equals("y")) {
-			prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
-		}
-
-		pbf.setSeed(seed);
-		pbf.setConfiguration(prop);
-	}
-
-	protected void prepareRBallExplorationAlgorithm() {
-		Properties rballConfig = new Properties();
-		rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
-		rballConfig.setProperty(RBallEfficientHillClimber.SEED, seed+"");
-		rballfio = (RBallEfficientHillClimberForInstanceOf) new RBallEfficientHillClimber(rballConfig).initialize(pbf);
-		PBSolution pbs = pbf.getRandomSolution();
-
-		rball = rballfio.initialize(pbs);
-		rball.setSeed(seed);
-	}
-
-	private void reportInstanceToStandardOutput() {
-		pbf.writeTo(new OutputStreamWriter(System.out));
-	}
-
 	private void closeOutputFiles() {
-		nodesFile.close();
-		edgesFile.close();
-		histogramFile.close();
-		gpProgram.close();
+		Stream.of(nodesFile, latticeFile, latticeStatsFile, latticeVectorFile)
+			.filter(Objects::nonNull)
+			.forEach(PrintWriter::close);
 	}
 
 	private void reportStatistics() {
@@ -297,7 +447,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 						.map(min->
 							new LatticeID(new PBSolution(min), mask))
 						.ifPresent(id -> {
-							latticeStatistics.compute(id, (k, info) -> {
+							latticeCollection.compute(id, (k, info) -> {
 								if (info == null) {
 									info = new LatticeInfo();
 									info.localOptimaIndices = notifyCrossover(finalI, finalJ, res);
@@ -323,21 +473,6 @@ public class LocalOptimaExperimentAllChildren implements Process {
 			if (pbf.getInteractions()[i].length > max_interactions) {
 				max_interactions = pbf.getInteractions()[i].length;
 			}
-		}
-	}
-
-	private void createAndOpenOutputFiles(String file_name) {
-		try {
-			nodesFile = new PrintWriter(new FileOutputStream(file_name
-					+ ".nodes"));
-			nodesFile.println("FITNESS");
-			edgesFile = new PrintWriter(new FileOutputStream(file_name
-					+ ".lattices"));
-			histogramFile = new PrintWriter(new FileOutputStream(file_name
-					+ ".hist"));
-			gpProgram = new PrintWriter(new FileOutputStream(file_name + ".gp"));
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException("I cannot open the output files");
 		}
 	}
 
@@ -381,24 +516,20 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	    for (PBSolution res: allChildren) {
 			int index = localOptima.indexOf(res);
 			if (index >= 0) {
-				edgesFile.print(wI(index) + "\t");
-				results.add((index+1));
+				results.add((index + 1));
 			} else {
-					res = climbToLocalOptima(res);
-					index = localOptima.indexOf(res);
-
-					if (index >= 0) {
-						edgesFile.print("-"+wI(index) + "\t");
-						results.add(-(index+1));
-					} else {
-						System.err.print("Local Optima not found after climbing");
-					}
+				res = climbToLocalOptima(res);
+				index = localOptima.indexOf(res);
+				if (index >= 0) {
+					results.add(-(index + 1));
+				} else {
+					System.err.print("Local Optima not found after climbing");
+				}
 			}
-            if (index >= 0) {
-                localOptimaHistogram[index]++;
-            }
-	    }
-		edgesFile.println();
+			if (index >= 0) {
+				localOptimaHistogram[index]++;
+			}
+		}
 		return results;
 	}
 
