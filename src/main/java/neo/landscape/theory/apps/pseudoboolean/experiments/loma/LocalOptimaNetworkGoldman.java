@@ -26,10 +26,10 @@ public class LocalOptimaNetworkGoldman implements Process {
     
     private static final long REPORT_PERIOD = 1L<<30;
     private EmbeddedLandscape pbf;
-    protected int r;
-    protected RBallEfficientHillClimberSnapshot rball;
-    protected RBallEfficientHillClimberForInstanceOf rballfio;
-    protected long seed;
+    public int r;
+    public RBallEfficientHillClimberSnapshot rball;
+    public RBallEfficientHillClimberForInstanceOf rballfio;
+    public long seed;
     protected String prefix="";
 
     protected List<RBallPBMove> [] moveBin; 
@@ -37,7 +37,7 @@ public class LocalOptimaNetworkGoldman implements Process {
     protected int [] variableOrder;
     protected int [] variableRank;
     //protected int [] counter;
-    protected List<PBSolution> localOptima;
+    public List<PBSolution> localOptima;
     
     private String outputFileName;
 
@@ -52,7 +52,7 @@ public class LocalOptimaNetworkGoldman implements Process {
         return "lon-goldman";
     }
 
-    protected long findLocalOptima() {
+    public long findLocalOptima() {
         int n = getPbf().getN();
         int index = n-1;
         long solutions=0;
@@ -176,7 +176,7 @@ public class LocalOptimaNetworkGoldman implements Process {
 
     }
 
-    protected void prepareRBallExplorationAlgorithm() {
+    public void prepareRBallExplorationAlgorithm() {
         Properties rballConfig = new Properties();
         rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
         rballConfig.setProperty(RBallEfficientHillClimber.SEED, seed+"");
@@ -326,7 +326,7 @@ public class LocalOptimaNetworkGoldman implements Process {
 		return pbf;
 	}
 
-	protected void setPbf(EmbeddedLandscape pbf) {
+	public void setPbf(EmbeddedLandscape pbf) {
 		this.pbf = pbf;
 	}
 

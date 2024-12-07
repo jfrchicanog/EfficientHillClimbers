@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments.loma;
+package neo.landscape.theory.apps.pseudoboolean.experiments.lattice;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -11,48 +11,22 @@ import java.util.stream.Stream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.experiments.loma.LocalOptimaNetworkGoldman;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.problems.*;
+import neo.landscape.theory.apps.pseudoboolean.px.LatticeID;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverAllChildren;
+import neo.landscape.theory.apps.pseudoboolean.px.Lattice;
 import neo.landscape.theory.apps.util.GrayCodeBitFlipIterable;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.tuple.Pair;
 
-import javax.swing.text.NumberFormatter;
-
 public class LocalOptimaExperimentAllChildren implements Process {
-
-	private class LatticeID {
-		public PBSolution minimumSolution;
-		public PBSolution mask;
-
-		public LatticeID(PBSolution minimum, PBSolution mask) {
-			this.minimumSolution = minimum;
-			this.mask = mask;
-		}
-
-		public String toString() {
-			return String.format("%s|%s", minimumSolution.toHex(), mask.toHex());
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(minimumSolution, mask);
-		}
-
-		public boolean equals(Object o) {
-			if (o instanceof LatticeID) {
-				LatticeID other = (LatticeID) o;
-				return minimumSolution.equals(other.minimumSolution) && mask.equals(other.mask);
-			}
-			return false;
-		}
-	}
 
 	private class LatticeInfo {
 		public long hitCount;
@@ -440,22 +414,19 @@ public class LocalOptimaExperimentAllChildren implements Process {
 				int finalI=i;
 				int finalJ=j;
 				PBSolution mask = los[i].xor(los[j]);
-				List<PBSolution> res = px.getAllChildren(los[i], los[j]);
+				Lattice lat = px.getAllChildren(los[i], los[j]);
+				List<PBSolution> res = lat.computeAllSolutions().collect(Collectors.toList());
+
 				//List<Integer> localOptimaIndices = notifyCrossover(i, j, res);
 				if (res.size() > 2) {
-					res.stream().min(SOLUTION_COMPARATOR)
-						.map(min->
-							new LatticeID(new PBSolution(min), mask))
-						.ifPresent(id -> {
-							latticeCollection.compute(id, (k, info) -> {
-								if (info == null) {
-									info = new LatticeInfo();
-									info.localOptimaIndices = notifyCrossover(finalI, finalJ, res);
-								}
-								info.hitCount++;
-								return info;
-							});
-						});
+					latticeCollection.compute(lat.computeLatticeID(), (k, info) -> {
+						if (info == null) {
+							info = new LatticeInfo();
+							info.localOptimaIndices = notifyCrossover(finalI, finalJ, res);
+						}
+						info.hitCount++;
+						return info;
+					});
 				}
 			}
 		}

@@ -13,6 +13,10 @@ public class PBSolution implements Solution<PseudoBooleanFunction>, Serializable
 	private int data[];
 	private int n;
 
+	/**
+	 * Creates a new solution with n bits, where all the bits are 0.
+	 * @param n
+	 */
 	public PBSolution(int n) {
 		this.n = n;
 		data = new int[n / 32 + 1];
@@ -96,6 +100,29 @@ public class PBSolution implements Solution<PseudoBooleanFunction>, Serializable
 		for(int i=0; i < data.length; i++) {
 			result.data[i] = data[i] ^ solution.data[i];
 		}
+		return result;
+	}
+
+	public PBSolution and(PBSolution solution) {
+		if (solution.n!=n) {
+			throw new IllegalArgumentException("The binary strings have different lengths");
+		}
+
+		PBSolution result = new PBSolution(n);
+		for(int i=0; i < data.length; i++) {
+			result.data[i] = data[i] & solution.data[i];
+		}
+		return result;
+	}
+
+	public PBSolution flipAllVariables() {
+		PBSolution result = new PBSolution(n);
+		for(int i=0; i < data.length; i++) {
+			result.data[i] = data[i] ^ 0xffffffff;
+		}
+		int finalMask = 0xffffffff ^ (0xffffffff << (n % 32));
+		result.data[data.length-1] &= finalMask;
+
 		return result;
 	}
 
