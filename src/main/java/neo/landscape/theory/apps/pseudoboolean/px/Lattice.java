@@ -1,5 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
+import com.google.common.collect.Comparators;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 
 import java.util.*;
@@ -51,7 +52,7 @@ public class Lattice {
             int v = startVariableForComponent[component];
             int otherV = otherLattice.startVariableForComponent[otherComponent];
             for (; v >= 0 && otherV >= 0;
-                   v = nextVariableForComponent[component], otherV = otherLattice.nextVariableForComponent[otherComponent]) {
+                   v = nextVariableForComponent[v], otherV = otherLattice.nextVariableForComponent[otherV]) {
                 if (v != otherV) {
                     return false;
                 }
@@ -95,7 +96,7 @@ public class Lattice {
         PBSolution solution = new PBSolution(representative);
         for (int component = 0; component < numberOfComponents; component++) {
             if ((index & (1 << component)) != 0) {
-                for (int v = startVariableForComponent[component]; v >= 0; v = nextVariableForComponent[component]) {
+                for (int v = startVariableForComponent[component]; v >= 0; v = nextVariableForComponent[v]) {
                     solution.flipBit(v);
                 }
             }
@@ -105,8 +106,8 @@ public class Lattice {
 
     private void setComponents(int n, Stream<Stream<Integer>> components) {
         List<List<Integer>> auxiliaryLists = components
-            .map(s -> s.sorted().collect(Collectors.toList()))
-            .sorted((l1, l2) -> l1.get(0) - l2.get(0))
+            .map(s -> s.sorted(Comparator.<Integer>naturalOrder().reversed()).collect(Collectors.toList()))
+            .sorted((l1, l2) -> l2.get(0) - l1.get(0))
             .collect(Collectors.toList());
         numberOfComponents = auxiliaryLists.size();
         startVariableForComponent = new int[numberOfComponents];
@@ -127,7 +128,7 @@ public class Lattice {
             if (representativeSolution.getBit(startVariableForComponent[component]) == 0) {
                 continue;
             }
-            for (int v = startVariableForComponent[component]; v >= 0; v = nextVariableForComponent[component]) {
+            for (int v = startVariableForComponent[component]; v >= 0; v = nextVariableForComponent[v]) {
                 representativeSolution.flipBit(v);
             }
         }
@@ -137,7 +138,7 @@ public class Lattice {
     private PBSolution computeMask() {
         PBSolution mask = new PBSolution(representative.getN());
         for (int component = 0; component < numberOfComponents; component++) {
-            for (int v = startVariableForComponent[component]; v >= 0; v = nextVariableForComponent[component]) {
+            for (int v = startVariableForComponent[component]; v >= 0; v = nextVariableForComponent[v]) {
                 mask.setBit(v, 1);
             }
         }
@@ -150,7 +151,7 @@ public class Lattice {
 
     public List<Integer> variablesInComponent(int component) {
         List<Integer> result = new ArrayList<>();
-        for (int v = startVariableForComponent[component]; v >= 0; v = nextVariableForComponent[component]) {
+        for (int v = startVariableForComponent[component]; v >= 0; v = nextVariableForComponent[v]) {
             result.add(v);
         }
         return result;
