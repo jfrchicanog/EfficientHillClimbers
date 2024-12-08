@@ -104,7 +104,7 @@ public class Lattice {
         return solution;
     }
 
-    private void setComponents(int n, Stream<Stream<Integer>> components) {
+    private <CI extends Collection<Integer>> void setComponents(int n, Stream<Stream<Integer>> components) {
         List<List<Integer>> auxiliaryLists = components
             .map(s -> s.sorted(Comparator.<Integer>naturalOrder().reversed()).collect(Collectors.toList()))
             .sorted((l1, l2) -> l2.get(0) - l1.get(0))
