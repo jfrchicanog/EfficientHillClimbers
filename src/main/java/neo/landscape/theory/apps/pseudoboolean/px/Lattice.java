@@ -11,8 +11,9 @@ import java.util.stream.Stream;
 public class Lattice {
     private PBSolution representative;
     private int numberOfComponents;
-    private int startVariableForComponent[]; // Components should be sorted in increasing order for the first variable
-    private int nextVariableForComponent[]; // Variables should be sorted in increasing order
+    private int startVariableForComponent []; // Components should be sorted in increasing order for the first variable
+    private int nextVariableForComponent []; // Variables should be sorted in increasing order
+    private int componentForVariable []; // This is redundant with the previous arrays, but it helps in the implementation of contains
 
 
     public Lattice(PBSolution solution, Stream<Stream<Integer>> components) {
@@ -32,33 +33,20 @@ public class Lattice {
         if (otherLattice.numberOfComponents > numberOfComponents) {
             return false;
         }
-        // Check if the variables fixed in this lattice are the same in the other lattice
-        PBSolution mask = computeMask().flipAllVariables();
-        if (!otherLattice.getRepresentative().and(mask)
-            .equals(representative.and(mask))) {
+        int n = representative.getN();
+        PBSolution zero = new PBSolution(n);
+        if (!otherLattice.computeMask().and(computeMask().flipAllVariables()).equals(zero)) {
             return false;
         }
-        // Check that each component in the other lattice is the same in this lattice
-        for (int otherComponent=0; otherComponent < otherLattice.numberOfComponents; otherComponent++) {
-            int component = 0;
-            for (; component < numberOfComponents; component++) {
-                if (otherLattice.startVariableForComponent[otherComponent] == startVariableForComponent[component]) {
-                    break;
-                }
-            }
-            if (component == numberOfComponents) {
-                return false;
-            }
+
+        // Check that each component in the parent must be inside one component (or fixed) in the child
+        for (int component = 0; component < numberOfComponents; component++) {
             int v = startVariableForComponent[component];
-            int otherV = otherLattice.startVariableForComponent[otherComponent];
-            for (; v >= 0 && otherV >= 0;
-                   v = nextVariableForComponent[v], otherV = otherLattice.nextVariableForComponent[otherV]) {
-                if (v != otherV) {
+            int otherComponent = otherLattice.getComponentForVariable(v);
+            for (; v >= 0; v = nextVariableForComponent[v]) {
+                if (otherLattice.getComponentForVariable(v) != otherComponent) {
                     return false;
                 }
-            }
-            if (v >= 0 || otherV >= 0) {
-                return false;
             }
         }
 
@@ -74,9 +62,7 @@ public class Lattice {
     public boolean equals(Object o) {
         if (o instanceof Lattice) {
             Lattice other = (Lattice) o;
-            return numberOfComponents == other.numberOfComponents &&
-                Arrays.equals(startVariableForComponent, other.startVariableForComponent) &&
-                Arrays.equals(nextVariableForComponent, other.nextVariableForComponent) &&
+            return Arrays.equals(componentForVariable, other.componentForVariable) &&
                 representative.equals(other.representative);
         }
         return false;
@@ -84,7 +70,7 @@ public class Lattice {
 
     @Override
     public int hashCode() {
-        return Objects.hash(representative, numberOfComponents, Arrays.hashCode(startVariableForComponent), Arrays.hashCode(nextVariableForComponent));
+        return Objects.hash(representative, Arrays.hashCode(componentForVariable));
     }
 
     public Stream<PBSolution> computeAllSolutions() {
@@ -112,11 +98,17 @@ public class Lattice {
         numberOfComponents = auxiliaryLists.size();
         startVariableForComponent = new int[numberOfComponents];
         nextVariableForComponent = new int[n];
+        componentForVariable = new int[n];
+        for (int i=0; i < n; i++) {
+            componentForVariable[i] = -1;
+        }
         for (int component=0; component < numberOfComponents; component++) {
             List<Integer> varsInComponent = auxiliaryLists.get(component);
             startVariableForComponent[component] = varsInComponent.get(0);
+            componentForVariable[varsInComponent.get(0)] = component;
             for (int i = 0; i < varsInComponent.size() - 1; i++) {
                 nextVariableForComponent[varsInComponent.get(i)] = varsInComponent.get(i + 1);
+                componentForVariable[varsInComponent.get(i+1)] = component;
             }
             nextVariableForComponent[varsInComponent.get(varsInComponent.size() - 1)] = -1;
         }
@@ -155,6 +147,10 @@ public class Lattice {
             result.add(v);
         }
         return result;
+    }
+
+    public int getComponentForVariable(int variable) {
+        return componentForVariable[variable];
     }
 
     public PBSolution getRepresentative() {

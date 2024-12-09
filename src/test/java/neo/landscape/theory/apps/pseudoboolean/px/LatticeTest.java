@@ -74,7 +74,7 @@ public class LatticeTest {
 
     @ParameterizedTest
     @MethodSource("provideParamsForTests")
-    public void testContainsWhenItDoesNotContainComplex(int n, long seed) {
+    public void testContainsWhenItDoesNotContainFlippingABit(int n, long seed) {
         Random rnd = new Random (seed);
         PBSolution baseSolution = randomSolution(n, rnd);
         List<Integer> vars = IntStream.range(0, n)
@@ -85,16 +85,49 @@ public class LatticeTest {
         List<List<Integer>> components = getComponents(2, 7, vars, rnd);
         Lattice latticeParent = new Lattice(baseSolution, components);
 
-        // FIXME: check this test
-        List<List<Integer>> childComponents = components.stream()
-            .map(c -> c.stream().mapToInt(i -> i+1).filter(i->i < vars.size()).boxed().collect(Collectors.toList()))
-            .filter(c -> !c.isEmpty())
+        List<Integer> varsToFlip = components.stream()
+            .filter(c->c.size()> 1)
+            .flatMap(c->c.stream())
             .collect(Collectors.toList());
 
-        if (!childComponents.isEmpty()) {
-            Lattice lattice = new Lattice(baseSolution, childComponents);
+        if (!varsToFlip.isEmpty()) {
+            int var = varsToFlip.get(rnd.nextInt(varsToFlip.size()));
+            PBSolution childSolution = new PBSolution(baseSolution);
+            childSolution.flipBit(var);
+
+            Lattice lattice = new Lattice(childSolution, components);
             assertThat(latticeParent.contains(lattice)).isFalse();
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParamsForTests")
+    public void testAgreementWithExhaustiveAnalysis(int n, long seed) {
+        Random rnd = new Random(seed);
+        Lattice parentLattice = generateLattice(n, rnd.nextLong());
+        Lattice childLattice = generateLattice(n, rnd.nextLong());
+
+        assertThat(parentLattice.contains(childLattice)).isEqualTo(contains(parentLattice, childLattice));
+    }
+
+    private boolean contains(Lattice parent, Lattice child) {
+        List<PBSolution> parentSolutions = parent.computeAllSolutions().collect(Collectors.toList());
+        List<PBSolution> childSolutions = child.computeAllSolutions().collect(Collectors.toList());
+
+        return childSolutions.stream()
+            .allMatch(childSolution -> parentSolutions.contains(childSolution));
+    }
+
+    private Lattice generateLattice(int n, long seed) {
+        Random rnd = new Random (seed);
+        PBSolution baseSolution = randomSolution(n, rnd);
+        List<Integer> vars = IntStream.range(0, n)
+            .boxed()
+            .collect(Collectors.toList());
+        Collections.shuffle(vars, rnd);
+
+        List<List<Integer>> components = getComponents(2, 7, vars, rnd);
+        return new Lattice(baseSolution, components);
     }
 
     private static PBSolution buildChildSolution(PBSolution baseSolution, Random rnd, List<List<Integer>> componentsForChild) {

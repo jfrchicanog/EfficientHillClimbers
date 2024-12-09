@@ -29,6 +29,7 @@ import org.apache.commons.lang3.tuple.Pair;
 public class LocalOptimaExperimentAllChildren implements Process {
 
 	private class LatticeInfo {
+		public Lattice lattice;
 		public long hitCount;
 		public List<Integer> localOptimaIndices;
 	}
@@ -64,11 +65,15 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 	private final static Comparator<PBSolution> SOLUTION_COMPARATOR = Comparator.comparing(s->s.toString());
 
-	protected List<PBSolution> localOptima;
-	private PrintWriter nodesFile;
+	private List<PBSolution> localOptima;
+	private List<PBSolution> subOptima;
+	private List<Integer> localOptimaReachedFromSuboptimal;
+	private PrintWriter localOptimaFile;
 	private PrintWriter latticeFile;
 	private PrintWriter latticeStatsFile;
 	private PrintWriter latticeVectorFile;
+	private PrintWriter subOptimaFile;
+	private PrintWriter hierarchyFile;
 	//private Set<Integer> appearedEdges;
 
 	private int[] localOptimaHistogram;
@@ -95,10 +100,12 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	private static final String RADIUS_ARGUMENT = "r";
 	private static final String PROBLEM_CHAR = "P";
 	private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
-	private static final String NODE_FILE_ARGUMENT = "nodes";
+	private static final String LOCAL_OPTIMA_FILE_ARGUMENT = "lo";
 	private static final String LATTICE_FILE_ARGUMENT = "lattices";
 	private static final String LATTICE_STATS_FILE_ARGUMENT = "latStats";
 	private static final String LATTICE_VECTORS_FILE_ARGUMENT = "latVectors";
+	private static final String LATTICE_HIERARCHY_FILE_ARGUMENT = "latHierarchy";
+	private static final String SUBOPTIMA_FILE_ARGUMENT = "so";
 
 	private Options options;
 	private CommandLine commandLine;
@@ -117,6 +124,8 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 	public LocalOptimaExperimentAllChildren() {
 		localOptima = new ArrayList<PBSolution>();
+		subOptima = new ArrayList<>();
+		localOptimaReachedFromSuboptimal = new ArrayList<>();
 	}
 
 	@Override
@@ -132,7 +141,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 	@Override
 	public String getInvocationInfo() {
-		return "Arguments: " + getID() + " [<n> <k> <q> <circular> | -instance <instance file>] <r> [<seed>]";
+		return "Arguments: " + getID() + " (options shown after an error)";
 	}
 
 	private Options getOptions() {
@@ -147,10 +156,12 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
 		options.addOption(PROBLEM, true, "problem to be solved: "+configurators.keySet());
 		options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
-		options.addOption(NODE_FILE_ARGUMENT, true, "file to store the local optima (optional)");
+		options.addOption(LOCAL_OPTIMA_FILE_ARGUMENT, true, "file to store the local optima (optional)");
 		options.addOption(LATTICE_FILE_ARGUMENT, true, "file to store the lattices (optional)");
 		options.addOption(LATTICE_STATS_FILE_ARGUMENT, true, "file to store the lattice statistics (optional)");
 		options.addOption(LATTICE_VECTORS_FILE_ARGUMENT, true, "file to store the lattice vectors (optional)");
+		options.addOption(SUBOPTIMA_FILE_ARGUMENT, true, "file to store the suboptimal solutions (optional)");
+		options.addOption(LATTICE_HIERARCHY_FILE_ARGUMENT, true, "file to store the lattice hierarchy (optional)");
 		options.addOption(Option.builder(PROBLEM_CHAR)
 			.numberOfArgs(2)
 			.valueSeparator()
@@ -164,7 +175,6 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	protected void showOptions() {
 		HelpFormatter helpFormatter = new HelpFormatter();
 		helpFormatter.printHelp(getID(), getOptions());
-
 		try {
 			Options problemOptions = new Options();
 			getProblemConfigurator().prepareOptionsForProblem(problemOptions);
@@ -199,7 +209,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		PBSolution lo = new PBSolution(rball.getSolution());
 		double val = pbf.evaluate(lo);
 		localOptima.add(lo);
-		nodesFile.println(val);
+		localOptimaFile.println(val);
 	}
 
 	private boolean checkLocalOptima(RBallEfficientHillClimberSnapshot rball) {
@@ -248,12 +258,86 @@ public class LocalOptimaExperimentAllChildren implements Process {
 			reportLatticeToLatticeFile();
 			reportLatticeStatistics();
 			reportLatticeVectors();
+			reportSubOptimalSolutions();
+			reportHierarchy();
 			closeOutputFiles();
 		} catch (Exception e) {
 			e.printStackTrace();
 			showOptions();
 		}
 
+	}
+
+	private void reportHierarchy() {
+		if (hierarchyFile == null) {
+			return;
+		}
+		// Sort all the lattices by the number of components (in decreasing order). Assign an index to all of them (including them in an array).
+		List<Lattice> lattices = latticeCollection.values().stream()
+			.map(lat->lat.lattice)
+			.sorted(Comparator.comparing(Lattice::getNumberOfComponents).reversed())
+			.collect(Collectors.toList());
+		int dag [][] = new int[lattices.size()][lattices.size()]; // Directed Acyclic Graph: dag[i][j] = 1 if lattice i is a child of lattice j
+
+		hierarchyFile.println("ChildLattice, ParentLattice"); // Header
+
+		if (lattices.isEmpty()) {
+			return;
+		}
+		// Compare each lattice with the ones having higher order (in increasing order)
+		int endOfPreviousBucket = -1;
+		int currentNumberOfComponents = lattices.get(0).getNumberOfComponents();
+		for (int i = 0; i < lattices.size(); i++) {
+			Lattice lat = lattices.get(i);
+			boolean hasParents = false;
+			if (lat.getNumberOfComponents() != currentNumberOfComponents) {
+				currentNumberOfComponents = lat.getNumberOfComponents();
+				endOfPreviousBucket = i-1;
+			}
+			for (int j=endOfPreviousBucket; j >= 0; j--) {
+				// If a Lattice is already marked as a child of another (previous) lattice, then do nothing
+				if (dag[i][j] == 1) {
+					continue;
+				}
+				// Otherwise, check if the current lattice is a child of the previous one and mark it as such in the graph
+				if (lattices.get(j).contains(lat)) {
+					dag[i][j] = 1;
+					hierarchyFile.println(String.format("%s,%s", lat.computeLatticeID(),lattices.get(j).computeLatticeID()));
+					hasParents = true;
+					// Also mark as parent all the lattices that are parent of the previous parent
+					for (int k = 0; k < j; k++) {
+						if (dag[j][k] == 1) {
+							dag[i][k] = 1;
+						}
+					}
+				}
+			}
+			if (!hasParents) {
+				hierarchyFile.println(String.format("%s,%s", lat.computeLatticeID(),""));
+			}
+		}
+	}
+
+	private void reportSubOptimalSolutions() {
+		/*
+			ID, Solution, Evaluation, LO_ID
+			Donde
+			ID: enumeración simple de los SO
+			Solution: bitstring
+			Evaluation: fitness
+			LO_ID: el ID del LO al que llegan después de correr hill-climbing.
+
+			En el archivo de lattices, seguirías usando - para indicar el índice de los SO
+			Pero ahora el índice corresponde a la secuencia en el archivo .so
+		*/
+		if (subOptimaFile == null) {
+			return;
+		}
+		subOptimaFile.println("ID,Solution,Evaluation,LO_ID"); // Header
+		for (int i = 0; i < subOptima.size(); i++) {
+			PBSolution sol = subOptima.get(i);
+			subOptimaFile.println(wI(i) + "," + sol + "," + pbf.evaluate(sol) + "," + wI(localOptimaReachedFromSuboptimal.get(i)));
+		}
 	}
 
 	private void reportLatticeVectors() {
@@ -299,11 +383,11 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	}
 
 	private void outputLocalOptimaIfNeeded() {
-		if (nodesFile != null) {
+		if (localOptimaFile != null) {
 			int i = 0;
-			nodesFile.println("ID,Solution,Evaluation"); // Header
+			localOptimaFile.println("ID,Solution,Evaluation"); // Header
 			for (PBSolution sol : localOptima) {
-				nodesFile.println(wI(i) + "," + sol + "," + pbf.evaluate(sol));
+				localOptimaFile.println(wI(i) + "," + sol + "," + pbf.evaluate(sol));
 				i++;
 			}
 		}
@@ -320,37 +404,23 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	}
 
 	private void prepareOutputFiles() {
-		if (commandLine.hasOption(NODE_FILE_ARGUMENT)) {
-			try {
-				nodesFile = new PrintWriter(new FileOutputStream(commandLine.getOptionValue(NODE_FILE_ARGUMENT)));
-			} catch (FileNotFoundException e) {
-				throw new RuntimeException("I cannot open the output file for the local optima");
-			}
-		}
+		localOptimaFile = tryOpenFile(LOCAL_OPTIMA_FILE_ARGUMENT, "I cannot open the output file for the local optima");
+		subOptimaFile = tryOpenFile(SUBOPTIMA_FILE_ARGUMENT, "I cannot open the output file for the suboptimal solutions");
+		latticeFile = tryOpenFile(LATTICE_FILE_ARGUMENT, "I cannot open the output file for the lattices");
+		latticeStatsFile = tryOpenFile(LATTICE_STATS_FILE_ARGUMENT, "I cannot open the output file for the lattice statistics");
+		latticeVectorFile = tryOpenFile(LATTICE_VECTORS_FILE_ARGUMENT, "I cannot open the output file for the lattice vectors");
+		hierarchyFile = tryOpenFile(LATTICE_HIERARCHY_FILE_ARGUMENT, "I cannot open the output file for the lattices hierarchy");
+	}
 
-		if (commandLine.hasOption(LATTICE_FILE_ARGUMENT)) {
+	private PrintWriter tryOpenFile(String localOptimaFileArgument, String message) {
+		if (commandLine.hasOption(localOptimaFileArgument)) {
 			try {
-				latticeFile = new PrintWriter(new FileOutputStream(commandLine.getOptionValue(LATTICE_FILE_ARGUMENT)));
+				return new PrintWriter(new FileOutputStream(commandLine.getOptionValue(localOptimaFileArgument)));
 			} catch (FileNotFoundException e) {
-				throw new RuntimeException("I cannot open the output file for the lattices");
+				throw new RuntimeException(message);
 			}
 		}
-
-		if (commandLine.hasOption(LATTICE_STATS_FILE_ARGUMENT)) {
-			try {
-				latticeStatsFile = new PrintWriter(new FileOutputStream(commandLine.getOptionValue(LATTICE_STATS_FILE_ARGUMENT)));
-			} catch (FileNotFoundException e) {
-				throw new RuntimeException("I cannot open the output file for the lattice statistics");
-			}
-		}
-
-		if (commandLine.hasOption(LATTICE_VECTORS_FILE_ARGUMENT)) {
-			try {
-				latticeVectorFile = new PrintWriter(new FileOutputStream(commandLine.getOptionValue(LATTICE_VECTORS_FILE_ARGUMENT)));
-			} catch (FileNotFoundException e) {
-				throw new RuntimeException("I cannot open the output file for the lattice vectors");
-			}
-		}
+		return null;
 	}
 
 	private CommandLine parseCommandLine(String[] args) {
@@ -364,7 +434,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 	private void reportLatticeToLatticeFile() {
 		if (latticeFile != null) {
-			latticeFile.println("ID,Ways,LocalOptimaIndices,LocalOptima,LatticeSize");
+			latticeFile.println("ID,Ways,LocalOptimaIndices,LatticeSize,LocalOptima");
 			for (Map.Entry<LatticeID, LatticeInfo> entry : latticeCollection.entrySet()) {
 				LatticeID id = entry.getKey();
 				LatticeInfo info = entry.getValue();
@@ -387,7 +457,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	}
 
 	private void closeOutputFiles() {
-		Stream.of(nodesFile, latticeFile, latticeStatsFile, latticeVectorFile)
+		Stream.of(localOptimaFile, latticeFile, latticeStatsFile, latticeVectorFile, subOptimaFile, hierarchyFile)
 			.filter(Objects::nonNull)
 			.forEach(PrintWriter::close);
 	}
@@ -413,15 +483,14 @@ public class LocalOptimaExperimentAllChildren implements Process {
 			for (int j = i+1; j < los.length; j++) {
 				int finalI=i;
 				int finalJ=j;
-				PBSolution mask = los[i].xor(los[j]);
 				Lattice lat = px.getAllChildren(los[i], los[j]);
 				List<PBSolution> res = lat.computeAllSolutions().collect(Collectors.toList());
 
-				//List<Integer> localOptimaIndices = notifyCrossover(i, j, res);
 				if (res.size() > 2) {
 					latticeCollection.compute(lat.computeLatticeID(), (k, info) -> {
 						if (info == null) {
 							info = new LatticeInfo();
+							info.lattice = lat;
 							info.localOptimaIndices = notifyCrossover(finalI, finalJ, res);
 						}
 						info.hitCount++;
@@ -447,35 +516,8 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		}
 	}
 
-	protected List<PBSolution> findLocalOptima() {
-		initTime = System.currentTimeMillis();
-
-		notifyLocalOptima(rball, pbf);
-		for (int bit : new GrayCodeBitFlipIterable(pbf.getN())) {
-			rball.moveOneBit(bit);
-			notifyLocalOptima(rball, pbf);
-		}
-
-		finalTime = System.currentTimeMillis();
-
-		return localOptima;
-	}
-
-
 	private String wI(int i) {
 		return "" + (i + 1);
-	}
-
-	private int edgeID(int i, int j, int kind) {
-		return ((localOptima.size() * i + j)<< 1) + (kind-1);
-	}
-
-	private void notifyEdge(int i, int j, int kind) {
-		int eid = edgeID(i, j, kind);
-		//		if (!appearedEdges.contains(eid)) {
-		//			appearedEdges.add(eid);
-		//			edgesFile.println(wI(i) + " " + wI(j) + " "+kind);
-		//		}
 	}
 
 	private List<Integer> notifyCrossover(int i, int j, List<PBSolution> allChildren) {
@@ -489,13 +531,15 @@ public class LocalOptimaExperimentAllChildren implements Process {
 			if (index >= 0) {
 				results.add((index + 1));
 			} else {
-				res = climbToLocalOptima(res);
-				index = localOptima.indexOf(res);
-				if (index >= 0) {
-					results.add(-(index + 1));
-				} else {
-					System.err.print("Local Optima not found after climbing");
+				int soIndex = subOptima.indexOf(res);
+				if (soIndex < 0) {
+					soIndex = subOptima.size();
+					subOptima.add(new PBSolution(res));
+					res = climbToLocalOptima(res);
+					index = localOptima.indexOf(res);
+					localOptimaReachedFromSuboptimal.add(index);
 				}
+				results.add(-(soIndex+1));
 			}
 			if (index >= 0) {
 				localOptimaHistogram[index]++;
