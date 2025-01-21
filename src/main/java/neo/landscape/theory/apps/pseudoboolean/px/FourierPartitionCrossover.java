@@ -283,13 +283,13 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 			double redVal = component.getRedValue();
 			int numberOfVarsInComponent = varsInThisComponent.size();
 
-			if (redVal< 0 && numberOfVarsInComponent == 1) {
+			if (redVal != 0 && numberOfVarsInComponent == 1) {
 				oneVarImproving++;
-			} else if (redVal < 0 && numberOfVarsInComponent > 1) {
+			} else if (redVal != 0 && numberOfVarsInComponent > 1) {
 				moreThanOneVarImproving++;
-			} else if (redVal >= 0 && numberOfVarsInComponent == 1) {
+			} else if (redVal == 0 && numberOfVarsInComponent == 1) {
 				oneVarNonImproving++;
-			} else if (redVal >= 0 && numberOfVarsInComponent > 1) {
+			} else if (redVal == 0 && numberOfVarsInComponent > 1) {
 				moreThanOneVarNonImproving++;
 			}
 
