@@ -44,6 +44,9 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 	private Set<Integer> termsWithOtherComponentsToo;
 	private boolean numberOfOriginalWalshTermsPrinted;
 
+	private boolean randomizeTies = true;
+	private int targetMinComponentSize = 1;
+
 	public FourierPartitionCrossover(WalshBasedFunction<W> wbf, EmbeddedLandscape originaEL) {
 		this.wbf = wbf;
 		this.originalEL = originaEL;
@@ -72,6 +75,22 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 
 	public boolean getDebug() {
 		return debug;
+	}
+
+	public boolean getRandomizeTies() {
+		return randomizeTies;
+	}
+
+	public void setRandomizeTies(boolean randomizeTies) {
+		this.randomizeTies = randomizeTies;
+	}
+
+	public void setTargetMinComponentSize(int targetMinComponentSize) {
+		this.targetMinComponentSize = targetMinComponentSize;
+	}
+
+	public int getTargetMinComponentSize() {
+		return targetMinComponentSize;
 	}
 
 	protected boolean isNodeInReducedGraph(int v, PBSolution blue,
@@ -107,7 +126,7 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 		return null;
 	}
 
-    protected PartitionComponent bfs(Integer node, PBSolution blue, PBSolution red) {
+    protected PartitionComponent findComponent(Integer node, PBSolution blue, PBSolution red) {
 
 		toExplore.clear();
 		component.clearComponent();
@@ -129,11 +148,11 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 
 			wcsConstrained.getCoefficientsForVariable(var)
 				.forEach(wc -> {
-					// 1. itera por cada coeficiente de Walsh que toca esta variable
+					// 1. Iterate over each Walsh coefficient containing this variable
 					final AtomicInteger inThisComponent = new AtomicInteger(0);
 					final AtomicInteger toBeAssigned = new AtomicInteger(0);
 					List<Integer> varToBeAssigned = new ArrayList<>();
-					// 2. miro todas las variables del término
+					// 2. Look at all the variables of the Walsh term
 					wcsConstrained.getVarsForID(wc).forEach(otherVar -> {
 						if (varsInThisComponent.contains(otherVar)) {
 							inThisComponent.incrementAndGet();
@@ -143,18 +162,25 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 						}
 					});
 
-					if ((inThisComponent.intValue() & toBeAssigned.intValue() & 0x01) != 0) {
-						// 4. Si hay un número impar en el componente actual y lo que queda es impar también,
-						// tomo una variable no asignada a ningún componente y se añade a este componmente
-						// y para explorar
-						int varsToSelect = varToBeAssigned.size();
-						int selectedVar = varToBeAssigned.get(rnd.nextInt(varsToSelect));
+					if ((inThisComponent.intValue() < targetMinComponentSize) ||
+						// 4a. If we do not reach the target minimum component size....
+						((inThisComponent.intValue() & toBeAssigned.intValue() & 0x01) != 0)) {
+						// 4b. ... or If there is an odd number in the current component and what remains to assign is odd
+						// we take a variable "to be assigned" and add it to this component
+						// and to explore
+						if (!varToBeAssigned.isEmpty()) {
+							int varsToSelect = varToBeAssigned.size();
+							int selectedVar=0;
+							if (varsToSelect > 1) {
+								selectedVar = varToBeAssigned.get(rnd.nextInt(varsToSelect));
+							}
 
-						toExplore.add(selectedVar);
-						varsInThisComponent.add(selectedVar);
-						component.addVarToComponent(selectedVar);
-						toBeAssigned.decrementAndGet();
-						inThisComponent.incrementAndGet();
+							toExplore.add(selectedVar);
+							varsInThisComponent.add(selectedVar);
+							component.addVarToComponent(selectedVar);
+							toBeAssigned.decrementAndGet();
+							inThisComponent.incrementAndGet();
+						}
 					}
 
 					if ((inThisComponent.intValue() & 1) != 0) {
@@ -253,7 +279,7 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 		int moreThanOneVarNonImproving = 0;
 
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
-		    PartitionComponent component = bfs(node, blue, red);
+		    PartitionComponent component = findComponent(node, blue, red);
 			double redVal = component.getRedValue();
 			int numberOfVarsInComponent = varsInThisComponent.size();
 
@@ -267,15 +293,15 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 				moreThanOneVarNonImproving++;
 			}
 
-			if (redVal < 0 || ((redVal==0) && rnd.nextDouble() < 0.5)) {
+			if (redVal < 0 || ((redVal==0) && randomizeTies && rnd.nextDouble() < 0.5)) {
 			    for (int variable : component) {
 			        child.flipBit(variable);
                     varProcedence.markAsBlue(variable);
                 }
 			}
 			numberOfComponents++;
-			// Tras este proceso tiene que cumplirse que para todos los coeficientes, solo puede haber como mucho
-			// un componente que tenga un número impar de variables
+			// After this process, it must happen that for all the coefficients
+			// at most one component has an odd number of variables
 
 			if (debug) {
 				Set<Integer> varsInComponent = new HashSet<>();
