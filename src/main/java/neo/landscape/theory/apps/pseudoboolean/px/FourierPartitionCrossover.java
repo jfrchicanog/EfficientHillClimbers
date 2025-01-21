@@ -247,9 +247,25 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 		wcsConstrained = wbf.contraint(red, blue);
 		termsWithOtherComponentsToo.clear();
 
+		int oneVarImproving = 0;
+		int moreThanOneVarImproving = 0;
+		int oneVarNonImproving = 0;
+		int moreThanOneVarNonImproving = 0;
+
 		for (Integer node = nextNodeInReducedGraph(blue, red); node != null; node = nextNodeInReducedGraph(blue, red)) {
 		    PartitionComponent component = bfs(node, blue, red);
 			double redVal = component.getRedValue();
+			int numberOfVarsInComponent = varsInThisComponent.size();
+
+			if (redVal< 0 && numberOfVarsInComponent == 1) {
+				oneVarImproving++;
+			} else if (redVal < 0 && numberOfVarsInComponent > 1) {
+				moreThanOneVarImproving++;
+			} else if (redVal >= 0 && numberOfVarsInComponent == 1) {
+				oneVarNonImproving++;
+			} else if (redVal >= 0 && numberOfVarsInComponent > 1) {
+				moreThanOneVarNonImproving++;
+			}
 
 			if (redVal < 0 || ((redVal==0) && rnd.nextDouble() < 0.5)) {
 			    for (int variable : component) {
@@ -272,7 +288,13 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 		}
 		lastRuntime = System.nanoTime() - initTime;
 
+		final int foneVarImproving = oneVarImproving;
+		final int fmoreThanOneVarImproving = moreThanOneVarImproving;
+		final int foneVarNonImproving = oneVarNonImproving;
+		final int fmoreThanOneVarNonImproving = moreThanOneVarNonImproving;
+
 		reportIfPossible(() -> "* Number of components: "+getNumberOfComponents());
+		reportIfPossible(() -> String.format("* Component details (OI, ON, MI, MN): %d, %d, %d, %d", foneVarImproving, foneVarNonImproving, fmoreThanOneVarImproving, fmoreThanOneVarNonImproving));
 		reportIfPossible(() -> "* Constrained Walsh terms: "+getWcsConstrained().getNonzeroTerms());
 		reportIfPossible(() -> "* Walsh terms with several components: "+termsWithOtherComponentsToo.size());
 
