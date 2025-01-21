@@ -170,7 +170,7 @@ public class FourierPartitionCrossover<W extends WalshCoefficientsInterface<W>> 
 						// and to explore
 						if (!varToBeAssigned.isEmpty()) {
 							int varsToSelect = varToBeAssigned.size();
-							int selectedVar=0;
+							int selectedVar=varToBeAssigned.get(0);
 							if (varsToSelect > 1) {
 								selectedVar = varToBeAssigned.get(rnd.nextInt(varsToSelect));
 							}

@@ -84,6 +84,49 @@ public class FourierPartitionCrossoverTest {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("provideParamsForNKLandscpaes")
+    //@Disabled
+    public void testFPXArrayNoRandomized(int N, int K, long seed) {
+        EmbeddedLandscape el = createNKLandscape(N, K, seed);
+        WalshCoefficientsInterface wcs = WalshTransform.transform(el, WalshCoefficientsArray.factory());
+        WalshBasedFunction wbf = new WalshBasedFunction(el.getN(), wcs);
+        FourierPartitionCrossover<WalshCoefficients> fpx = new FourierPartitionCrossover(wbf, el);
+        fpx.setDebug(true);
+        fpx.setRandomizeTies(false);
+        //fpx.setPrintStream(System.out);
+
+        for (int i = 0; i < 10; i++) {
+            PBSolution blue = el.getRandomSolution();
+            PBSolution red = el.getRandomSolution();
+            PBSolution solution = fpx.recombine(blue, red);
+            checkVariablesInComponents(fpx);
+            checkLattice(fpx, red);
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParamsForNKLandscpaes")
+    //@Disabled
+    public void testFPXArrayTargetMin2NoRandomized(int N, int K, long seed) {
+        EmbeddedLandscape el = createNKLandscape(N, K, seed);
+        WalshCoefficientsInterface wcs = WalshTransform.transform(el, WalshCoefficientsArray.factory());
+        WalshBasedFunction wbf = new WalshBasedFunction(el.getN(), wcs);
+        FourierPartitionCrossover<WalshCoefficients> fpx = new FourierPartitionCrossover(wbf, el);
+        fpx.setDebug(true);
+        fpx.setRandomizeTies(false);
+        fpx.setTargetMinComponentSize(2);
+        //fpx.setPrintStream(System.out);
+
+        for (int i = 0; i < 10; i++) {
+            PBSolution blue = el.getRandomSolution();
+            PBSolution red = el.getRandomSolution();
+            PBSolution solution = fpx.recombine(blue, red);
+            checkVariablesInComponents(fpx);
+            checkLattice(fpx, red);
+        }
+    }
+
     @Test
     public void testFPX847Array() {
         testFPXArray(8, 4, 7);
