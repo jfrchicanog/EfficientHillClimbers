@@ -1,9 +1,12 @@
 package neo.landscape.theory.apps.pseudoboolean.problems;
 
-import java.util.Properties;
-import java.util.stream.Stream;
-
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
+
+import java.io.Writer;
+import java.util.List;
+import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SumOfEmbeddedLandscapes extends EmbeddedLandscape {
 	private EmbeddedLandscape [] nkLandscapes;
@@ -54,5 +57,20 @@ public class SumOfEmbeddedLandscapes extends EmbeddedLandscape {
 		}
 		return nkLandscapes[l].evaluateSubfunction(sf, value);
 	}
+
+    public void writeTo(Writer wr) {
+        for (EmbeddedLandscape els : this.nkLandscapes) {
+            if (els instanceof NKLandscapes) {
+                ((NKLandscapes) els).writeTo(wr);
+            }
+            if (els instanceof MAXSAT) {
+                ((MAXSAT) els).writeTo(wr);
+            }
+        }
+    }
+
+    public List<Integer> getNValues() {
+        return Stream.of(nkLandscapes).mapToInt(EmbeddedLandscape::getN).boxed().collect(Collectors.toList());
+    }
 
 }

@@ -1,17 +1,12 @@
 package neo.landscape.theory.apps.pseudoboolean.experiments;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.io.*;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.zip.GZIPOutputStream;
 
 import neo.landscape.theory.apps.pseudoboolean.problems.*;
+import neo.landscape.theory.apps.pseudoboolean.problems.AnkRnkLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -38,6 +33,7 @@ public class DrilsExperiment implements Process {
 	private static final String DEBUG_ARGUMENT = "debug";
     private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
     private static final String TIME_ARGUMENT = "time";
+    private static final String OUT_FILE = "outfile";
     private static final String EXPLORED_SOLUTIONS = "expSols";
     private static final String MOVES_FACTOR_ARGUMENT = "mf";
     private static final String RADIUS_ARGUMENT = "r";
@@ -52,6 +48,8 @@ public class DrilsExperiment implements Process {
     
     private static final String MAXSAT_PROBLEM = "maxsat";
     private static final String NK_PROBLEM = "nk";
+    private static final String NKSAT_PROBLEM = "nksat";
+    private static final String ANK_RNK_PROBLEM = "ank_rnk";
 	private static final String WALSH_PROBLEM = "walsh";
     
     private static final String DPX="dpx";
@@ -66,11 +64,14 @@ public class DrilsExperiment implements Process {
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
-    
+    private String filename="output.gz";
+
     private final Map<String, EmbeddedLandscapeConfigurator> configurators = new HashMap<>();
     {
     	configurators.put(MAXSAT_PROBLEM, new MAXSATConfigurator());
     	configurators.put(NK_PROBLEM, new NKLandscapeConfigurator());
+    	configurators.put(NKSAT_PROBLEM, new NKSATLandscapeConfigurator());
+    	configurators.put(ANK_RNK_PROBLEM, new AnkRnkLandscapeConfigurator());
 		configurators.put(WALSH_PROBLEM, new WalshBasedFunctionConfigurator());
     }
     
@@ -142,6 +143,7 @@ public class DrilsExperiment implements Process {
 	    options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
 	    options.addOption(MOVES_FACTOR_ARGUMENT, true, "proportion of variables used for the random walk in the perturbation");
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
+	    options.addOption(OUT_FILE, true, "output file name");
 	    options.addOption(TIMER_ARGUMENT, true, "timer to use ["+Timers.SINGLE_THREAD_CPU+","+Timers.CPU_CLOCK+"], default: "+Timers.getNameOfDefaultTimer());
 	    options.addOption(EXPLORED_SOLUTIONS, true, "explored solutions limit");
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
@@ -205,6 +207,10 @@ public class DrilsExperiment implements Process {
 					((NKLandscapes)pbf).writeTo(sr);
 					ps.print(sr.toString());
 				}
+				if (pbf instanceof SumOfEmbeddedLandscapes) {
+					((SumOfEmbeddedLandscapes)pbf).writeTo(sr);
+					ps.print(sr);
+				}
 			}
 
 			if (commandLine.hasOption(LON_ARGUMENT)) {
@@ -221,6 +227,9 @@ public class DrilsExperiment implements Process {
 				int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
 				timer.setStopTimeMilliseconds(time * 1000);
 				shouldIStop = shouldIStop.or(x->timer.shouldStop());
+			}
+			if (commandLine.hasOption(OUT_FILE)) {
+				filename = commandLine.getOptionValue(OUT_FILE);
 			}
 			
 			if (commandLine.hasOption(EXPLORED_SOLUTIONS)) {
@@ -381,27 +390,47 @@ public class DrilsExperiment implements Process {
     }
 
     private void printOutput() {
-        ps.close();
         try {
             System.out.write(ba.toByteArray());
+			writeCompressedToFile(filename);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
+	private void writeCompressedToFile(String filename) {
+		ps.close(); // Ensure everything is written to the ByteArrayOutputStream
+		try (FileOutputStream fos = new FileOutputStream(filename)) {
+			fos.write(ba.toByteArray()); // Write compressed data to a file
+			System.out.println("Compressed data written to file: " + filename);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
     private void notifyExploredSolution(RBallEfficientHillClimberSnapshot exploredSolution) {
-        double quality = exploredSolution.getSolutionQuality();
-        numberOfExploredSolutions++;
-        ps.println("Solution quality: " + quality);
-        ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
-        ps.println("* Moves: "+moves);
-        if (quality > bestSoFar) {
-            bestSoFar = quality;
-            ps.println("* Best so far solution");
-        }
-        
-        reportLONNode(exploredSolution);
-    }
+		double quality = exploredSolution.getSolutionQuality();
+		numberOfExploredSolutions++;
+		ps.println("Solution quality: " + quality);
+		if (problem.equals(ANK_RNK_PROBLEM)) {
+			// In this problem type, first problem is NK and second one is SAT
+			SumOfEmbeddedLandscapes problem = (SumOfEmbeddedLandscapes) exploredSolution.getProblem();
+			List<Integer> nValues = problem.getNValues();
+			Double[] subfnsEvals = exploredSolution.getSubfnsEvals();
+			double nkSolQuality = Arrays.stream(subfnsEvals)
+					.limit(nValues.get(0)).mapToDouble(Double::doubleValue).sum();
+			ps.println("** NK Solution quality: " + nkSolQuality);
+			ps.println("** SAT Solution quality: " + (quality - nkSolQuality));
+		}
+		ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
+		ps.println("* Moves: " + moves);
+		if (quality > bestSoFar) {
+			bestSoFar = quality;
+			ps.println("* Best so far solution");
+		}
+
+		reportLONNode(exploredSolution);
+	}
 
     private RBallEfficientHillClimberSnapshot createGenerationZeroSolution(
             RBallEfficientHillClimberForInstanceOf rballfio) {

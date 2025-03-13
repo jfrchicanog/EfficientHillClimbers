@@ -31,7 +31,10 @@ public class NetworkCrossoverTest {
     @Before
     public void prepareData() {
     	try {
-			ps = new PrintStream("/dev/null");
+			String os = System.getProperty("os.name").toLowerCase();
+			String nullDevice = os.contains("win") ? "NUL" : "/dev/null";
+
+			ps = new PrintStream(nullDevice);
 			nkLandscapeConfigurator = new NKLandscapeConfigurator();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -113,7 +116,7 @@ public class NetworkCrossoverTest {
 
 	protected EmbeddedLandscape nkLandscape(int val, int k, int q) {
 		Properties prop = new Properties();
-		prop.setProperty(NKLandscapeConfigurator.N_ARGUMENT, val+"");
+		prop.setProperty(NKLandscapeConfigurator.N_ARGUMENT, val+k+"");
 		prop.setProperty(NKLandscapeConfigurator.K_ARGUMENT, k+"");
 		prop.setProperty(NKLandscapeConfigurator.Q_ARGUMENT, q+"");
 		prop.setProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT, rnd.nextLong()+"");
