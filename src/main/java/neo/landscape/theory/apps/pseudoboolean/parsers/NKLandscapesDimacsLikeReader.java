@@ -10,6 +10,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
 
 	private Scanner scanner;
+	private double alpha = 1.0;
 
 	public NKLandscapesDimacsLikeReader() {
 		super();
@@ -21,6 +22,11 @@ public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
 		parseInstance();
 		scanner.close();
 		return instance;
+	}
+
+	public NKLandscapes readInstance(Readable input, double alpha) {
+		this.alpha = alpha;
+		return readInstance(input);
 	}
 
 	private void prepareMemberVariables(Readable input) {
@@ -90,8 +96,8 @@ public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
 			scan.useDelimiter("\\s+");
 			scan.useLocale(Locale.US);
 			int twoToK = 1 << instance.getK();
-			for (int row=0; row < twoToK; row++) {
-				instance.getSubFunctions()[subfunction][row] = scan.nextDouble();
+			for (int row = 0; row < twoToK; row++) {
+				instance.getSubFunctions()[subfunction][row] = alpha * scan.nextDouble();
 			}
 		}
 	}

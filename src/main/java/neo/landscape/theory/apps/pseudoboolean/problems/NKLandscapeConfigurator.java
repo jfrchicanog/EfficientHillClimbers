@@ -21,7 +21,6 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 	public static final String INSTANCE_ARGUMENT = "instance";
 	public static final String FACTOR = "alpha";
 	public static final String IS_SAT = "is_sat";
-	public static final String IS_RANDOM = "is_random";
 	public static final String SAT_STEP = "sat_step";
 
 	@Override
@@ -48,16 +47,21 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 	@Override
 	public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
 		NKLandscapes pbf;
-		if (properties.containsKey(INSTANCE_ARGUMENT)) {
-			String instance = properties.getProperty(INSTANCE_ARGUMENT);
-			NKLandscapesDimacsLikeReader instanceReader = new NKLandscapesDimacsLikeReader();
-			try (FileReader reader = new FileReader(instance)) {
-				pbf = instanceReader.readInstance(reader);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-			ps.println("Intance: "+instance);
-		} else {
+        if (properties.containsKey(INSTANCE_ARGUMENT)) {
+            String instance = properties.getProperty(INSTANCE_ARGUMENT);
+            NKLandscapesDimacsLikeReader instanceReader = new NKLandscapesDimacsLikeReader();
+            try (FileReader reader = new FileReader(instance)) {
+                if (properties.containsKey(FACTOR)) {
+                    double factor = Double.parseDouble((properties.getProperty(NKLandscapeConfigurator.FACTOR)));
+                    pbf = instanceReader.readInstance(reader, factor);
+                } else {
+                    pbf = instanceReader.readInstance(reader);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            ps.println("Intance: " + instance);
+        } else {
 			pbf = new NKLandscapes();
 			Properties prop = new Properties();
 			String n = properties.getProperty(NKLandscapeConfigurator.N_ARGUMENT);
@@ -73,10 +77,6 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 			if (properties.containsKey(IS_SAT)) {
 				String isSat = properties.getProperty(NKLandscapeConfigurator.IS_SAT);
 				prop.setProperty(NKLandscapes.IS_SAT, isSat);
-			}
-			if (properties.containsKey(IS_RANDOM)) {
-				String isRandom = properties.getProperty(NKLandscapeConfigurator.IS_RANDOM);
-				prop.setProperty(NKLandscapes.IS_RANDOM, isRandom);
 			}
 			if (properties.containsKey(SAT_STEP)) {
 				String step = properties.getProperty(NKLandscapeConfigurator.SAT_STEP);
@@ -97,7 +97,10 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 			}
 
 			pbf.setSeed(problemSeed);
-			pbf.setConfiguration(prop);
+            pbf.setConfiguration(prop);
+
+            // same seed value starts for solving problem
+			pbf.setSeed(problemSeed);
 
 			ps.println("N: " + pbf.getN());
 			ps.println("k: " + pbf.getK());

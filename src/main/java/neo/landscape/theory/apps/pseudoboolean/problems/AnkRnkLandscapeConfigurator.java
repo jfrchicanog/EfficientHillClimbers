@@ -16,6 +16,8 @@ public class AnkRnkLandscapeConfigurator implements EmbeddedLandscapeConfigurato
     public static final String FACTOR = "alpha";
     public static final String STEP = "sat_step";
     public static final String RANDOM_PBM = "random_pbm";
+    public static final String ANK_INSTANCE = "ank_instance";
+    public static final String RNK_INSTANCE = "rnk_instance";
 
     @Override
     public void prepareOptionsForProblem(Options options) {
@@ -26,56 +28,75 @@ public class AnkRnkLandscapeConfigurator implements EmbeddedLandscapeConfigurato
         options.addOption(FACTOR, true, "used to generate two nk problems, one with alpha times subfunctions and other (SAT) one minus alpha times");
         options.addOption(STEP, true, "used to generate SAT problem, this value is multiplied with alpha");
         options.addOption(RANDOM_PBM, true, "either ANK or RNK, indicates which problem is random and other will be static when it comes to sub-functions");
+        options.addOption(ANK_INSTANCE, true, "ANK instance to load the problem");
+        options.addOption(RNK_INSTANCE, true, "RNK instance to load the problem");
     }
 
     @Override
     public EmbeddedLandscape configureProblem(CommandLine commandLine, PrintStream ps) {
         Properties properties = new Properties();
 
-        Stream.of(N_ARGUMENT, K_ARGUMENT, Q_ARGUMENT, PROBLEM_SEED_ARGUMENT, FACTOR, STEP, RANDOM_PBM).forEach(clave -> MAXSATConfigurator.moveProperty(commandLine, properties, clave));
+        Stream.of(N_ARGUMENT, K_ARGUMENT, Q_ARGUMENT, PROBLEM_SEED_ARGUMENT, FACTOR, STEP, RANDOM_PBM, ANK_INSTANCE, RNK_INSTANCE).forEach(clave -> MAXSATConfigurator.moveProperty(commandLine, properties, clave));
 
         return configureProblem(properties, ps);
     }
 
     @Override
     public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
-        String n = properties.getProperty(N_ARGUMENT);
-        String k = properties.getProperty(K_ARGUMENT);
-        String q = properties.getProperty(Q_ARGUMENT);
-        String problemSeed = properties.getProperty(PROBLEM_SEED_ARGUMENT);
-        String factor = properties.getProperty(FACTOR);
-        String random_pbm = properties.getProperty(RANDOM_PBM);
-
         // Generating Adjacent NK
         Properties prop = new Properties();
-        prop.setProperty(NKLandscapeConfigurator.N_ARGUMENT, n);
-        prop.setProperty(NKLandscapeConfigurator.K_ARGUMENT, k);
-        prop.setProperty(NKLandscapeConfigurator.Q_ARGUMENT, q);
-        prop.setProperty(NKLandscapeConfigurator.MODEL_ARGUMENT, "adjacent");
-        prop.setProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT, problemSeed);
-        if (prop.containsKey(FACTOR)) {
+        String factor = properties.getProperty(FACTOR);
+        if (properties.containsKey(FACTOR)) {
             prop.setProperty(NKLandscapeConfigurator.FACTOR, factor);
         }
-        if ("ANK".equalsIgnoreCase(random_pbm)) {
-            prop.setProperty(NKLandscapeConfigurator.IS_RANDOM, "");
+
+        if (properties.containsKey(ANK_INSTANCE)) {
+            String instance = properties.getProperty(ANK_INSTANCE);
+            prop.setProperty(NKLandscapeConfigurator.INSTANCE_ARGUMENT, instance);
+        } else {
+            String n = properties.getProperty(N_ARGUMENT);
+            String k = properties.getProperty(K_ARGUMENT);
+            String q = properties.getProperty(Q_ARGUMENT);
+            String problemSeed = properties.getProperty(PROBLEM_SEED_ARGUMENT);
+//            String random_pbm = properties.getProperty(RANDOM_PBM);
+
+            prop.setProperty(NKLandscapeConfigurator.N_ARGUMENT, n);
+            prop.setProperty(NKLandscapeConfigurator.K_ARGUMENT, k);
+            prop.setProperty(NKLandscapeConfigurator.Q_ARGUMENT, q);
+            prop.setProperty(NKLandscapeConfigurator.MODEL_ARGUMENT, "adjacent");
+            prop.setProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT, problemSeed);
+//            if ("ANK".equalsIgnoreCase(random_pbm)) {
+//                prop.setProperty(NKLandscapeConfigurator.IS_RANDOM, "");
+//            }
         }
+
         EmbeddedLandscape nk = new NKLandscapeConfigurator().configureProblem(prop, ps);
 
         prop = new Properties();
         // Generating Random NK
-        prop.setProperty(NKLandscapeConfigurator.N_ARGUMENT, n);
-        prop.setProperty(NKLandscapeConfigurator.K_ARGUMENT, k);
-        prop.setProperty(NKLandscapeConfigurator.Q_ARGUMENT, q);
-        prop.setProperty(NKLandscapeConfigurator.MODEL_ARGUMENT, "random");
-        prop.setProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT, problemSeed);
-        if ("RNK".equalsIgnoreCase(random_pbm)) {
-            prop.setProperty(NKLandscapeConfigurator.IS_RANDOM, "");
-        }
-        if (prop.containsKey(FACTOR)) {
+        if (properties.containsKey(FACTOR)) {
             double new_factor = 1 - Double.parseDouble(factor);
             prop.setProperty(NKLandscapeConfigurator.FACTOR, String.valueOf(new_factor));
         }
 
+        if (properties.containsKey(RNK_INSTANCE)) {
+            String instance = properties.getProperty(RNK_INSTANCE);
+            prop.setProperty(NKLandscapeConfigurator.INSTANCE_ARGUMENT, instance);
+        } else {
+            String n = properties.getProperty(N_ARGUMENT);
+            String k = properties.getProperty(K_ARGUMENT);
+            String q = properties.getProperty(Q_ARGUMENT);
+            String problemSeed = properties.getProperty(PROBLEM_SEED_ARGUMENT);
+
+            prop.setProperty(NKLandscapeConfigurator.N_ARGUMENT, n);
+            prop.setProperty(NKLandscapeConfigurator.K_ARGUMENT, k);
+            prop.setProperty(NKLandscapeConfigurator.Q_ARGUMENT, q);
+            prop.setProperty(NKLandscapeConfigurator.MODEL_ARGUMENT, "random");
+            prop.setProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT, problemSeed);
+//            if ("RNK".equalsIgnoreCase(random_pbm)) {
+//                prop.setProperty(NKLandscapeConfigurator.IS_RANDOM, "");
+//            }
+        }
         EmbeddedLandscape rnk = new NKLandscapeConfigurator().configureProblem(prop, ps);
 
         return new SumOfEmbeddedLandscapes(nk, rnk);

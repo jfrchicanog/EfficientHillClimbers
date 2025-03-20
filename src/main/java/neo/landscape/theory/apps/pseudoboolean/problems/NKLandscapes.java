@@ -13,16 +13,14 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class NKLandscapes extends EmbeddedLandscape implements
         KBoundedEpistasisPBF, EmbeddedLandscapeSubfunctionMaximizer {
 
-    public static enum NKModel {ADJACENT, LOCALIZED, RANDOM}
+    public static enum NKModel {ADJACENT, LOCALIZED, RANDOM};
 
-    ;
     public static final String N_STRING = "n";
     public static final String FACTOR = "alpha";
     public static final String K_STRING = "k";
@@ -31,7 +29,6 @@ public class NKLandscapes extends EmbeddedLandscape implements
     public static final String CIRCULAR_STRING = "circular";
     public static final String FORCE_NK = ".";
     public static final String IS_SAT = "is_sat";
-    public static final String IS_RANDOM = "is_random";
     public static final String SAT_STEP = "sat_step";
 
 
@@ -43,7 +40,6 @@ public class NKLandscapes extends EmbeddedLandscape implements
     protected int k;
     protected double alpha;
     protected boolean isSat;
-    protected boolean isRandom = false;
     protected double sat_step = 1.0;
 
     @Override
@@ -69,7 +65,6 @@ public class NKLandscapes extends EmbeddedLandscape implements
         if (isSat) {
             m = (int) (4.27 * n);
         }
-        isRandom = prop.containsKey(IS_RANDOM);
 
         if (prop.containsKey(SAT_STEP)) {
             sat_step = Double.parseDouble(prop.getProperty(SAT_STEP));
@@ -161,15 +156,9 @@ public class NKLandscapes extends EmbeddedLandscape implements
                 subFunctions[sf] = numbers.stream().mapToDouble(Double::doubleValue).toArray();
             } else {
                 // Generate random numbers and find max index
-                if (isRandom) {
-                    subFunctions[sf] = IntStream.range(0, twoToK)
-                            .mapToDouble(i -> alpha * ((q > 0) ? rnd.nextInt(q) - shift : rnd.nextDouble()))
-                            .toArray();
-                } else {
-                    subFunctions[sf] = DoubleStream.generate(() -> alpha * 50.0)
-                            .limit(twoToK)
-                            .toArray();
-                }
+                subFunctions[sf] = IntStream.range(0, twoToK)
+                        .mapToDouble(i -> alpha * ((q > 0) ? rnd.nextInt(q) - shift : rnd.nextDouble()))
+                        .toArray();
             }
 
             for (int i = 0; i < twoToK; i++) {

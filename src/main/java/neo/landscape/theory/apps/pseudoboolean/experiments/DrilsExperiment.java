@@ -271,15 +271,17 @@ public class DrilsExperiment implements Process {
 
 			
 			ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
+			int countChild = 0;
+			int countCrossover = 0;
 
 			try {
-				RBallEfficientHillClimberSnapshot currentSolution = createGenerationZeroSolution(rballfio);
-				notifyExploredSolution(currentSolution);
+				RBallEfficientHillClimberSnapshot previousSolution = createGenerationZeroSolution(rballfio);
+				notifyExploredSolution(previousSolution);
 
 				int perturbMoves=20;
 
 				while (!shouldIStop.test(null)) {               
-					RBallEfficientHillClimberSnapshot nextSolution = rballfio.initialize(new PBSolution(currentSolution.getSolution()), currentSolution);
+					RBallEfficientHillClimberSnapshot currentSolution = rballfio.initialize(new PBSolution(previousSolution.getSolution()), previousSolution);
 
 					if (perturbFactor < 0) {
 						if (moves > 0) {
@@ -289,34 +291,40 @@ public class DrilsExperiment implements Process {
 						perturbMoves = (int)(perturbFactor*pbf.getN());
 					}
 
-					nextSolution.softRestart(perturbMoves);
-					ps.println("* Hamming distance after perturbation: "+nextSolution.getSolution().hammingDistance(currentSolution.getSolution()));
-					hillClimb(nextSolution);
-					notifyExploredSolution(nextSolution);
-					reportLONEdge(currentSolution, nextSolution, TYPE_PERTURBATION);
+					currentSolution.softRestart(perturbMoves);
+					ps.println("* Hamming distance after perturbation: "+currentSolution.getSolution().hammingDistance(previousSolution.getSolution()));
+					hillClimb(currentSolution);
+					notifyExploredSolution(currentSolution);
+					reportLONEdge(previousSolution, currentSolution, TYPE_PERTURBATION);
 
 					RBallEfficientHillClimberSnapshot child = null;
 
 					if (px!= null && !shouldIStop.test(null)) {
-						child = px.recombine(currentSolution, nextSolution);
+						child = px.recombine(previousSolution, currentSolution);
+						countCrossover++;
 					}
 
 					if (child == null) {
-						child = nextSolution;
+						child = currentSolution;
 					} else {
+						countChild++;
 						ps.println("* Child different from parents");
 						hillClimb(child);
+						reportLONEdge(previousSolution, child, TYPE_CROSSOVER);
 						reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
-						reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
 
 						notifyExploredSolution(child);
 					}
-					currentSolution = acceptanceCriterion(currentSolution, child);
+					previousSolution = acceptanceCriterion(previousSolution, child);
 				}
 			} catch (Exception e) {
 				ps.println("Exception: "+e.getMessage());
 				e.printStackTrace(ps);
 			}
+			ps.println("===============================================================================================");
+			ps.println("Execution Time: "+timer.elapsedTimeInMilliseconds());
+			ps.println("crossover Operated: "+countCrossover + "times");
+			ps.println("No. of children different from parents: "+countChild);
 
 			writeLONInformation();
 			printOutput();
@@ -413,14 +421,14 @@ public class DrilsExperiment implements Process {
 		numberOfExploredSolutions++;
 		ps.println("Solution quality: " + quality);
 		if (problem.equals(ANK_RNK_PROBLEM)) {
-			// In this problem type, first problem is NK and second one is SAT
+			// In this problem type, first problem is NK and second one is RNK
 			SumOfEmbeddedLandscapes problem = (SumOfEmbeddedLandscapes) exploredSolution.getProblem();
 			List<Integer> nValues = problem.getNValues();
 			Double[] subfnsEvals = exploredSolution.getSubfnsEvals();
 			double nkSolQuality = Arrays.stream(subfnsEvals)
 					.limit(nValues.get(0)).mapToDouble(Double::doubleValue).sum();
-			ps.println("** NK Solution quality: " + nkSolQuality);
-			ps.println("** SAT Solution quality: " + (quality - nkSolQuality));
+			ps.println("** ANK Solution quality: " + nkSolQuality);
+			ps.println("** RNK Solution quality: " + (quality - nkSolQuality));
 		}
 		ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
 		ps.println("* Moves: " + moves);

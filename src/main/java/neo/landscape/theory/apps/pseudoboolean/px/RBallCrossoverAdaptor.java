@@ -31,6 +31,7 @@ public class RBallCrossoverAdaptor implements RBallCrossover  {
 
 		if (res.equals(blueSolution) || res.equals(redSolution)) {
 			reportRuntime(lastRuntime);
+			ps.println("In recombination child is same as one of the parent and hence no solution is returned");
 			return null;
 		}
 		// else
