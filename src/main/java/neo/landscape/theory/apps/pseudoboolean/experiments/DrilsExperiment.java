@@ -96,6 +96,7 @@ public class DrilsExperiment implements Process {
 
     private int moves;
     private int numberOfExploredSolutions=0;
+    private int climbs=0;
 
     private Options options;
     
@@ -235,6 +236,7 @@ public class DrilsExperiment implements Process {
 			if (commandLine.hasOption(EXPLORED_SOLUTIONS)) {
 				final int maxExploredSolutions = Integer.parseInt(commandLine.getOptionValue(EXPLORED_SOLUTIONS));
 				shouldIStop = shouldIStop.or(x->numberOfExploredSolutions >= maxExploredSolutions);
+				shouldIStop = shouldIStop.or(x->climbs >= maxExploredSolutions);
 			}
 
 			int r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
@@ -271,6 +273,8 @@ public class DrilsExperiment implements Process {
 
 			
 			ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
+
+			System.out.println("Hill Climbing and Searching is about to start....");
 			int countChild = 0;
 			int countCrossover = 0;
 
@@ -297,10 +301,12 @@ public class DrilsExperiment implements Process {
 					notifyExploredSolution(currentSolution);
 					reportLONEdge(previousSolution, currentSolution, TYPE_PERTURBATION);
 
+					System.out.println("Hill climbing done, going to perform crossover operation");
 					RBallEfficientHillClimberSnapshot child = null;
 
 					if (px!= null && !shouldIStop.test(null)) {
 						child = px.recombine(previousSolution, currentSolution);
+						System.out.println("Recombination is done, childId:" + countCrossover);
 						countCrossover++;
 					}
 
@@ -314,6 +320,7 @@ public class DrilsExperiment implements Process {
 						reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
 
 						notifyExploredSolution(child);
+						System.out.println("Hill climbing done, going to perform next loop");
 					}
 					previousSolution = acceptanceCriterion(previousSolution, child);
 				}
@@ -451,16 +458,20 @@ public class DrilsExperiment implements Process {
     }
 
     private void hillClimb(RBallEfficientHillClimberSnapshot rball) {
-        moves=0;
-        try {
-            do {
-                rball.move();
-                moves++;
-            } while (!shouldIStop.test(null));
-        } catch (NoImprovingMoveException e) {
+		moves = 0;
+		climbs = 0;
+		try {
+			do {
+				rball.move();
+				moves++;
+				climbs++;
+			} while (!shouldIStop.test(null));
+			climbs = 0;
+		} catch (NoImprovingMoveException e) {
+			System.out.println("Got No Improving Move Exception");
 
-        }
-    }
+		}
+	}
     
     private void reportLONEdge(RBallEfficientHillClimberSnapshot solution,
             RBallEfficientHillClimberSnapshot result, String kind) {
