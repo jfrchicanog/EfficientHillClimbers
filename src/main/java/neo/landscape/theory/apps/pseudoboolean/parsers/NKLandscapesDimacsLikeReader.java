@@ -10,6 +10,7 @@ import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
 
 	private Scanner scanner;
+	private double alpha = 1.0;
 
 	public NKLandscapesDimacsLikeReader() {
 		super();
@@ -21,6 +22,11 @@ public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
 		parseInstance();
 		scanner.close();
 		return instance;
+	}
+
+	public NKLandscapes readInstance(Readable input, double alpha) {
+		this.alpha = alpha;
+		return readInstance(input);
 	}
 
 	private void prepareMemberVariables(Readable input) {
@@ -42,20 +48,45 @@ public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
 		}
 
 		if (line.startsWith("p")) {
+			Object[] objs = null;
+			Number n = null;
+			Number K = null;
+			Number Q = null;
+			Number m = null;
 			try {
-				MessageFormat msg = new MessageFormat("p NK {0,number,integer} {1,number,integer}");
-				Object [] objs = msg.parse(line);
-				Number n = (Number)objs[0];
-				Number K = (Number)objs[1];
-				instance.setN(n.intValue());
-				instance.setK(K.intValue()+1);
-				instance.setM(instance.getN());
-				instance.setQ(-1);
-			} catch (ParseException e) {
-				throw new RuntimeException(e);
+				MessageFormat msg = new MessageFormat("p NK {0,number,integer} {1,number,integer} {2,number,integer} {3,number,integer}");
+				objs = msg.parse(line);
+				n = (Number) objs[0];
+				K = (Number) objs[1];
+				Q = (Number) objs[2];
+				m = (Number) objs[3];
+			} catch (ParseException e1) {
+				try {
+					MessageFormat msg = new MessageFormat("p NK {0,number,integer} {1,number,integer} {2,number,integer}");
+					objs = msg.parse(line);
+					n = (Number) objs[0];
+					K = (Number) objs[1];
+					Q = (Number) objs[2];
+					m = n;
+				} catch (ParseException e2) {
+					try {
+						MessageFormat msg = new MessageFormat("p NK {0,number,integer} {1,number,integer}");
+						objs = msg.parse(line);
+						n = (Number) objs[0];
+						K = (Number) objs[1];
+						Q = -1;
+						m = n;
+					} catch (ParseException e) {
+						throw new RuntimeException(e);
+					}
+				}
 			}
+			instance.setN(n.intValue());
+			instance.setK(K.intValue() + 1);
+			instance.setM(m.intValue());
+			instance.setQ(Q.intValue());
 		} else {
-			throw new IllegalArgumentException("Wrong format for NK Landscape input: expecting line starting with 'p' and found: "+line);
+			throw new IllegalArgumentException("Wrong format for NK Landscape input: expecting line starting with 'p' and found: " + line);
 		}
 
 	}
@@ -90,8 +121,10 @@ public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
 			scan.useDelimiter("\\s+");
 			scan.useLocale(Locale.US);
 			int twoToK = 1 << instance.getK();
-			for (int row=0; row < twoToK; row++) {
+			for (int row = 0; row < twoToK; row++) {
+//				alpha is considered while evaluating the subfunction, so need not to multiply it
 				instance.getSubFunctions()[subfunction][row] = scan.nextDouble();
+//				instance.getSubFunctions()[subfunction][row] = alpha * scan.nextDouble();
 			}
 		}
 	}

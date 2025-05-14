@@ -1,16 +1,15 @@
 package neo.landscape.theory.apps.pseudoboolean.problems;
 
+import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.parsers.NKLandscapesDimacsLikeReader;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Properties;
 import java.util.stream.Stream;
-
-import neo.landscape.theory.apps.pseudoboolean.parsers.NKLandscapesDimacsLikeReader;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Options;
-
-import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
 
 public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 
@@ -20,8 +19,11 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
     public static final String K_ARGUMENT = "k";
     public static final String N_ARGUMENT = "n";
 	public static final String INSTANCE_ARGUMENT = "instance";
-    
-    @Override
+	public static final String FACTOR = "alpha";
+	public static final String IS_SAT = "is_sat";
+	public static final String SAT_STEP = "sat_step";
+
+	@Override
     public  void prepareOptionsForProblem(Options options) {
         options.addOption(N_ARGUMENT, true, "number of variables");
         options.addOption(K_ARGUMENT, true, "number of subfunction arguments");
@@ -29,13 +31,14 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
         options.addOption(MODEL_ARGUMENT, true, "NK-model: adjacent, random, <number>->Localized");
         options.addOption(PROBLEM_SEED_ARGUMENT, true, "random seed for generating the problem");
 		options.addOption(INSTANCE_ARGUMENT, true, "file with the instance to load (optional)");
+		options.addOption(FACTOR, true, "multiplying factor to generate nk problem (optional)");
     }
-    
+
     @Override
     public EmbeddedLandscape configureProblem(CommandLine commandLine, PrintStream ps) {
     	Properties properties = new Properties();
 
-    	Stream.of(INSTANCE_ARGUMENT, N_ARGUMENT, K_ARGUMENT, Q_ARGUMENT, MODEL_ARGUMENT, PROBLEM_SEED_ARGUMENT)
+    	Stream.of(INSTANCE_ARGUMENT, FACTOR, N_ARGUMENT, K_ARGUMENT, Q_ARGUMENT, MODEL_ARGUMENT, PROBLEM_SEED_ARGUMENT)
     		.forEach(clave -> MAXSATConfigurator.moveProperty(commandLine, properties, clave));
 
         return configureProblem(properties, ps);
@@ -44,16 +47,21 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 	@Override
 	public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
 		NKLandscapes pbf;
-		if (properties.containsKey(INSTANCE_ARGUMENT)) {
-			String instance = properties.getProperty(INSTANCE_ARGUMENT);
-			NKLandscapesDimacsLikeReader instanceReader = new NKLandscapesDimacsLikeReader();
-			try (FileReader reader = new FileReader(instance)) {
-				pbf = instanceReader.readInstance(reader);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-			ps.println("Intance: "+instance);
-		} else {
+        if (properties.containsKey(INSTANCE_ARGUMENT)) {
+            String instance = properties.getProperty(INSTANCE_ARGUMENT);
+            NKLandscapesDimacsLikeReader instanceReader = new NKLandscapesDimacsLikeReader();
+            try (FileReader reader = new FileReader(instance)) {
+                if (properties.containsKey(FACTOR)) {
+                    double factor = Double.parseDouble((properties.getProperty(NKLandscapeConfigurator.FACTOR)));
+                    pbf = instanceReader.readInstance(reader, factor);
+                } else {
+                    pbf = instanceReader.readInstance(reader);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            ps.println("Intance: " + instance);
+        } else {
 			pbf = new NKLandscapes();
 			Properties prop = new Properties();
 			String n = properties.getProperty(NKLandscapeConfigurator.N_ARGUMENT);
@@ -62,6 +70,18 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 			String circular = properties.getProperty(NKLandscapeConfigurator.MODEL_ARGUMENT);
 			long problemSeed = Long.parseLong(properties.getProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT));
 
+			if (properties.containsKey(FACTOR)) {
+				String factor = properties.getProperty(NKLandscapeConfigurator.FACTOR);
+				prop.setProperty(NKLandscapes.FACTOR, factor);
+			}
+			if (properties.containsKey(IS_SAT)) {
+				String isSat = properties.getProperty(NKLandscapeConfigurator.IS_SAT);
+				prop.setProperty(NKLandscapes.IS_SAT, isSat);
+			}
+			if (properties.containsKey(SAT_STEP)) {
+				String step = properties.getProperty(NKLandscapeConfigurator.SAT_STEP);
+				prop.setProperty(NKLandscapes.SAT_STEP, step);
+			}
 
 			prop.setProperty(NKLandscapes.N_STRING, n);
 			prop.setProperty(NKLandscapes.K_STRING, k);
@@ -77,10 +97,13 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 			}
 
 			pbf.setSeed(problemSeed);
-			pbf.setConfiguration(prop);
+            pbf.setConfiguration(prop);
+
+            // same seed value starts for solving problem
+			pbf.setSeed(problemSeed);
 
 			ps.println("N: " + pbf.getN());
-			ps.println("K: " + pbf.getK());
+			ps.println("k: " + pbf.getK());
 			ps.println("Q: " + pbf.getQ());
 			ps.println("Adjacent model?: "
 				+ (NKLandscapes.NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));

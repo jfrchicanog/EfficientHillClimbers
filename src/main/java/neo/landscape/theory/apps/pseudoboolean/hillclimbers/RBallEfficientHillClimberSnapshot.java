@@ -416,4 +416,12 @@ public class RBallEfficientHillClimberSnapshot implements
 		return movesSelector.allMoves();
 	}
 
+	public EmbeddedLandscape getProblem() {
+		return problem;
+	}
+
+	public Double[] getSubfnsEvals() {
+		return subfnsEvals;
+	}
+
 }

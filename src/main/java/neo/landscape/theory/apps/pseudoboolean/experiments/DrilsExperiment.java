@@ -1,17 +1,12 @@
 package neo.landscape.theory.apps.pseudoboolean.experiments;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.io.*;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.zip.GZIPOutputStream;
 
 import neo.landscape.theory.apps.pseudoboolean.problems.*;
+import neo.landscape.theory.apps.pseudoboolean.problems.AnkRnkLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.px.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -38,6 +33,7 @@ public class DrilsExperiment implements Process {
 	private static final String DEBUG_ARGUMENT = "debug";
     private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
     private static final String TIME_ARGUMENT = "time";
+    private static final String OUT_FILE = "outfile";
     private static final String EXPLORED_SOLUTIONS = "expSols";
     private static final String MOVES_FACTOR_ARGUMENT = "mf";
     private static final String RADIUS_ARGUMENT = "r";
@@ -52,6 +48,8 @@ public class DrilsExperiment implements Process {
     
     private static final String MAXSAT_PROBLEM = "maxsat";
     private static final String NK_PROBLEM = "nk";
+    private static final String NKSAT_PROBLEM = "nksat";
+    private static final String ANK_RNK_PROBLEM = "ank_rnk";
 	private static final String WALSH_PROBLEM = "walsh";
     
     private static final String DPX="dpx";
@@ -66,11 +64,14 @@ public class DrilsExperiment implements Process {
     
     private static final String TYPE_PERTURBATION="perturbation";
     private static final String TYPE_CROSSOVER="crossover";
-    
+    private String filename="output.gz";
+
     private final Map<String, EmbeddedLandscapeConfigurator> configurators = new HashMap<>();
     {
     	configurators.put(MAXSAT_PROBLEM, new MAXSATConfigurator());
     	configurators.put(NK_PROBLEM, new NKLandscapeConfigurator());
+    	configurators.put(NKSAT_PROBLEM, new NKSATLandscapeConfigurator());
+    	configurators.put(ANK_RNK_PROBLEM, new AnkRnkLandscapeConfigurator());
 		configurators.put(WALSH_PROBLEM, new WalshBasedFunctionConfigurator());
     }
     
@@ -95,6 +96,7 @@ public class DrilsExperiment implements Process {
 
     private int moves;
     private int numberOfExploredSolutions=0;
+    private int climbs=0;
 
     private Options options;
     
@@ -142,6 +144,7 @@ public class DrilsExperiment implements Process {
 	    options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
 	    options.addOption(MOVES_FACTOR_ARGUMENT, true, "proportion of variables used for the random walk in the perturbation");
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
+	    options.addOption(OUT_FILE, true, "output file name");
 	    options.addOption(TIMER_ARGUMENT, true, "timer to use ["+Timers.SINGLE_THREAD_CPU+","+Timers.CPU_CLOCK+"], default: "+Timers.getNameOfDefaultTimer());
 	    options.addOption(EXPLORED_SOLUTIONS, true, "explored solutions limit");
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
@@ -205,6 +208,10 @@ public class DrilsExperiment implements Process {
 					((NKLandscapes)pbf).writeTo(sr);
 					ps.print(sr.toString());
 				}
+				if (pbf instanceof SumOfEmbeddedLandscapes) {
+					((SumOfEmbeddedLandscapes)pbf).writeTo(sr);
+					ps.print(sr);
+				}
 			}
 
 			if (commandLine.hasOption(LON_ARGUMENT)) {
@@ -222,10 +229,14 @@ public class DrilsExperiment implements Process {
 				timer.setStopTimeMilliseconds(time * 1000);
 				shouldIStop = shouldIStop.or(x->timer.shouldStop());
 			}
+			if (commandLine.hasOption(OUT_FILE)) {
+				filename = commandLine.getOptionValue(OUT_FILE);
+			}
 			
 			if (commandLine.hasOption(EXPLORED_SOLUTIONS)) {
 				final int maxExploredSolutions = Integer.parseInt(commandLine.getOptionValue(EXPLORED_SOLUTIONS));
 				shouldIStop = shouldIStop.or(x->numberOfExploredSolutions >= maxExploredSolutions);
+				shouldIStop = shouldIStop.or(x->climbs >= maxExploredSolutions);
 			}
 
 			int r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
@@ -263,14 +274,18 @@ public class DrilsExperiment implements Process {
 			
 			ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
 
+			System.out.println("Hill Climbing and Searching is about to start....");
+			int countChild = 0;
+			int countCrossover = 0;
+
 			try {
-				RBallEfficientHillClimberSnapshot currentSolution = createGenerationZeroSolution(rballfio);
-				notifyExploredSolution(currentSolution);
+				RBallEfficientHillClimberSnapshot previousSolution = createGenerationZeroSolution(rballfio);
+				notifyExploredSolution(previousSolution);
 
 				int perturbMoves=20;
 
 				while (!shouldIStop.test(null)) {               
-					RBallEfficientHillClimberSnapshot nextSolution = rballfio.initialize(new PBSolution(currentSolution.getSolution()), currentSolution);
+					RBallEfficientHillClimberSnapshot currentSolution = rballfio.initialize(new PBSolution(previousSolution.getSolution()), previousSolution);
 
 					if (perturbFactor < 0) {
 						if (moves > 0) {
@@ -280,34 +295,43 @@ public class DrilsExperiment implements Process {
 						perturbMoves = (int)(perturbFactor*pbf.getN());
 					}
 
-					nextSolution.softRestart(perturbMoves);
-					ps.println("* Hamming distance after perturbation: "+nextSolution.getSolution().hammingDistance(currentSolution.getSolution()));
-					hillClimb(nextSolution);
-					notifyExploredSolution(nextSolution);
-					reportLONEdge(currentSolution, nextSolution, TYPE_PERTURBATION);
+					currentSolution.softRestart(perturbMoves);
+					ps.println("* Hamming distance after perturbation: "+currentSolution.getSolution().hammingDistance(previousSolution.getSolution()));
+					hillClimb(currentSolution);
+					notifyExploredSolution(currentSolution);
+					reportLONEdge(previousSolution, currentSolution, TYPE_PERTURBATION);
 
+					System.out.println("Hill climbing done, going to perform crossover operation");
 					RBallEfficientHillClimberSnapshot child = null;
 
 					if (px!= null && !shouldIStop.test(null)) {
-						child = px.recombine(currentSolution, nextSolution);
+						child = px.recombine(previousSolution, currentSolution);
+						System.out.println("Recombination is done, childId:" + countCrossover);
+						countCrossover++;
 					}
 
 					if (child == null) {
-						child = nextSolution;
+						child = currentSolution;
 					} else {
+						countChild++;
 						ps.println("* Child different from parents");
 						hillClimb(child);
+						reportLONEdge(previousSolution, child, TYPE_CROSSOVER);
 						reportLONEdge(currentSolution, child, TYPE_CROSSOVER);
-						reportLONEdge(nextSolution, child, TYPE_CROSSOVER);
 
 						notifyExploredSolution(child);
+						System.out.println("Hill climbing done, going to perform next loop");
 					}
-					currentSolution = acceptanceCriterion(currentSolution, child);
+					previousSolution = acceptanceCriterion(previousSolution, child);
 				}
 			} catch (Exception e) {
 				ps.println("Exception: "+e.getMessage());
 				e.printStackTrace(ps);
 			}
+			ps.println("===============================================================================================");
+			ps.println("Execution Time: "+timer.elapsedTimeInMilliseconds());
+			ps.println("crossover Operated: "+countCrossover + "times");
+			ps.println("No. of children different from parents: "+countChild);
 
 			writeLONInformation();
 			printOutput();
@@ -381,27 +405,48 @@ public class DrilsExperiment implements Process {
     }
 
     private void printOutput() {
-        ps.close();
         try {
             System.out.write(ba.toByteArray());
+			writeCompressedToFile(filename);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
+	private void writeCompressedToFile(String filename) {
+		ps.close(); // Ensure everything is written to the ByteArrayOutputStream
+		try (FileOutputStream fos = new FileOutputStream(filename)) {
+			fos.write(ba.toByteArray()); // Write compressed data to a file
+			System.out.println("Compressed data written to file: " + filename);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
     private void notifyExploredSolution(RBallEfficientHillClimberSnapshot exploredSolution) {
-        double quality = exploredSolution.getSolutionQuality();
-        numberOfExploredSolutions++;
-        ps.println("Solution quality: " + quality);
-        ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
-        ps.println("* Moves: "+moves);
-        if (quality > bestSoFar) {
-            bestSoFar = quality;
-            ps.println("* Best so far solution");
-        }
-        
-        reportLONNode(exploredSolution);
-    }
+		double quality = exploredSolution.getSolutionQuality();
+		numberOfExploredSolutions++;
+		ps.println("Solution: " + exploredSolution.getSolution().toString());
+		ps.println("Solution quality: " + quality);
+		if (problem.equals(ANK_RNK_PROBLEM)) {
+			// In this problem type, first problem is NK and second one is RNK
+			SumOfEmbeddedLandscapes problem = (SumOfEmbeddedLandscapes) exploredSolution.getProblem();
+			List<Integer> nValues = problem.getNValues();
+			Double[] subfnsEvals = exploredSolution.getSubfnsEvals();
+			double nkSolQuality = Arrays.stream(subfnsEvals)
+					.limit(nValues.get(0)).mapToDouble(Double::doubleValue).sum();
+			ps.println("** ANK Solution quality: " + nkSolQuality);
+			ps.println("** RNK Solution quality: " + (quality - nkSolQuality));
+		}
+		ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
+		ps.println("* Moves: " + moves);
+		if (quality > bestSoFar) {
+			bestSoFar = quality;
+			ps.println("* Best so far solution");
+		}
+
+		reportLONNode(exploredSolution);
+	}
 
     private RBallEfficientHillClimberSnapshot createGenerationZeroSolution(
             RBallEfficientHillClimberForInstanceOf rballfio) {
@@ -414,16 +459,20 @@ public class DrilsExperiment implements Process {
     }
 
     private void hillClimb(RBallEfficientHillClimberSnapshot rball) {
-        moves=0;
-        try {
-            do {
-                rball.move();
-                moves++;
-            } while (!shouldIStop.test(null));
-        } catch (NoImprovingMoveException e) {
+		moves = 0;
+		climbs = 0;
+		try {
+			do {
+				rball.move();
+				moves++;
+				climbs++;
+			} while (!shouldIStop.test(null));
+			climbs = 0;
+		} catch (NoImprovingMoveException e) {
+			System.out.println("Got No Improving Move Exception");
 
-        }
-    }
+		}
+	}
     
     private void reportLONEdge(RBallEfficientHillClimberSnapshot solution,
             RBallEfficientHillClimberSnapshot result, String kind) {

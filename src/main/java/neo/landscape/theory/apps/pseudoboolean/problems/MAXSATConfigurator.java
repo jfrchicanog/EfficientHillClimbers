@@ -19,6 +19,7 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
     public static final String HPINIT_ARGUMENT = "hp";
     public static final String INSTANCE_ARGUMENT = "instance";
     public static final String FORCED_UNWEIGHTED_ARGUMENT = "force_unweighted";
+    public static final String FACTOR = "alpha";
 
     @Override
     public void prepareOptionsForProblem(Options options) {
@@ -30,6 +31,7 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
         options.addOption(HPINIT_ARGUMENT, false, "use hyperplane initialization (optional)");
         options.addOption(INSTANCE_ARGUMENT, true, "file with the instance to load (optional)");
         options.addOption(FORCED_UNWEIGHTED_ARGUMENT, false, "force unweighted instance, even if in wcnf format (optional)");
+        options.addOption(FACTOR, true, "multiplying factor to generate SAT problem (optional)");
     }
 
     @Override
@@ -37,7 +39,7 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
     	Properties properties = new Properties();
 
     	Stream.of(N_ARGUMENT, M_ARGUMENT, MAX_K_ARGUMENT, PSEED, 
-    			MIN_ARGUMENT, HPINIT_ARGUMENT, INSTANCE_ARGUMENT, 
+    			MIN_ARGUMENT, HPINIT_ARGUMENT, INSTANCE_ARGUMENT, FACTOR,
     			FORCED_UNWEIGHTED_ARGUMENT)
     		.forEach(clave -> moveProperty(commandLine, properties, clave));
 
@@ -64,14 +66,20 @@ public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
             ps.println("Intance: "+instance);
         } else {
             long problemSeed = Long.parseLong(properties.getProperty(PSEED));
+            maxsat.setSeed(problemSeed);
             String n = properties.getProperty(N_ARGUMENT);
             String m = properties.getProperty(M_ARGUMENT);
             String maxk = properties.getProperty(MAX_K_ARGUMENT);
-            
+
             prop.setProperty(MAXSAT.N_STRING, n);
             prop.setProperty(MAXSAT.M_STRING, m);
             prop.setProperty(MAXSAT.MAX_K_STRING, maxk);
-            
+
+            if (properties.containsKey(FACTOR)) {
+                String factor = properties.getProperty(FACTOR);
+                prop.setProperty(MAXSAT.FACTOR, factor);
+            }
+
             ps.println("Problem seed: "+problemSeed);
             ps.println("N: "+n);
             ps.println("M: "+m);

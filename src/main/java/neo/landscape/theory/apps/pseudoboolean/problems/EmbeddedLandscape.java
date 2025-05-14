@@ -27,6 +27,15 @@ public abstract class EmbeddedLandscape extends PseudoBooleanFunction {
 	protected int[][] interactions;
 	protected PBSolution sub;
 	protected int maximumDegreeOfVIG=-1;
+	protected double alpha=1.0;
+
+	public double getAlpha() {
+		return alpha;
+	}
+
+	public void setAlpha(double alpha) {
+		this.alpha = alpha;
+	}
 
 	public EmbeddedLandscape() {
 		super();
