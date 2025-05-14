@@ -45,8 +45,8 @@ public class AnkRnkLandscapeConfigurator implements EmbeddedLandscapeConfigurato
     public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
         // Generating Adjacent NK
         Properties prop = new Properties();
-        String factor = properties.getProperty(FACTOR);
         if (properties.containsKey(FACTOR)) {
+            String factor = properties.getProperty(FACTOR);
             prop.setProperty(NKLandscapeConfigurator.FACTOR, factor);
         }
 
@@ -75,6 +75,7 @@ public class AnkRnkLandscapeConfigurator implements EmbeddedLandscapeConfigurato
         prop = new Properties();
         // Generating Random NK
         if (properties.containsKey(FACTOR)) {
+            String factor = properties.getProperty(FACTOR);
             double new_factor = 1 - Double.parseDouble(factor);
             prop.setProperty(NKLandscapeConfigurator.FACTOR, String.valueOf(new_factor));
         }
@@ -99,6 +100,12 @@ public class AnkRnkLandscapeConfigurator implements EmbeddedLandscapeConfigurato
         }
         EmbeddedLandscape rnk = new NKLandscapeConfigurator().configureProblem(prop, ps);
 
-        return new SumOfEmbeddedLandscapes(nk, rnk);
+//        return new SumOfEmbeddedLandscapes(nk, rnk);
+        BiObjectiveLandscape bol = new BiObjectiveLandscape(nk, rnk);
+        if (properties.containsKey(FACTOR)) {
+            String factor = properties.getProperty(FACTOR);
+            bol.setAlpha(Double.parseDouble(factor));
+        }
+        return bol;
     }
 }

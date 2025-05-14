@@ -426,6 +426,7 @@ public class DrilsExperiment implements Process {
     private void notifyExploredSolution(RBallEfficientHillClimberSnapshot exploredSolution) {
 		double quality = exploredSolution.getSolutionQuality();
 		numberOfExploredSolutions++;
+		ps.println("Solution: " + exploredSolution.getSolution().toString());
 		ps.println("Solution quality: " + quality);
 		if (problem.equals(ANK_RNK_PROBLEM)) {
 			// In this problem type, first problem is NK and second one is RNK
