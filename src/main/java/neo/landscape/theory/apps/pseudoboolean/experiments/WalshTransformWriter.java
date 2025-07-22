@@ -68,7 +68,7 @@ public class WalshTransformWriter implements Process {
             problem = commandLine.getOptionValue(PROBLEM);
             String outputFile = commandLine.getOptionValue(OUTPUT_FILE);
             EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(
-                commandLine.getOptionProperties(PROBLEM_CHAR), null);
+                commandLine.getOptionProperties(PROBLEM_CHAR), System.out);
 
             WalshCoefficientsInterface<?> wcs = WalshTransform.transform(pbf, WalshCoefficientsArray.factory());
             WalshBasedFunction<?> wbf = new WalshBasedFunction(pbf.getN(), wcs);
@@ -85,6 +85,7 @@ public class WalshTransformWriter implements Process {
 
     private Options prepareOptions() {
         Options options = new Options();
+        options.addOption(PROBLEM, true, "problem to be solved: "+configurators.keySet());
         options.addOption(Option.builder(PROBLEM_CHAR)
             .numberOfArgs(2)
             .valueSeparator()

@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
+import neo.landscape.theory.apps.pseudoboolean.util.walsh.efficient.WalshCoefficientsArray;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
@@ -36,12 +37,14 @@ public class WalshBasedFunctionConfigurator implements EmbeddedLandscapeConfigur
 
 	@Override
 	public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
-		WalshBasedFunction walshFunction = new WalshBasedFunction();
+		WalshBasedFunction walshFunction = new WalshBasedFunction(WalshCoefficientsArray.factory().create(1));
         Properties prop = new Properties();
         if (properties.containsKey(INSTANCE_ARGUMENT)) {
             String instance = properties.getProperty(INSTANCE_ARGUMENT);
             prop.setProperty(WalshBasedFunction.INSTANCE_STRING, instance);
             ps.println("Instance: "+instance);
+        } else {
+            throw new IllegalArgumentException("Instance file not found");
         }
         walshFunction.setConfiguration(prop);
         return walshFunction;
