@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -65,6 +66,23 @@ public class LocalOptimaExperimentAllChildren implements Process {
 
 	private final static Comparator<PBSolution> SOLUTION_COMPARATOR = Comparator.comparing(s->s.toString());
 
+	private static final String MAXSAT_PROBLEM = "maxsat";
+	private static final String NK_PROBLEM = "nk";
+	private static final String WALSH_PROBLEM = "walsh";
+
+	private static final String PROBLEM="problem";
+	private static final String RADIUS_ARGUMENT = "r";
+	private static final String PROBLEM_CHAR = "P";
+	private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
+	private static final String LOCAL_OPTIMA_FILE_ARGUMENT = "lo";
+	private static final String LATTICE_FILE_ARGUMENT = "lattices";
+	private static final String LATTICE_STATS_FILE_ARGUMENT = "latStats";
+	private static final String LATTICE_VECTORS_FILE_ARGUMENT = "latVectors";
+	private static final String LATTICE_HIERARCHY_FILE_ARGUMENT = "latHierarchy";
+	private static final String SUBOPTIMA_FILE_ARGUMENT = "so";
+	private static final String WHITLEYS_OUTPUT_FILE_ARGUMENT = "whitleyOutput";
+	private static final String INSTANCE_OUTPUT_FILE_ARGUMENT = "instanceOutput";
+
 	private List<PBSolution> localOptima;
 	private List<PBSolution> subOptima;
 	private List<Integer> localOptimaReachedFromSuboptimal;
@@ -74,6 +92,8 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	private PrintWriter latticeVectorFile;
 	private PrintWriter subOptimaFile;
 	private PrintWriter hierarchyFile;
+	private PrintWriter whitleyOutputFile;
+	private PrintWriter instanceOutputFile;
 	//private Set<Integer> appearedEdges;
 
 	private int[] localOptimaHistogram;
@@ -92,20 +112,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	private Map<LatticeID, LatticeInfo> latticeCollection;
 	private Map<LatticeStats, Integer> latticeStatistics;
 
-	private static final String MAXSAT_PROBLEM = "maxsat";
-	private static final String NK_PROBLEM = "nk";
-	private static final String WALSH_PROBLEM = "walsh";
 
-	private static final String PROBLEM="problem";
-	private static final String RADIUS_ARGUMENT = "r";
-	private static final String PROBLEM_CHAR = "P";
-	private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
-	private static final String LOCAL_OPTIMA_FILE_ARGUMENT = "lo";
-	private static final String LATTICE_FILE_ARGUMENT = "lattices";
-	private static final String LATTICE_STATS_FILE_ARGUMENT = "latStats";
-	private static final String LATTICE_VECTORS_FILE_ARGUMENT = "latVectors";
-	private static final String LATTICE_HIERARCHY_FILE_ARGUMENT = "latHierarchy";
-	private static final String SUBOPTIMA_FILE_ARGUMENT = "so";
 
 	private Options options;
 	private CommandLine commandLine;
@@ -162,6 +169,8 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		options.addOption(LATTICE_VECTORS_FILE_ARGUMENT, true, "file to store the lattice vectors (optional)");
 		options.addOption(SUBOPTIMA_FILE_ARGUMENT, true, "file to store the suboptimal solutions (optional)");
 		options.addOption(LATTICE_HIERARCHY_FILE_ARGUMENT, true, "file to store the lattice hierarchy (optional)");
+		options.addOption(WHITLEYS_OUTPUT_FILE_ARGUMENT, true, "file to store the output in Darrell Whitley's format (optional)");
+		options.addOption(INSTANCE_OUTPUT_FILE_ARGUMENT, true, "file to store the instance (optional)");
 		options.addOption(Option.builder(PROBLEM_CHAR)
 			.numberOfArgs(2)
 			.valueSeparator()
@@ -260,12 +269,19 @@ public class LocalOptimaExperimentAllChildren implements Process {
 			reportLatticeVectors();
 			reportSubOptimalSolutions();
 			reportHierarchy();
+			reportInstance();
 			closeOutputFiles();
 		} catch (Exception e) {
 			e.printStackTrace();
 			showOptions();
 		}
 
+	}
+
+	private void reportInstance() {
+		if (instanceOutputFile != null) {
+			pbf.writeInstance(instanceOutputFile);
+		}
 	}
 
 	private void reportHierarchy() {
@@ -410,6 +426,8 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		latticeStatsFile = tryOpenFile(LATTICE_STATS_FILE_ARGUMENT, "I cannot open the output file for the lattice statistics");
 		latticeVectorFile = tryOpenFile(LATTICE_VECTORS_FILE_ARGUMENT, "I cannot open the output file for the lattice vectors");
 		hierarchyFile = tryOpenFile(LATTICE_HIERARCHY_FILE_ARGUMENT, "I cannot open the output file for the lattices hierarchy");
+		whitleyOutputFile = tryOpenFile(WHITLEYS_OUTPUT_FILE_ARGUMENT, "I cannot open the output file for the Darrell Whitley's format");
+		instanceOutputFile = tryOpenFile(INSTANCE_OUTPUT_FILE_ARGUMENT, "I cannot open the output file for the instance output");
 	}
 
 	private PrintWriter tryOpenFile(String localOptimaFileArgument, String message) {
@@ -457,7 +475,7 @@ public class LocalOptimaExperimentAllChildren implements Process {
 	}
 
 	private void closeOutputFiles() {
-		Stream.of(localOptimaFile, latticeFile, latticeStatsFile, latticeVectorFile, subOptimaFile, hierarchyFile)
+		Stream.of(localOptimaFile, latticeFile, latticeStatsFile, latticeVectorFile, subOptimaFile, hierarchyFile, whitleyOutputFile, instanceOutputFile)
 			.filter(Objects::nonNull)
 			.forEach(PrintWriter::close);
 	}
@@ -502,6 +520,8 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		timeAfterCrossover = System.currentTimeMillis();
 	}
 
+
+
 	private void computeVariablesStatistics() {
 		max_app = 0;
 		max_interactions = 0;
@@ -520,16 +540,46 @@ public class LocalOptimaExperimentAllChildren implements Process {
 		return "" + (i + 1);
 	}
 
+	private void appendMessageToFileIfNotNull(PrintWriter writer, Supplier<String> msg) {
+		Optional.ofNullable(writer).ifPresent(file->{
+			file.append(msg.get());
+		});
+	}
+
 	private List<Integer> notifyCrossover(int i, int j, List<PBSolution> allChildren) {
 	    if (allChildren.size() <= 2) {
 	        return Arrays.asList(i, j);
 	    }
 
+		appendMessageToFileIfNotNull(whitleyOutputFile, () -> {
+			PBSolution loI = localOptima.get(i);
+			PBSolution loJ = localOptima.get(j);
+			double valI = pbf.evaluate(loI);
+			double valJ = pbf.evaluate(loJ);
+			return String.format(Locale.US, "R:%s(%s, %.1f) x %s(%s, %.1f) -> (size: %d, sum of parents=%.1f)\n",
+				loI.toString(), wI(i), valI, loJ.toString(), wI(j), valJ, allChildren.size(), valI+valJ);
+		});
+
 		List<Integer> results = new ArrayList<>();
 	    for (PBSolution res: allChildren) {
 			int index = localOptima.indexOf(res);
+			final int indexF = index;
+			final PBSolution resF = res;
+
+			appendMessageToFileIfNotNull(whitleyOutputFile, ()->{
+				StringBuilder message = new StringBuilder();
+				message.append(String.format("\t%s", resF.toString()));
+				String indexString="";
+				if (indexF >= 0) {
+					indexString = wI(indexF)+", ";
+				}
+				message.append(String.format(Locale.US, "(%s%.1f)", indexString, pbf.evaluate(resF)));
+				return message.toString();
+			});
+
 			if (index >= 0) {
 				results.add((index + 1));
+				appendMessageToFileIfNotNull(whitleyOutputFile, () -> "\n");
 			} else {
 				int soIndex = subOptima.indexOf(res);
 				if (soIndex < 0) {
@@ -540,6 +590,13 @@ public class LocalOptimaExperimentAllChildren implements Process {
 					localOptimaReachedFromSuboptimal.add(index);
 				}
 				results.add(-(soIndex+1));
+
+				int soIndexF = soIndex;
+				appendMessageToFileIfNotNull(whitleyOutputFile, () -> {
+					int loReachedIndex = localOptimaReachedFromSuboptimal.get(soIndexF);
+					PBSolution loReached = localOptima.get(loReachedIndex);
+					return String.format(Locale.US, " -> %s(%s, %.1f)\n", loReached.toString(), wI(loReachedIndex), pbf.evaluate(loReached));
+				});
 			}
 			if (index >= 0) {
 				localOptimaHistogram[index]++;

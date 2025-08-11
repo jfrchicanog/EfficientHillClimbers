@@ -1,11 +1,6 @@
 package neo.landscape.theory.apps.pseudoboolean.problems;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -487,6 +482,14 @@ public class MAXSAT extends EmbeddedLandscape implements EmbeddedLandscapeSubfun
 			sb.append("\n");
 		}
 		return sb.toString();
+	}
+
+	public void writeInstance(Writer writer) {
+		try {
+			writer.write(toString());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
     @Override

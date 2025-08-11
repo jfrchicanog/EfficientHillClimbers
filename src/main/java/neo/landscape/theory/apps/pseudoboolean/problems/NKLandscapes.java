@@ -429,6 +429,10 @@ public class NKLandscapes extends EmbeddedLandscape implements
 
 	}
 
+	public void writeInstance(Writer writer) {
+		writeTo(writer);
+	}
+
 	public static void oldMain(String[] args) {
 
 		if (args.length < 2) {
