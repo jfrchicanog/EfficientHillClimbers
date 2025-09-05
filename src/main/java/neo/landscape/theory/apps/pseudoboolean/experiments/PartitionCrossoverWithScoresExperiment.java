@@ -14,6 +14,7 @@ import java.util.Properties;
 import java.util.Stack;
 import java.util.zip.GZIPOutputStream;
 
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscapeConfigurator;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -32,7 +33,6 @@ import neo.landscape.theory.apps.util.Graph;
 import neo.landscape.theory.apps.util.PBSolutionDigest;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
-import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
 import neo.landscape.theory.apps.util.Timer;
 import neo.landscape.theory.apps.util.Timers;
 

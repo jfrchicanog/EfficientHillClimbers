@@ -7,8 +7,6 @@ import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
-
 public class MAXSATConfigurator implements EmbeddedLandscapeConfigurator {
 
     public static final String N_ARGUMENT = "n";

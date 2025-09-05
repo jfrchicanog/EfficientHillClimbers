@@ -1,7 +1,5 @@
 package neo.landscape.theory.apps.pseudoboolean.problems;
 
-import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.util.walsh.WalshCoefficients;
 import neo.landscape.theory.apps.pseudoboolean.util.walsh.efficient.WalshCoefficientsArray;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;

@@ -10,8 +10,6 @@ import neo.landscape.theory.apps.pseudoboolean.parsers.NKLandscapesDimacsLikeRea
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
-import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
-
 public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 
     public static final String PROBLEM_SEED_ARGUMENT = "pseed";

@@ -1,12 +1,10 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import java.io.PrintStream;
 import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
-
-import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
 
 public interface EmbeddedLandscapeConfigurator {
 

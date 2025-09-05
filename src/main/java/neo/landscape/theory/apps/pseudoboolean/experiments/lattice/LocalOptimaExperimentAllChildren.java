@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
-import neo.landscape.theory.apps.pseudoboolean.experiments.EmbeddedLandscapeConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.experiments.loma.LocalOptimaNetworkGoldman;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimber;
@@ -21,7 +21,6 @@ import neo.landscape.theory.apps.pseudoboolean.problems.*;
 import neo.landscape.theory.apps.pseudoboolean.px.LatticeID;
 import neo.landscape.theory.apps.pseudoboolean.px.PartitionCrossoverAllChildren;
 import neo.landscape.theory.apps.pseudoboolean.px.Lattice;
-import neo.landscape.theory.apps.util.GrayCodeBitFlipIterable;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
 import org.apache.commons.cli.*;
