@@ -5,16 +5,15 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import neo.landscape.theory.apps.pseudoboolean.problems.*;
+import neo.landscape.theory.apps.pseudoboolean.problems.mo.*;
+import org.apache.commons.cli.*;
 
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.NoImprovingMoveException;
@@ -25,8 +24,6 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveHam
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveSelector;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveSelector.KindOfMove;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.VectorPBMove;
-import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
 import neo.landscape.theory.apps.util.Process;
 import neo.landscape.theory.apps.util.Seeds;
@@ -35,17 +32,14 @@ import neo.landscape.theory.apps.util.Timers;
 
 public class MultiObjectiveHammingBallHillClimberExperiment implements Process {
 
-
 	private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
     private static final String TIME_ARGUMENT = "time";
     private static final String RADIUS_ARGUMENT = "r";
-    private static final String PROBLEM_SEED_ARGUMENT = "pseed";
-    private static final String MODEL_ARGUMENT = "model";
-    private static final String Q_ARGUMENT = "q";
-    private static final String K_ARGUMENT = "k";
-    private static final String N_ARGUMENT = "n";
-    private static final String D_ARGUMENT = "d";
-    
+    private static final String PROBLEM_CHAR = "P";
+    private static final String PROBLEM="problem";
+    private static final String MNK_PROBLEM = "mnk";
+    private static final String MQUBO = "mqubo";
+
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
 	private Timer timer;
@@ -56,6 +50,17 @@ public class MultiObjectiveHammingBallHillClimberExperiment implements Process {
     
     ParetoNonDominatedSet nonDominatedSet;
     private int totalMoves;
+
+    private VectorMKLandscapeConfigurator configurator;
+
+    private String problem;
+
+    private final Map<String, VectorMKLandscapeConfigurator> configurators = new HashMap<>();
+    {
+        configurators.put(MNK_PROBLEM, new MNKLandscapeConfigurator());
+        configurators.put(MQUBO, new MquboConfigurator());
+    }
+
     
 	@Override
 	public String getDescription() {
@@ -83,124 +88,123 @@ public class MultiObjectiveHammingBallHillClimberExperiment implements Process {
         }
         return options;
     }
+
+    private VectorMKLandscapeConfigurator getProblemConfigurator() {
+        if (configurator==null) {
+            configurator = createProblemConfigurator();
+        }
+        return configurator;
+    }
+
+    private VectorMKLandscapeConfigurator createProblemConfigurator() {
+        VectorMKLandscapeConfigurator elc =  configurators.get(problem);
+        if (elc == null) {
+            throw new IllegalArgumentException("Problem "+problem+" is unknown");
+        }
+        return elc;
+    }
 	
 	private Options prepareOptions() {
-	    Options options = new Options();
-	    
-	    options.addOption(N_ARGUMENT, true, "number of variables");
-	    options.addOption(K_ARGUMENT, true, "number of subfunction arguments");
-	    options.addOption(Q_ARGUMENT, true, "cardinality of subfunction domain");
-	    options.addOption(MODEL_ARGUMENT, true, "NK-model: y->adjacent, n->random, <number>->Localized");
-	    options.addOption(PROBLEM_SEED_ARGUMENT, true, "random seed for generating the problem");
+        Options options = new Options();
+
 	    options.addOption(RADIUS_ARGUMENT, true, "radius of the Hamming Ball hill climber");
-	    options.addOption(D_ARGUMENT, true, "dimension of the problem");
 	    options.addOption(TIME_ARGUMENT, true, "execution time limit (in seconds)");
 	    options.addOption(ALGORITHM_SEED_ARGUMENT, true, "random seed for the algorithm (optional)");
+        options.addOption(PROBLEM, true, "problem to be solved: "+configurators.keySet());
+        options.addOption(Option.builder(PROBLEM_CHAR)
+            .numberOfArgs(2)
+            .valueSeparator()
+            .argName("property=value")
+            .desc("properties for the problem")
+            .build());
 	    
 	    return options;
 	}
 
 	@Override
 	public void execute(String[] args) {
-	    
+
 		if (args.length == 0) {
-			HelpFormatter helpFormatter = new HelpFormatter();
-			helpFormatter.printHelp(getID(), getOptions());
-			return;
+            showOptions();
+            return;
 		}
-		
-		CommandLine commandLine = parseCommandLine(args);
-		
-		timer = Timers.getDefaultTimer();
-		timer.startTimer();
-		
-		initializeDataHolders();
-		initializeOutput();
-		
-		MNKLandscape pbf = configureProblem(commandLine);
-		
-		int r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
-		int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
-		
-		timer.setStopTimeMilliseconds(time * 1000);
-		
-		long seed = 0;
-		if (commandLine.hasOption(ALGORITHM_SEED_ARGUMENT)) {
-			seed = Long.parseLong(commandLine.getOptionValue(ALGORITHM_SEED_ARGUMENT));
-		} else {
-			seed = Seeds.getSeed();
-		}
-		
-		ps.println("R: " + r);
-		ps.println("Seed: " + seed);
-		
-		random = new Random(seed);
-		
 
-		Properties rballConfig = new Properties();
+        try {
 
-        rballConfig.setProperty(RBallEfficientHillClimber.RANDOM_MOVES, "yes");
-        rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r+"");
-        rballConfig.setProperty(RBallEfficientHillClimber.SEED, ""+seed);
+            CommandLine commandLine = parseCommandLine(args);
 
-        MultiObjectiveHammingBallHillClimberForInstanceOf rballfio = 
+            timer = Timers.getDefaultTimer();
+            timer.startTimer();
+
+            problem = commandLine.getOptionValue(PROBLEM);
+
+            initializeDataHolders();
+            initializeOutput();
+
+            VectorMKLandscape pbf = getProblemConfigurator().configureProblem(
+                commandLine.getOptionProperties(PROBLEM_CHAR), ps);
+
+            int r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
+            int time = Integer.parseInt(commandLine.getOptionValue(TIME_ARGUMENT));
+
+            timer.setStopTimeMilliseconds(time * 1000);
+
+            long seed = 0;
+            if (commandLine.hasOption(ALGORITHM_SEED_ARGUMENT)) {
+                seed = Long.parseLong(commandLine.getOptionValue(ALGORITHM_SEED_ARGUMENT));
+            } else {
+                seed = Seeds.getSeed();
+            }
+
+            ps.println("R: " + r);
+            ps.println("Seed: " + seed);
+
+            random = new Random(seed);
+
+            Properties rballConfig = new Properties();
+
+            rballConfig.setProperty(RBallEfficientHillClimber.RANDOM_MOVES, "yes");
+            rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r + "");
+            rballConfig.setProperty(RBallEfficientHillClimber.SEED, "" + seed);
+
+            MultiObjectiveHammingBallHillClimberForInstanceOf rballfio =
                 (MultiObjectiveHammingBallHillClimberForInstanceOf) new MultiObjectiveHammingBallHillClimber(rballConfig).initialize(pbf);
-        
-        ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
-        
 
-        while (!timer.shouldStop()) {
-            double [] weights = generateRandomPositiveWeights(pbf.getDimension());
-            PBSolution solution = pbf.getRandomSolution();
-            
-            MultiObjectiveHammingBallHillClimberSnapshot rball = rballfio.initialize(weights, solution);
-            rball.setSeed(random.nextLong());
+            ps.println("Search starts: " + timer.elapsedTimeInMilliseconds());
 
-            totalMoves += hillClimb(rball);
+
+            while (!timer.shouldStop()) {
+                double[] weights = generateRandomPositiveWeights(pbf.getDimension());
+                PBSolution solution = pbf.getRandomSolution();
+
+                MultiObjectiveHammingBallHillClimberSnapshot rball = rballfio.initialize(weights, solution);
+                rball.setSeed(random.nextLong());
+
+                totalMoves += hillClimb(rball);
+            }
+
+            ps.println("Total moves: " + totalMoves);
+            ps.println("Stored scores:" + rballfio.getStoredScores());
+            ps.println("Total time (ms):" + timer.elapsedTimeInMilliseconds());
+            ps.println("Average time per move (nanoseconds):" + timer.elapsedTime() / (double) totalMoves);
+            ps.println(nonDominatedSet.printArchive());
+
+            printOutput();
+        } catch (Exception e) {
+            showOptions();
         }
-        
-        ps.println("Total moves: "+totalMoves);
-        ps.println("Stored scores:" + rballfio.getStoredScores());
-        ps.println("Total time (ms):"+timer.elapsedTimeInMilliseconds());
-        ps.println("Average time per move (nanoseconds):"+timer.elapsedTime()/(double)totalMoves);
-        ps.println(nonDominatedSet.printArchive());
-
-        printOutput();
     }
 
+    private void showOptions() {
+        HelpFormatter helpFormatter = new HelpFormatter();
+        helpFormatter.printHelp(getID(), getOptions());
 
-    private MNKLandscape configureProblem(CommandLine commandLine) {
-        String n = commandLine.getOptionValue(N_ARGUMENT);
-        String k = commandLine.getOptionValue(K_ARGUMENT);
-        String q = commandLine.getOptionValue(Q_ARGUMENT);
-        String d = commandLine.getOptionValue(D_ARGUMENT);
-        String circular = commandLine.getOptionValue(MODEL_ARGUMENT);
-        long problemSeed = Long.parseLong(commandLine.getOptionValue(PROBLEM_SEED_ARGUMENT));
-        
-		Properties prop = new Properties();
-		prop.setProperty(NKLandscapes.N_STRING, n);
-		prop.setProperty(NKLandscapes.K_STRING, k);
-		prop.setProperty(MNKLandscape.DIMENSION_STRING, d);
-
-		if (!q.equals("-")) {
-			prop.setProperty(NKLandscapes.Q_STRING, q);
-		}
-
-		if (circular.equals("y")) {
-			prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
-		} else {
-		    prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular);
-		}
-		
-		MNKLandscape pbf = new MNKLandscape(problemSeed, prop);
-
-		ps.println("N: " + n);
-		ps.println("K: " + k);
-		ps.println("Q: " + q);
-		ps.println("D: " + d);
-		ps.println("NK-model: "+circular);
-		ps.println("ProblemSeed: "+problemSeed);
-        return pbf;
+        try {
+            Options problemOptions = new Options();
+            getProblemConfigurator().prepareOptionsForProblem(problemOptions);
+            helpFormatter.printHelp("Problem: "+problem, problemOptions);
+        } catch (RuntimeException e) {
+        }
     }
 
     private CommandLine parseCommandLine(String[] args) {
