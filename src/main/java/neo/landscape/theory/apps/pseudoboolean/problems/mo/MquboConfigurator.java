@@ -50,7 +50,7 @@ public class MquboConfigurator implements VectorMKLandscapeConfigurator {
                     Set<Integer> vars = Arrays.stream(wcdto.ids).boxed().collect(Collectors.toSet());
                     wcs.addCoefficient(vars, wcdto.w);
                 }
-                walshFunctions[i] = new WalshBasedFunction<>(wcs);
+                walshFunctions[i] = new WalshBasedFunction<>(n, wcs);
             }
             return new VectorMKLandscape(walshFunctions);
         } catch (IOException e) {

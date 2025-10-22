@@ -4,10 +4,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -156,17 +153,20 @@ public class LocalOptimaNetworkGoldman implements Process {
             moveBin[i] = new ArrayList<RBallPBMove>();
         }
         for (RBallPBMove move: rball.iterateOverMoves()) {
-            int min = Integer.MAX_VALUE;
+            OptionalInt min = OptionalInt.empty();
             for (int subfn : rballfio.subFunctionsAffected(move.flipVariables)) {
                 int [] mask = getPbf().getMasks()[subfn];
                 for (int var: mask) {
-                    if (variableRank[var] < min) {
-                        min = variableRank[var];
+                    if (min.isEmpty() || variableRank[var] < min.getAsInt()) {
+                        min = OptionalInt.of(variableRank[var]);
                     }
                 }
             }
-            
-            moveBin[min].add(move);
+
+            min.ifPresent(m-> {
+                moveBin[m].add(move);
+            });
+
             //System.out.println("Move "+move+" in "+min);
         }
         /*

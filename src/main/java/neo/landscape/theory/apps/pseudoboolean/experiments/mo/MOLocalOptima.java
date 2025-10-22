@@ -229,19 +229,22 @@ public class MOLocalOptima implements Process {
         }
 
         for (VectorPBMove move: rball.getMovesSelector().allMoves()) {
-            int min = Integer.MAX_VALUE;
+            OptionalInt min = OptionalInt.empty();
 
             for (int subfn : rballfio.subFunctionsAffected(move.flipVariables)) {
                 int mlength = pbf.getMaskLength(subfn);
                 for (int i=0; i < mlength; i++) {
                     int var = pbf.getMasks(subfn, i);
-                    if (variableRank[var] < min) {
-                        min = variableRank[var];
+                    if (min.isEmpty() || variableRank[var] < min.getAsInt()) {
+                        min = OptionalInt.of(variableRank[var]);
                     }
                 }
             }
-            
-            moveBin[min].add(move);
+
+            min.ifPresent(m->{
+                moveBin[m].add(move);
+            });
+
             //System.out.println("Move "+move+" in "+min);
         }
         /*
