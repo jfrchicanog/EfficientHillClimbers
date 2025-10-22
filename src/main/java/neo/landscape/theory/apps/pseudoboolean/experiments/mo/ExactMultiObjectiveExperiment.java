@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.experiments.mo;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -21,7 +21,6 @@ import neo.landscape.theory.apps.pseudoboolean.problems.mo.ConstrainedMNKLandsca
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
 import neo.landscape.theory.apps.util.Process;
-import neo.landscape.theory.apps.util.SingleThreadCPUTimer;
 import neo.landscape.theory.apps.util.Timer;
 import neo.landscape.theory.apps.util.Timers;
 

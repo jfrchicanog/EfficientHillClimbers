@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.experiments.mo;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -11,7 +11,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 
-import neo.landscape.theory.apps.pseudoboolean.problems.*;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.*;
 import org.apache.commons.cli.*;
 

@@ -121,7 +121,7 @@ public class MultiObjectiveHammingBallHillClimberForInstanceOf implements
         return moveID;
     }
 
-	protected Iterable<Integer> subFunctionsAffected(SetOfVars bits) {
+	public Iterable<Integer> subFunctionsAffected(SetOfVars bits) {
 		Iterable<Integer> sfs;
 
 		if (bits.size() == 1) {

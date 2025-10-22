@@ -1,4 +1,4 @@
-package neo.landscape.theory.apps.pseudoboolean.experiments;
+package neo.landscape.theory.apps.pseudoboolean.experiments.mo;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
