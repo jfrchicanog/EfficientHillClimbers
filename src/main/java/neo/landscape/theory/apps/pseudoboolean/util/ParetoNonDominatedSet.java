@@ -7,6 +7,10 @@ import java.util.List;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet.DominanceRelation;
 
 public class ParetoNonDominatedSet {
+
+    private String separator = ", ";
+    private boolean printSummary = true;
+
     public enum DominanceRelation {
         DOMINATES, IS_DOMINATED, NON_DOMINATED , EQUAL
     }
@@ -38,20 +42,38 @@ public class ParetoNonDominatedSet {
         archive.add(solutionToAdd.clone());
     }
 
+    public void setSeparator(String separator) {
+        this.separator = separator;
+    }
+
+    public String getSeparator() {
+        return separator;
+    }
+
+    public boolean isPrintSummary() {
+        return printSummary;
+    }
+
+    public void setPrintSummary(boolean printSummary) {
+        this.printSummary = printSummary;
+    }
+
     public String printArchive() {
-        StringBuilder result = new StringBuilder("Archive ("+archive.size()+" solutions):\n");
+        StringBuilder result = new StringBuilder();
+        if (printSummary) {
+            result.append("Archive ("+archive.size()+" solutions):\n");
+        }
         for (double [] quality: archive) {
             printVector(result, quality);
         }
         return result.toString();
-        
     }
     
     private void printVector(StringBuilder builder, double [] vector) {
         for (int i = 0; i < vector.length; i++) {
             builder.append(vector[i]);
             if (i < vector.length-1) {
-                builder.append(", ");
+                builder.append(separator);
             }
         }
         builder.append("\n");

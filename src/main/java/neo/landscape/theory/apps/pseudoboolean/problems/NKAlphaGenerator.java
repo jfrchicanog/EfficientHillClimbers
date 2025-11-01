@@ -2,6 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.problems;
 
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -60,7 +61,7 @@ public class NKAlphaGenerator {
      * - inputs[j] is an int[] of the indices (length <= K+1, ideally K+1) that determine locus j's contribution.
      * - outDegree[i] counts how many outgoing edges node i currently has (starts at 1 for the self-edge).
      */
-    public static void generateNKAlpha(int N, int K, int Q, double alpha, long seed, Writer wr) {
+    public static int [] generateNKAlpha(int N, int K, int Q, double alpha, long seed, Writer wr) {
         if (N <= 0) throw new IllegalArgumentException("N must be > 0");
         if (K < 0 || K > N-1) throw new IllegalArgumentException("K must be in 0 <= K <= N-1");
         if (alpha < 0) throw new IllegalArgumentException("alpha must be >= 0");
@@ -89,7 +90,7 @@ public class NKAlphaGenerator {
                 int chosen = weightedPick(outDegree, tmpInputs[j], alpha, rng);
                 if (chosen >= 0) {
                     tmpInputs[j].add(chosen);
-                    outDegree[chosen] = Math.min(N, outDegree[chosen] + 1); // FIXME: it cnnot rech N
+                    outDegree[chosen] = Math.min(N, outDegree[chosen] + 1); // FIXME: it cannot reach N
                 } else {
                     // no eligible candidate (rare). skip.
                 }
@@ -122,6 +123,7 @@ public class NKAlphaGenerator {
             pw.println();
         }
         pw.flush();
+        return outDegree;
 
     }
 
@@ -136,6 +138,8 @@ public class NKAlphaGenerator {
         double alpha = Double.parseDouble(args[3]);
         long seed = Long.parseLong(args[4]);
 
-        generateNKAlpha(N, K, Q, alpha, seed, new PrintWriter(System.out));
+        int [] out_degree = generateNKAlpha(N, K, Q, alpha, seed, new PrintWriter(System.out));
+        System.err.println("Outdegree: "+ Arrays.toString(out_degree));
+
     }
 }

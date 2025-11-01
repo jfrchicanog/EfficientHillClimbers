@@ -64,12 +64,14 @@ public class MNKLandscapeConfigurator implements VectorMKLandscapeConfigurator{
 
         MNKLandscape pbf = new MNKLandscape(problemSeed, properties);
 
-        ps.println("N: " + n);
-        ps.println("K: " + k);
-        ps.println("Q: " + q);
-        ps.println("D: " + d);
-        ps.println("NK-model: "+circular);
-        ps.println("ProblemSeed: "+problemSeed);
+        if (ps!=null) {
+            ps.println("N: " + n);
+            ps.println("K: " + k);
+            ps.println("Q: " + q);
+            ps.println("D: " + d);
+            ps.println("NK-model: " + circular);
+            ps.println("ProblemSeed: " + problemSeed);
+        }
         return pbf;
 
     }

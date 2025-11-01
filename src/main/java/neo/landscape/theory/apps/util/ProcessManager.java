@@ -39,9 +39,9 @@ public class ProcessManager {
 	}
 
 	private void showProcessesIDs() {
-		String res = "First argument: ";
+		StringBuilder res = new StringBuilder("First argument: <process-id>\n  where <process-id> is one of:\n");
 		for (String id : processes.keySet()) {
-			res += id + " ";
+			res.append(id + "\t\t\t" + processes.get(id).getDescription() + "\n");
 		}
 		System.out.println(res);
 	}
