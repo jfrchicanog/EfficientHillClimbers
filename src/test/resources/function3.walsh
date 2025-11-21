@@ -1,0 +1,7 @@
+c Instance of pseudo-Boolean function expressed as a Walsh decomposition
+c This format is similar to DIMCAS
+c First variable is variable 0
+p 15
+w 0 1 : 1
+w 1 2 : 2
+w 0 1 2 : -2

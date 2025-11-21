@@ -3,10 +3,13 @@ package neo.landscape.theory.apps.pseudoboolean.util;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet.DominanceRelation;
 
-public class ParetoNonDominatedSet {
+
+// TODO: this class needs refactoring to separate printing options from archive management
+public class ParetoNonDominatedSet implements Iterable<double[]> {
 
     private String separator = ", ";
     private boolean printSummary = true;
@@ -23,6 +26,19 @@ public class ParetoNonDominatedSet {
     
     public void reportSolutionToArchive(double[] solutionToAdd) {
         reportSolutionToArchive(solutionToAdd, solutionToAdd.length);
+    }
+
+    public int size() {
+        return archive.size();
+    }
+
+    @Override
+    public Iterator<double[]> iterator() {
+        return archive.iterator();
+    }
+
+    public Stream<double[]> stream() {
+        return archive.stream();
     }
 
     public void reportSolutionToArchive(double[] solutionToAdd, int objectives) {
