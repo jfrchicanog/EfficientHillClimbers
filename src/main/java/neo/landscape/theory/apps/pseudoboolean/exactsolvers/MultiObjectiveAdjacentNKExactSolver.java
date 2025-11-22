@@ -3,6 +3,7 @@ package neo.landscape.theory.apps.pseudoboolean.exactsolvers;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKSubfunctionTranslator;
+import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
 
 import java.util.stream.IntStream;
@@ -84,11 +85,14 @@ public class MultiObjectiveAdjacentNKExactSolver {
             return applyExhaustiveEnumeration();
         }
 
+        if (K==0) {
+            return solveAdditiveDecomposable();
+        }
+
         initializeDataStructures();
         computeFirstFunction(paretoNSSets1);
         ParetoNonDominatedSet2D [][] computed = paretoNSSets1;
         ParetoNonDominatedSet2D [][] target = paretoNSSets2;
-
 
         int subfunction;
         for (subfunction=K; subfunction < n-K; subfunction++) { // stop when there K subfunctions missing
@@ -99,6 +103,53 @@ public class MultiObjectiveAdjacentNKExactSolver {
             target = tmp;
         }
         // Then do exhaustive search using also the remaining subfunctions.
+        return exhaustiveSearchWithRemainingFunctions(computed);
+    }
+
+    private ParetoNonDominatedSet2D solveAdditiveDecomposable() {
+        ParetoNonDominatedSet2D accumulated = new ParetoNonDominatedSet2D();
+        ParetoNonDominatedSet2D result = new ParetoNonDominatedSet2D();
+        ParetoNonDominatedSet2D auxiliary = new ParetoNonDominatedSet2D();
+        double [] offset = new double[d];
+        solution = new PBSolution(1);
+
+        for (int sf=0; sf < n; sf++) {
+            auxiliary.clear();
+            for (int bit=0; bit < 2; bit++) {
+                solution.getData()[0] = bit;
+                double [] vector = new double[d];
+                for (int dim=0; dim < d; dim++) {
+                    int inner_sf = translator.subfunctionID(dim, sf);
+                    vector[dim] += vectorMKLandscape.evaluateSubfunction(inner_sf, solution);
+                }
+                auxiliary.addPoint(vector);
+            }
+            if (auxiliary.size() == 1) {
+                // Just one point, accumulate the offset
+                double [] point = auxiliary.stream().findFirst().get();
+                for (int dim=0; dim < d; dim++) {
+                    offset[dim] += point[dim];
+                }
+            } else {
+                double [] point1 = auxiliary.stream().findFirst().get();
+                double [] point2 = auxiliary.stream().skip(1).findFirst().get();
+                if (accumulated.size() == 0) {
+                    accumulated.addPoint(new double[d]);
+                }
+                ParetoNonDominatedSet2D.combine(accumulated, point1, accumulated, point2, result);
+                ParetoNonDominatedSet2D tmp = accumulated;
+                accumulated = result;
+                result = tmp;
+            }
+        }
+        auxiliary.clear();
+        ParetoNonDominatedSet2D.combine(accumulated, offset, auxiliary, new double[d], result);
+        return result;
+    }
+
+    private ParetoNonDominatedSet2D exhaustiveSearchWithRemainingFunctions(ParetoNonDominatedSet2D[][] computed) {
+        int K = k-1;
+        int subfunction;
         ParetoNonDominatedSet2D accumulated = new ParetoNonDominatedSet2D();
         ParetoNonDominatedSet2D result = new ParetoNonDominatedSet2D();
 
@@ -109,8 +160,8 @@ public class MultiObjectiveAdjacentNKExactSolver {
             for (int j=0; j < limit; j++) {
                 // Compute the offset using the subfunctions
                 initializePoint(offset);
-                for (subfunction=n-K;subfunction < n; subfunction++) {
-                    solution.getData()[0] = (int)(((((long)j << K) | i) >>> (subfunction-(n-K))) & mask);
+                for (subfunction=n- K; subfunction < n; subfunction++) {
+                    solution.getData()[0] = (int)(((((long)j << K) | i) >>> (subfunction-(n- K))) & mask);
                     for (int dim=0; dim < d; dim++) {
                         int inner_sf = translator.subfunctionID(dim, subfunction);
                         offset[dim] += vectorMKLandscape.evaluateSubfunction(inner_sf, solution);
