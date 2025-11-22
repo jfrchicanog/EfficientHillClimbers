@@ -8,6 +8,7 @@ import java.io.StringWriter;
 import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
 
+import neo.landscape.theory.apps.pseudoboolean.exactsolvers.MultiObjectiveCompleteEnumeration;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -39,11 +40,10 @@ public class ExactMultiObjectiveExperiment implements Process {
 	private PrintStream ps;
 	private ByteArrayOutputStream ba;
 	private Timer timer;
-	private int unfeasibleSolutions;
+    private MultiObjectiveCompleteEnumeration multiObjectiveCompleteEnumeration;
 
     private Options options;
-    
-    ParetoNonDominatedSet nonDominatedSet;
+
 	private CommandLine commandLine;
     
 	@Override
@@ -102,18 +102,18 @@ public class ExactMultiObjectiveExperiment implements Process {
 		
 		configureTimer();
 		timer.startTimer();
-		
-		initializeDataHolders();
+
+        multiObjectiveCompleteEnumeration = new MultiObjectiveCompleteEnumeration();
 		initializeOutput();
 		
 		ConstrainedMNKLandscape pbf = configureProblem(commandLine);
 		
         ps.println("Search starts: "+timer.elapsedTimeInMilliseconds());
-        unfeasibleSolutions=0;
-        completeEnumeration(pbf);
-        
+
+        ParetoNonDominatedSet nonDominatedSet = multiObjectiveCompleteEnumeration.solve(pbf);
+
         ps.println("Elapsed time: "+timer.elapsedTimeInMilliseconds());
-        ps.println("Unfeasible solutions: "+unfeasibleSolutions);
+        ps.println("Unfeasible solutions: "+multiObjectiveCompleteEnumeration.getUnfeasibleSolutionsCount());
         ps.println(nonDominatedSet.printArchive());
 
         printOutput();
@@ -125,36 +125,6 @@ public class ExactMultiObjectiveExperiment implements Process {
 			timer = Timers.getTimer(commandLine.getOptionValue(TIMER_ARGUMENT));
 		}
 	}
-
-    protected void completeEnumeration(MNKLandscape pbf) {
-        int n = pbf.getN();
-        PBSolution sol = new PBSolution(n);
-        int[] data = sol.getData();
-
-        if (n >= 31) {
-            throw new RuntimeException("A long search of " + n
-                    + " bits. I will not do that!");
-        }
-
-        int limit = 1 << n;
-        for (data[0] = 0; data[0] < limit; data[0]++) {
-            double val [] = pbf.evaluate(sol);
-            if (feasibleSolution(val, pbf.getConstraintIndex())) {
-                nonDominatedSet.reportSolutionToArchive(val, pbf.getConstraintIndex());
-            } else {
-                unfeasibleSolutions++;
-            }
-        }
-        
-    }
-
-    private boolean feasibleSolution(double[] val, int constraintIndex) {
-        boolean feasible = true;
-        for (int i = constraintIndex; feasible && i < val.length; i++) {
-            feasible &= (val[i] >= 0);
-        }
-        return feasible;
-    }
 
     private ConstrainedMNKLandscape configureProblem(CommandLine commandLine) {
         String n = commandLine.getOptionValue(N_ARGUMENT);
@@ -205,9 +175,6 @@ public class ExactMultiObjectiveExperiment implements Process {
         }
     }
 
-    private void initializeDataHolders() {
-        nonDominatedSet = new ParetoNonDominatedSet();
-    }
 
     private void initializeOutput() {
         ba = new ByteArrayOutputStream();

@@ -8,12 +8,12 @@ import java.io.PrintStream;
 import java.util.Properties;
 
 public class MNKLandscapeConfigurator implements VectorMKLandscapeConfigurator{
-    private static final String PROBLEM_SEED_ARGUMENT = "pseed";
-    private static final String MODEL_ARGUMENT = "model";
-    private static final String Q_ARGUMENT = "q";
-    private static final String K_ARGUMENT = "k";
-    private static final String N_ARGUMENT = "n";
-    private static final String D_ARGUMENT = "d";
+    public static final String PROBLEM_SEED_ARGUMENT = "pseed";
+    public static final String MODEL_ARGUMENT = "model";
+    public static final String Q_ARGUMENT = "q";
+    public static final String K_ARGUMENT = "k";
+    public static final String N_ARGUMENT = "n";
+    public static final String D_ARGUMENT = "d";
 
     @Override
     public void prepareOptionsForProblem(Options options) {
