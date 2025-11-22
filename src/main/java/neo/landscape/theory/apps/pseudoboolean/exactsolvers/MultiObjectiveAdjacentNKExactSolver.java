@@ -3,23 +3,29 @@ package neo.landscape.theory.apps.pseudoboolean.exactsolvers;
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKSubfunctionTranslator;
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
+import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSet;
+import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSetFactory;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
 
+import java.lang.reflect.Array;
 import java.util.stream.IntStream;
 
-// TODO: check what happens if K=0
-public class MultiObjectiveAdjacentNKExactSolver {
+public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedSet<NS>> {
 
     private VectorMKLandscape vectorMKLandscape;
-    private ParetoNonDominatedSet2D [][] paretoNSSets1;
-    private ParetoNonDominatedSet2D [][] paretoNSSets2;
+    private IParetoNonDominatedSetFactory<NS> paretoNonDominatedSetFactory;
+    private NS [][] paretoNSSets1;
+    private NS [][] paretoNSSets2;
     private int n;
     private int k;
     private int d;
     private VectorMKSubfunctionTranslator translator;
     private PBSolution solution;
     private int mask;
+
+    public MultiObjectiveAdjacentNKExactSolver(IParetoNonDominatedSetFactory<NS> factory) {
+        paretoNonDominatedSetFactory = factory;
+    }
 
     private void checkVectorMKLandscape() {
         if (d != 2) {
@@ -59,18 +65,18 @@ public class MultiObjectiveAdjacentNKExactSolver {
         paretoNSSets2  = initializeParetoNSSets();
     }
 
-    private ParetoNonDominatedSet2D [][] initializeParetoNSSets() {
+    private NS [][] initializeParetoNSSets() {
         int limit = 1 << (k-1);
-        ParetoNonDominatedSet2D [][] result = new ParetoNonDominatedSet2D[limit][limit];
+        NS [][] result = (NS [][])Array.newInstance(paretoNonDominatedSetFactory.create().getClass(), limit, limit);
         for (int i = 0; i < limit; i++) {
             for (int j = 0; j < limit; j++) {
-                result[i][j] = new ParetoNonDominatedSet2D();
+                result[i][j] = paretoNonDominatedSetFactory.create();
             }
         }
         return result;
     }
 
-    public ParetoNonDominatedSet2D computeParetoFront(VectorMKLandscape vectorMKLandscape) {
+    public NS computeParetoFront(VectorMKLandscape vectorMKLandscape) {
         this.vectorMKLandscape = vectorMKLandscape;
         translator = vectorMKLandscape.getSubfunctionsTranslator();
         n = vectorMKLandscape.getN();
@@ -91,14 +97,14 @@ public class MultiObjectiveAdjacentNKExactSolver {
 
         initializeDataStructures();
         computeFirstFunction(paretoNSSets1);
-        ParetoNonDominatedSet2D [][] computed = paretoNSSets1;
-        ParetoNonDominatedSet2D [][] target = paretoNSSets2;
+        NS [][] computed = paretoNSSets1;
+        NS [][] target = paretoNSSets2;
 
         int subfunction;
         for (subfunction=K; subfunction < n-K; subfunction++) { // stop when there K subfunctions missing
             // Absorb subfunction K and eliminate variable K (subfunction K goes from var K to 2K)
             eliminateVariable(subfunction, computed, target);
-            ParetoNonDominatedSet2D [][] tmp = computed;
+            NS [][] tmp = computed;
             computed = target;
             target = tmp;
         }
@@ -106,10 +112,10 @@ public class MultiObjectiveAdjacentNKExactSolver {
         return exhaustiveSearchWithRemainingFunctions(computed);
     }
 
-    private ParetoNonDominatedSet2D solveAdditiveDecomposable() {
-        ParetoNonDominatedSet2D accumulated = new ParetoNonDominatedSet2D();
-        ParetoNonDominatedSet2D result = new ParetoNonDominatedSet2D();
-        ParetoNonDominatedSet2D auxiliary = new ParetoNonDominatedSet2D();
+    private NS solveAdditiveDecomposable() {
+        NS accumulated = paretoNonDominatedSetFactory.create();
+        NS result = paretoNonDominatedSetFactory.create();
+        NS auxiliary = paretoNonDominatedSetFactory.create();
         double [] offset = new double[d];
         solution = new PBSolution(1);
 
@@ -136,22 +142,22 @@ public class MultiObjectiveAdjacentNKExactSolver {
                 if (accumulated.size() == 0) {
                     accumulated.addPoint(new double[d]);
                 }
-                ParetoNonDominatedSet2D.combine(accumulated, point1, accumulated, point2, result);
-                ParetoNonDominatedSet2D tmp = accumulated;
+                paretoNonDominatedSetFactory.combine(accumulated, point1, accumulated, point2, result);
+                NS tmp = accumulated;
                 accumulated = result;
                 result = tmp;
             }
         }
         auxiliary.clear();
-        ParetoNonDominatedSet2D.combine(accumulated, offset, auxiliary, new double[d], result);
+        paretoNonDominatedSetFactory.combine(accumulated, offset, auxiliary, new double[d], result);
         return result;
     }
 
-    private ParetoNonDominatedSet2D exhaustiveSearchWithRemainingFunctions(ParetoNonDominatedSet2D[][] computed) {
+    private NS exhaustiveSearchWithRemainingFunctions(NS[][] computed) {
         int K = k-1;
         int subfunction;
-        ParetoNonDominatedSet2D accumulated = new ParetoNonDominatedSet2D();
-        ParetoNonDominatedSet2D result = new ParetoNonDominatedSet2D();
+        NS accumulated = paretoNonDominatedSetFactory.create();
+        NS result = paretoNonDominatedSetFactory.create();
 
         double [] zero = new double[d];
         double [] offset = new double[d];
@@ -168,8 +174,8 @@ public class MultiObjectiveAdjacentNKExactSolver {
                     }
                 }
                 // Accumulate
-                ParetoNonDominatedSet2D.combine(computed[i][j], offset, accumulated, zero, result);
-                ParetoNonDominatedSet2D tmp = accumulated;
+                paretoNonDominatedSetFactory.combine(computed[i][j], offset, accumulated, zero, result);
+                NS tmp = accumulated;
                 accumulated = result;
                 result = tmp;
             }
@@ -177,11 +183,11 @@ public class MultiObjectiveAdjacentNKExactSolver {
         return accumulated;
     }
 
-    private ParetoNonDominatedSet2D applyExhaustiveEnumeration() {
+    private NS applyExhaustiveEnumeration() {
         if (n > 31) {
             throw new IllegalArgumentException("Exhaustive enumeration is only supported for n <= 31");
         }
-        ParetoNonDominatedSet2D result = new ParetoNonDominatedSet2D();
+        NS result = paretoNonDominatedSetFactory.create();
         int limit = 1 << n;
         solution = new PBSolution(n);
         for (int i=0; i < limit; i++) {
@@ -191,7 +197,7 @@ public class MultiObjectiveAdjacentNKExactSolver {
         return result;
     }
 
-    private void eliminateVariable(int subfunction, ParetoNonDominatedSet2D[][] computed, ParetoNonDominatedSet2D[][] target) {
+    private void eliminateVariable(int subfunction, NS[][] computed, NS[][] target) {
         int limit = 1<< (k-1);
         double [][] point = new double[2][d];
         for (int j=0; j < limit; j++) {
@@ -206,7 +212,7 @@ public class MultiObjectiveAdjacentNKExactSolver {
                     }
                 }
                 int masked_msb = msb_index & (limit-1);
-                ParetoNonDominatedSet2D.combine(
+                paretoNonDominatedSetFactory.combine(
                     computed[masked_msb][j], point[0],
                     computed[masked_msb | 0x1][j],
                     point[1], target[i][j]);
@@ -226,7 +232,7 @@ public class MultiObjectiveAdjacentNKExactSolver {
         }
     }
 
-    private void computeFirstFunction(ParetoNonDominatedSet2D [][] paretoNSSets) {
+    private void computeFirstFunction(NS [][] paretoNSSets) {
         int K=k-1;
         int limit = 1<< K;
         for (int i=0; i < limit; i++) {

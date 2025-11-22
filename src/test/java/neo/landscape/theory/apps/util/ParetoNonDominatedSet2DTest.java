@@ -80,7 +80,7 @@ public class ParetoNonDominatedSet2DTest {
         // Create and populate ParetoNonDominatedSet
         ParetoNonDominatedSet setGeneral = new ParetoNonDominatedSet();
         for (double[] point : points) {
-            setGeneral.reportSolutionToArchive(point);
+            setGeneral.addPoint(point);
 
         }
         // Compare sizes
@@ -117,7 +117,7 @@ public class ParetoNonDominatedSet2DTest {
         ParetoNonDominatedSet setGeneral = new ParetoNonDominatedSet();
         start = System.nanoTime();
         for (double[] point : points) {
-            setGeneral.reportSolutionToArchive(point);
+            setGeneral.addPoint(point);
         }
         long nonEfficientTime = System.nanoTime() - start;
         System.out.println("Non-efficient time: " + nonEfficientTime + " nanoseconds");

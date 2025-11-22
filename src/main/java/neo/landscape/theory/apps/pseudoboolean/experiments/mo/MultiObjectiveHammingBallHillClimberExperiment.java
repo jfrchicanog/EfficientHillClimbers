@@ -258,7 +258,7 @@ public class MultiObjectiveHammingBallHillClimberExperiment implements Process {
                 VectorPBMove move = rball.getMovement();
                 KindOfMove kind = selector.classifyMove(move);
                 if (KindOfMove.W_IMPROVING.equals(kind)) {
-                    nonDominatedSet.reportSolutionToArchive(rball.getSolutionQuality());
+                    nonDominatedSet.addPoint(rball.getSolutionQuality());
                 }
                 rball.move();
                 //rball.checkConsistency();
@@ -266,7 +266,7 @@ public class MultiObjectiveHammingBallHillClimberExperiment implements Process {
             } while (!timer.shouldStop());
         } catch (NoImprovingMoveException e) {
         }
-        nonDominatedSet.reportSolutionToArchive(rball.getSolutionQuality());
+        nonDominatedSet.addPoint(rball.getSolutionQuality());
         return moves;
     }    
 

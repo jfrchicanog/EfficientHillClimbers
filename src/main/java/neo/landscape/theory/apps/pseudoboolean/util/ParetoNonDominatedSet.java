@@ -5,11 +5,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet.DominanceRelation;
-
 
 // TODO: this class needs refactoring to separate printing options from archive management
-public class ParetoNonDominatedSet implements Iterable<double[]> {
+public class ParetoNonDominatedSet implements Iterable<double[]>, IParetoNonDominatedSet<ParetoNonDominatedSet> {
 
     private String separator = ", ";
     private boolean printSummary = true;
@@ -23,13 +21,25 @@ public class ParetoNonDominatedSet implements Iterable<double[]> {
     public ParetoNonDominatedSet() {
         archive = new ArrayList<double []>();
     }
-    
-    public void reportSolutionToArchive(double[] solutionToAdd) {
+
+    @Override
+    public void addPoint(double[] solutionToAdd) {
         reportSolutionToArchive(solutionToAdd, solutionToAdd.length);
     }
 
+    @Override
     public int size() {
         return archive.size();
+    }
+
+    @Override
+    public void clear() {
+        archive.clear();
+    }
+
+    @Override
+    public IParetoNonDominatedSetFactory<ParetoNonDominatedSet> getFactory() {
+        return new ParetoNonDominatedSetFactory();
     }
 
     @Override

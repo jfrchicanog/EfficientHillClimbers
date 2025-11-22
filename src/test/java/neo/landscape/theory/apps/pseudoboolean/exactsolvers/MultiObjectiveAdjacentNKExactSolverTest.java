@@ -4,6 +4,8 @@ import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscapeConfigura
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
+import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2DFactory;
+import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSetFactory;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -23,7 +25,7 @@ public class MultiObjectiveAdjacentNKExactSolverTest {
     public void compareExhaustiveAndWright(int n, int k, int pseed) {
         VectorMKLandscape problem = getVectorMKLandscape(n, k, pseed);
 
-        MultiObjectiveAdjacentNKExactSolver solver = new MultiObjectiveAdjacentNKExactSolver();
+        MultiObjectiveAdjacentNKExactSolver<ParetoNonDominatedSet2D> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DFactory());
         ParetoNonDominatedSet2D actual = solver.computeParetoFront(problem);
 
         MultiObjectiveCompleteEnumeration exhaustive = new MultiObjectiveCompleteEnumeration();
@@ -72,8 +74,8 @@ public class MultiObjectiveAdjacentNKExactSolverTest {
     }
 
     private static Stream<Arguments> argumentsForPerformance() {
-        return IntStream.rangeClosed(1,5).boxed()
-            .flatMap(n -> IntStream.rangeClosed(2,3).boxed()
+        return IntStream.rangeClosed(100,100).boxed()
+            .flatMap(n -> IntStream.rangeClosed(2,2).boxed()
                 .flatMap(k->IntStream.rangeClosed(0,0).boxed()
                     .map(pseed->Arguments.of(100*n,k,pseed))));
     }
@@ -83,10 +85,23 @@ public class MultiObjectiveAdjacentNKExactSolverTest {
     public void performanceTest(int n, int k, int pseed) {
         VectorMKLandscape problem = getVectorMKLandscape(n, k, pseed);
 
-        MultiObjectiveAdjacentNKExactSolver solver = new MultiObjectiveAdjacentNKExactSolver();
+        MultiObjectiveAdjacentNKExactSolver<ParetoNonDominatedSet2D> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DFactory());
 
         long start = System.nanoTime();
         ParetoNonDominatedSet2D actual = solver.computeParetoFront(problem);
+        long efficientTime = System.nanoTime() - start;
+        System.out.println("Effective time: " + efficientTime + " nanoseconds");
+    }
+
+    @ParameterizedTest
+    @MethodSource("argumentsForPerformance")
+    public void performanceTestGenericNSSet(int n, int k, int pseed) {
+        VectorMKLandscape problem = getVectorMKLandscape(n, k, pseed);
+
+        MultiObjectiveAdjacentNKExactSolver<ParetoNonDominatedSet> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSetFactory());
+
+        long start = System.nanoTime();
+        ParetoNonDominatedSet actual = solver.computeParetoFront(problem);
         long efficientTime = System.nanoTime() - start;
         System.out.println("Effective time: " + efficientTime + " nanoseconds");
     }

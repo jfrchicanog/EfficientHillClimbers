@@ -4,7 +4,7 @@ import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class ParetoNonDominatedSet2D implements Iterable<double []>{
+public class ParetoNonDominatedSet2D implements Iterable<double []>, IParetoNonDominatedSet<ParetoNonDominatedSet2D>{
 
     private NavigableSet<double []> archive;
     public static final Comparator<double[]> COMPARATOR_2D =
@@ -15,12 +15,19 @@ public class ParetoNonDominatedSet2D implements Iterable<double []>{
         archive = new TreeSet<double []>(COMPARATOR_2D);
     }
 
+    @Override
     public void clear() {
         archive.clear();
     }
 
+    @Override
     public int size() {
         return archive.size();
+    }
+
+    @Override
+    public IParetoNonDominatedSetFactory<ParetoNonDominatedSet2D> getFactory() {
+        return new ParetoNonDominatedSet2DFactory();
     }
 
     @Override
