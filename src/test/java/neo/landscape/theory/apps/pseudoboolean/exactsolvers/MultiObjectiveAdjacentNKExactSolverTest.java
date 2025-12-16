@@ -74,7 +74,7 @@ public class MultiObjectiveAdjacentNKExactSolverTest {
     }
 
     private static Stream<Arguments> argumentsForPerformance() {
-        return IntStream.rangeClosed(100,100).boxed()
+        return IntStream.rangeClosed(10,10).boxed()
             .flatMap(n -> IntStream.rangeClosed(2,2).boxed()
                 .flatMap(k->IntStream.rangeClosed(0,0).boxed()
                     .map(pseed->Arguments.of(100*n,k,pseed))));

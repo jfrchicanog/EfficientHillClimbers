@@ -8,15 +8,15 @@ import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveHam
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveHammingBallHillClimberForInstanceOf;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.MultiObjectiveHammingBallHillClimberSnapshot;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.mo.VectorPBMove;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscapeConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.MquboConfigurator;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
-import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscapeConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.problems.mo.*;
 import neo.landscape.theory.apps.util.Process;
 import org.apache.commons.cli.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -28,6 +28,8 @@ public class MOLocalOptima implements Process {
     private static final String MQUBO = "mqubo";
     private static final String PREFIX_ARGUMENT = "prefix";
     private static final String OUTPUT_FILE_ARGUMENT = "output";
+    private static final String REORDER_VARIABLES_ARGUMENT = "reorder";
+    private static final String INSTANCE_OUTPUT_FILE_ARGUMENT = "instanceOutput";
 
 
     private static final long REPORT_PERIOD = 1L<<30;
@@ -51,6 +53,8 @@ public class MOLocalOptima implements Process {
     private Options options;
     private PrintStream ps;
     private ByteArrayOutputStream ba;
+    private String instanceOutputFileName;
+    private boolean reoderVariables = false;
 
     private final Map<String, VectorMKLandscapeConfigurator> configurators = new HashMap<>();
     {
@@ -89,6 +93,8 @@ public class MOLocalOptima implements Process {
             .desc("properties for the problem")
             .build());
         options.addOption(OUTPUT_FILE_ARGUMENT, true, "output file");
+        options.addOption(INSTANCE_OUTPUT_FILE_ARGUMENT, true, "instance output file");
+        options.addOption(REORDER_VARIABLES_ARGUMENT, false, "reorder variables");
 
         return options;
     }
@@ -152,7 +158,7 @@ public class MOLocalOptima implements Process {
                 //rball.moveOneBit(index);
                 index++;
             }*/
-            if (index < n) { // FIXME: maybe index < limitIndex?
+            if (index < limitIndex) { // FIXME: test if prefix works
                 //counter[index]=1;
                 rball.moveOneBit(variableOrder[index]);
             }
@@ -182,8 +188,40 @@ public class MOLocalOptima implements Process {
 
     private void initializeVariableArrays() {
         int n = getPbf().getN();
-        int [][] interactions = getPbf().getInteractions();
-        variableOrder = IntStream.range(0, n).toArray();
+        if (reoderVariables) {
+            Set<Integer> variablesToAdd = IntStream.range(0, n).boxed().collect(Collectors.toSet());
+            List<Integer> variablesAdded = new ArrayList<>();
+            int[][] interactions = getPbf().getInteractions();
+
+            while (!variablesToAdd.isEmpty()) {
+                OptionalInt minInteractions = OptionalInt.empty();
+                int variable = -1;
+                for (int i : variablesToAdd) {
+                    int interactionCount = 1;
+                    for (int v : interactions[i]) {
+                        if (!variablesAdded.contains(v)) {
+                            interactionCount++;
+                        }
+                    }
+                    if (minInteractions.isEmpty() || interactionCount < minInteractions.getAsInt()) {
+                        minInteractions = OptionalInt.of(interactionCount);
+                        variable = i;
+                    }
+                }
+                variablesAdded.add(variable);
+                variablesToAdd.remove(variable);
+                for (int v : interactions[variable]) {
+                    if (!variablesAdded.contains(v)) {
+                        variablesAdded.add(v);
+                        variablesToAdd.remove(v);
+                    }
+                }
+            }
+
+            variableOrder = variablesAdded.stream().mapToInt(Integer::intValue).toArray();
+        } else {
+            variableOrder = IntStream.range(0, n).toArray();
+        }
         /*
         variableOrder = IntStream.range(0, n)
             .boxed()
@@ -320,6 +358,12 @@ public class MOLocalOptima implements Process {
             if (commandLine.hasOption(OUTPUT_FILE_ARGUMENT)) {
                 outputFileName = commandLine.getOptionValue(OUTPUT_FILE_ARGUMENT);
             }
+            if (commandLine.hasOption(INSTANCE_OUTPUT_FILE_ARGUMENT)) {
+                instanceOutputFileName = commandLine.getOptionValue(INSTANCE_OUTPUT_FILE_ARGUMENT);
+            }
+            if (commandLine.hasOption(REORDER_VARIABLES_ARGUMENT)) {
+                reoderVariables = true;
+            }
 
             if (commandLine.hasOption(PREFIX_ARGUMENT)) {
                 prefix = commandLine.getOptionValue(PREFIX_ARGUMENT);
@@ -344,12 +388,28 @@ public class MOLocalOptima implements Process {
                 System.out.println("written");
             }
 
+            if (instanceOutputFileName != null) {
+                System.out.println("Writing instance in file " + instanceOutputFileName);
+                writeInstanceInFile();
+                System.out.println("written");
+
+            }
+
         } catch (Exception e) {
             showOptions();
             System.err.println(e.getMessage());
         }
 
 
+    }
+
+    private void writeInstanceInFile() throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(instanceOutputFileName);
+             GZIPOutputStream gzos = new GZIPOutputStream(fos);
+             Writer writer = new OutputStreamWriter(gzos))
+        {
+            (new MaleoFormat()).write(pbf, writer);
+        }
     }
 
     private void writeLOInFile() {

@@ -8,9 +8,16 @@ import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSetFactor
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedSet<NS>> {
+
 
     private VectorMKLandscape vectorMKLandscape;
     private IParetoNonDominatedSetFactory<NS> paretoNonDominatedSetFactory;
@@ -22,9 +29,12 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
     private VectorMKSubfunctionTranslator translator;
     private PBSolution solution;
     private int mask;
+    private ExecutorService pool;
 
     public MultiObjectiveAdjacentNKExactSolver(IParetoNonDominatedSetFactory<NS> factory) {
         paretoNonDominatedSetFactory = factory;
+        int nbThreads = Runtime.getRuntime().availableProcessors();
+        pool =  Executors. newFixedThreadPool (1);
     }
 
     private void checkVectorMKLandscape() {
@@ -199,25 +209,40 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
 
     private void eliminateVariable(int subfunction, NS[][] computed, NS[][] target) {
         int limit = 1<< (k-1);
+        // pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         double [][] point = new double[2][d];
         for (int j=0; j < limit; j++) {
             for (int i = 0; i < limit; i++) {
-                initializePoints(point);
-                int msb_index = (i << 1);
-                for (int lsb_bit = 0; lsb_bit < 2; lsb_bit++) {
-                    solution.getData()[0] = msb_index | lsb_bit;
-                    for (int dim=0; dim < d; dim++) {
-                        int inner_sf = translator.subfunctionID(dim, subfunction);
-                        point[lsb_bit][dim] += vectorMKLandscape.evaluateSubfunction(inner_sf, solution);
+                final int fi = i;
+                final int fj = j;
+                // pool.submit( () -> {
+                    // double [][] point = new double[2][d];
+                    initializePoints(point);
+                    PBSolution solution = new PBSolution (k);
+                    int msb_index = (fi << 1);
+                    for (int lsb_bit = 0; lsb_bit < 2; lsb_bit++) {
+                        solution.getData()[0] = msb_index | lsb_bit;
+                        for (int dim=0; dim < d; dim++) {
+                            int inner_sf = translator.subfunctionID(dim, subfunction);
+                            point[lsb_bit][dim] += vectorMKLandscape.evaluateSubfunction(inner_sf, solution);
+                        }
                     }
-                }
-                int masked_msb = msb_index & (limit-1);
-                paretoNonDominatedSetFactory.combine(
-                    computed[masked_msb][j], point[0],
-                    computed[masked_msb | 0x1][j],
-                    point[1], target[i][j]);
+                    int masked_msb = msb_index & (limit-1);
+                    paretoNonDominatedSetFactory.combine(
+                        computed[masked_msb][fj], point[0],
+                        computed[masked_msb | 0x1][fj],
+                        point[1], target[fi][fj]);
+                // });
+
+
             }
         }
+        /* pool.shutdown();
+        try {
+            pool.awaitTermination(1000, TimeUnit.DAYS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }*/
     }
 
     private void initializePoints(double[][] point) {
