@@ -50,7 +50,9 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-			ps.println("Intance: "+instance);
+            if (ps != null) {
+                ps.println("Intance: " + instance);
+            }
 		} else {
 			pbf = new NKLandscapes();
 			Properties prop = new Properties();
@@ -77,13 +79,15 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
 			pbf.setSeed(problemSeed);
 			pbf.setConfiguration(prop);
 
-			ps.println("N: " + pbf.getN());
-			ps.println("K: " + pbf.getK());
-			ps.println("Q: " + pbf.getQ());
-			ps.println("Adjacent model?: "
-				+ (NKLandscapes.NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));
-			ps.println("NK-model: " + circular);
-			ps.println("ProblemSeed: " + problemSeed);
+            if (ps != null) {
+                ps.println("N: " + pbf.getN());
+                ps.println("K: " + pbf.getK());
+                ps.println("Q: " + pbf.getQ());
+                ps.println("Adjacent model?: "
+                    + (NKLandscapes.NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));
+                ps.println("NK-model: " + circular);
+                ps.println("ProblemSeed: " + problemSeed);
+            }
 		}
         return pbf;
 	}
