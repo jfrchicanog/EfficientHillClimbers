@@ -27,7 +27,7 @@ public class ParetoNonDominatedSet2DEfficient implements Iterable<double []>, IP
 
     @Override
     public IParetoNonDominatedSetFactory<ParetoNonDominatedSet2DEfficient> getFactory() {
-        return new ParetoNonDominatedSet2DFactory();
+        return new ParetoNonDominatedSet2DEfficientFactory();
     }
 
     @Override
