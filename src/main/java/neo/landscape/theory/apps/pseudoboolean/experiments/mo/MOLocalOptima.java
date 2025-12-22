@@ -217,7 +217,7 @@ public class MOLocalOptima implements Process {
                     }
                 }
             }
-
+            Collections.reverse(variablesAdded);
             variableOrder = variablesAdded.stream().mapToInt(Integer::intValue).toArray();
         } else {
             variableOrder = IntStream.range(0, n).toArray();
