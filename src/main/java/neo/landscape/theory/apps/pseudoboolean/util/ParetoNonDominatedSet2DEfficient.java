@@ -3,26 +3,46 @@ package neo.landscape.theory.apps.pseudoboolean.util;
 import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class ParetoNonDominatedSet2DEfficient implements Iterable<double []>, IParetoNonDominatedSet<ParetoNonDominatedSet2DEfficient>{
 
-    private NavigableSet<double []> archive;
-    public static final Comparator<double[]> COMPARATOR_2D =
-            Comparator.<double[]>comparingDouble(d -> d[0])
-                .thenComparing(d->d[1]);
+    private static final int INITIAL_CAPACITY = 16;
+
+    private double [] xs;
+    private double [] ys;
+    private int size;
 
     public ParetoNonDominatedSet2DEfficient() {
-        archive = new TreeSet<double []>(COMPARATOR_2D);
+        xs = new double [INITIAL_CAPACITY];
+        ys = new double [INITIAL_CAPACITY];
+        size = 0;
+    }
+
+    private void grow() {
+        xs = Arrays.copyOf(xs, xs.length * 2);
+        ys = Arrays.copyOf(ys, ys.length * 2);
+    }
+
+    private void ensureCapacity(int capacity) {
+        if (capacity > xs.length) {
+            int newCapacity = xs.length;
+            while (newCapacity < capacity) {
+                newCapacity *= 2;
+            }
+            xs = Arrays.copyOf(xs, newCapacity);
+            ys = Arrays.copyOf(ys, newCapacity);
+        }
     }
 
     @Override
     public void clear() {
-        archive.clear();
+        size=0;
     }
 
     @Override
     public int size() {
-        return archive.size();
+        return size;
     }
 
     @Override
@@ -33,79 +53,131 @@ public class ParetoNonDominatedSet2DEfficient implements Iterable<double []>, IP
     @Override
     @Nonnull
     public Iterator<double []> iterator() {
-        return archive.iterator();
+        return new Iterator<double[]>() {
+            private int currentIndex = 0;
+
+            @Override
+            public boolean hasNext() {
+                return currentIndex < size;
+            }
+
+            @Override
+            public double[] next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                double[] point = new double[]{xs[currentIndex], ys[currentIndex]};
+                currentIndex++;
+                return point;
+            }
+        };
     }
 
     public Stream<double[]> stream() {
-        return archive.stream();
+        Iterator<double []> iterator = iterator();
+        List<double []> list = new ArrayList<>();
+        while (iterator.hasNext()) {
+            list.add(iterator.next());
+        }
+        return list.stream();
     }
 
-    public void addPoint(double[] point) {
-        var first = archive.tailSet(point).stream().findFirst();
-        if (first.isPresent()) {
-            double[] firstPoint = first.get();
-            if (firstPoint[1] >= point[1]) {
-                // point is dominated
-                return;
-            }
+    public boolean add(double x, double y) {
+        // --- 1) búsqueda binaria en xs ---
+        int pos = Arrays.binarySearch(xs, 0, size, x);
+        if (pos >= 0) {
+            // ya existe este x; si el nuevo y es menor o igual, dominado
+            if (ys[pos] >= y) return false;
+            // si el nuevo domina, lo sustituimos
+        } else {
+            pos = -pos - 1;
         }
-        archive.headSet(point, false)
-            .descendingSet()
-            .stream()
-            .takeWhile(p -> p[1] <= point[1])
-            .toList()
-            .forEach(archive::remove);
-        archive.add(point);
+
+        // --- 2) revisar si está dominado por el punto a la derecha ---
+        if (pos < size && ys[pos] >= y) return false;
+
+        // --- 3) eliminar los puntos a la izquierda dominados por el nuevo ---
+        int i = pos - 1;
+        while (i >= 0 && ys[i] <= y) i--;
+
+        int newPos = i + 1;
+
+        // --- 4) mover datos si es necesario ---
+        int shift = pos - newPos;
+        if (shift > 0) {
+            System.arraycopy(xs, pos, xs, newPos + 1, size - pos);
+            System.arraycopy(ys, pos, ys, newPos + 1, size - pos);
+        } else {
+            System.arraycopy(xs, pos, xs, pos + 1, size - pos);
+            System.arraycopy(ys, pos, ys, pos + 1, size - pos);
+        }
+        // Eliminar dominados: simplemente sobrescribimos
+        size -= shift;
+
+        if (size == xs.length) grow();
+
+        // --- 5) insertar ---
+        xs[newPos] = x;
+        ys[newPos] = y;
+        size++;
+
+        return true;
+    }
+
+
+    public void addPoint(double[] point) {
+        if (point.length != 2) {
+            throw new IllegalArgumentException("Point must be 2-dimensional");
+        }
+        add(point[0], point[1]);
     }
 
     public static void combine(ParetoNonDominatedSet2DEfficient source1, double [] offset1, ParetoNonDominatedSet2DEfficient source2, double [] offset2, ParetoNonDominatedSet2DEfficient target) {
         target.clear();
-        if (!source1.archive.isEmpty() && source2.archive.isEmpty()) {
+        if (source1.size > 0 && source2.size==0) {
             moveToTarget(source1, offset1, target);
-        } else if (!source2.archive.isEmpty() && source1.archive.isEmpty()) {
+        } else if (source2.size > 0 && source1.size==0) {
             moveToTarget(source2, offset2, target);
-        } else if (!source1.archive.isEmpty()) {
+        } else if (source1.size > 0) {
             // both sets are non-empty
-            Iterator<double [] > it1 = source1.archive.iterator();
-            Iterator<double [] > it2 = source2.archive.iterator();
-            Optional<double []> p1 = advanceIterator(it1);
-            Optional<double []> p2 = advanceIterator(it2);
+            int index1 = 0;
+            int index2 = 0;
 
-            while (p1.isPresent() && p2.isPresent()) {
+            while (index1 < source1.size && index2 < source2.size) {
                 // if p1 dominates or is equal to p2
-                if (dominatesOrEqual(p1.get(), offset1, p2.get(), offset2)) {
+                if (dominatesOrEqual(source1.xs[index1], source1.ys[index1], offset1, source2.xs[index2], source2.ys[index2], offset2)) {
                     do {
-                        p2 = advanceIterator(it2);
-                    } while(p2.isPresent() && dominatesOrEqual(p1.get(), offset1, p2.get(), offset2));
+                        index2++;
+                    } while(index2 < source2.size && dominatesOrEqual(source1.xs[index1], source1.ys[index1], offset1, source2.xs[index2], source2.ys[index2], offset2));
                     // store p1 in the target set and advance it1
-                    addWithOffset(p1.get(), offset1, target);
-                    p1 = advanceIterator(it1);
-                } else if (dominatesOrEqual(p2.get(), offset2, p1.get(), offset1)) { // if p2 dominates p1 (or equal)
+                    addWithOffset(source1.xs[index1], source1.ys[index1], offset1, target);
+                    index1++;
+                } else if (dominatesOrEqual(source2.xs[index2], source2.ys[index2], offset2, source1.xs[index1], source1.ys[index1], offset1)) { // if p2 dominates p1 (or equal)
                     // iterate over source1 until we find a point that is not dominated by p2 and keep it there for later
                     do {
-                        p1 = advanceIterator(it1);
-                    } while(p1.isPresent() && dominatesOrEqual(p2.get(), offset2, p1.get(), offset1));
+                        index1++;
+                    } while(index1 < source1.size && dominatesOrEqual(source2.xs[index2], source2.ys[index2], offset2, source1.xs[index1], source1.ys[index1], offset1));
                     // store p2 in the target set and advance it2
-                    addWithOffset(p2.get(), offset2, target);
-                    p2 = advanceIterator(it2);
+                    addWithOffset(source2.xs[index2], source2.ys[index2], offset2, target);
+                    index2++;
                 } else { // (points are non-dominated among them)
                     // store in the target the point with lower x, iterate the corresponding iterator
-                    if (p1.get()[0]+offset1[0] < p2.get()[0]+offset2[0]) {
-                        addWithOffset(p1.get(), offset1, target);
-                        p1 = advanceIterator(it1);
+                    if (source1.xs[index1]+offset1[0] < source2.xs[index2]+offset2[0]) {
+                        addWithOffset(source1.xs[index1], source1.ys[index1], offset1, target);
+                        index1++;
                     } else {
-                        addWithOffset(p2.get(), offset2, target);
-                        p2 = advanceIterator(it2);
+                        addWithOffset(source2.xs[index2], source2.ys[index2], offset2, target);
+                        index2++;
                     }
                 }
             }
-            while (p1.isPresent()) {
-                addWithOffset(p1.get(), offset1, target);
-                p1 = advanceIterator(it1);
+            while (index1 < source1.size) {
+                addWithOffset(source1.xs[index1], source1.ys[index1], offset1, target);
+                index1++;
             }
-            while (p2.isPresent()) {
-                addWithOffset(p2.get(), offset2, target);
-                p2 = advanceIterator(it2);
+            while (index2 < source2.size) {
+                addWithOffset(source2.xs[index2], source2.ys[index2], offset2, target);
+                index2++;
             }
         }
 
@@ -119,18 +191,28 @@ public class ParetoNonDominatedSet2DEfficient implements Iterable<double []>, IP
         return (p1[0]+offset1[0] >= p2[0]+offset2[0]) && (p1[1]+offset1[1] >= p2[1]+offset2[1]);
     }
 
+    private static boolean dominatesOrEqual(double p1x, double p1y, double [] offset1, double p2x, double p2y, double [] offset2) {
+        return (p1x+offset1[0] >= p2x+offset2[0]) && (p1y+offset1[1] >= p2y+offset2[1]);
+    }
+
     private static void moveToTarget(ParetoNonDominatedSet2DEfficient source, double[] offset, ParetoNonDominatedSet2DEfficient target) {
-        for (double [] p : source.archive) {
-            addWithOffset(p, offset, target);
+        target.ensureCapacity(source.size);
+        System.arraycopy(source.xs, 0, target.xs, 0, source.size);
+        System.arraycopy(source.ys, 0, target.ys, 0, source.size);
+        target.size=source.size;
+        for (int i=0; i<source.size; i++) {
+            target.xs[i] += offset[0];
+            target.ys[i] += offset[1];
         }
     }
 
-    private static void addWithOffset(double[] p, double[] offset, ParetoNonDominatedSet2DEfficient target) {
-        double [] point = new double[2];
-        point[0] = p[0] + offset[0];
-        point[1] = p[1] + offset[1];
-        target.addPoint(point);
+    private static void addWithOffset(double px, double py, double[] offset, ParetoNonDominatedSet2DEfficient target) {
+        target.ensureCapacity(target.size+1);
+        target.xs[target.size] = px + offset[0];
+        target.ys[target.size] = py + offset[1];
+        target.size++;
     }
+
 
 
 }

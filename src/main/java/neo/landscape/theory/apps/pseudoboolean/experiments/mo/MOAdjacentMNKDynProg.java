@@ -4,7 +4,9 @@ import neo.landscape.theory.apps.pseudoboolean.exactsolvers.MultiObjectiveAdjace
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscapeConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSet;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
+import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2DEfficientFactory;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2DFactory;
 import neo.landscape.theory.apps.util.Process;
 import org.apache.commons.cli.*;
@@ -137,8 +139,8 @@ public class MOAdjacentMNKDynProg implements Process {
             pbf = getProblemConfigurator().configureProblem(
                 commandLine.getOptionProperties(PROBLEM_CHAR), ps);
 
-            MultiObjectiveAdjacentNKExactSolver<ParetoNonDominatedSet2D> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DFactory());
-            ParetoNonDominatedSet2D paretoFront = solver.computeParetoFront(pbf);
+            MultiObjectiveAdjacentNKExactSolver<?> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DEfficientFactory());
+            IParetoNonDominatedSet<?> paretoFront = solver.computeParetoFront(pbf);
 
             System.out.println("Pareto front size: " + paretoFront.size());
             if (outputFileName != null) {
@@ -152,7 +154,7 @@ public class MOAdjacentMNKDynProg implements Process {
         }
     }
 
-    private void writeParetoFrontInFile(ParetoNonDominatedSet2D paretoFront) {
+    private void writeParetoFrontInFile(IParetoNonDominatedSet<?> paretoFront) {
     	try (FileOutputStream fos = new FileOutputStream(outputFileName);
     		 GZIPOutputStream gzos = new GZIPOutputStream(fos);
     		 PrintWriter writer = new PrintWriter(gzos)) 
