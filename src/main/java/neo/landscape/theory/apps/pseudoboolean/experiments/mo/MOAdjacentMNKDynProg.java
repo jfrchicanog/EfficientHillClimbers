@@ -131,6 +131,7 @@ public class MOAdjacentMNKDynProg implements Process {
 
         try {
             CommandLine commandLine = parseCommandLine(args);
+            PrintWriter printWriter = new PrintWriter(System.out, true);
             problem = commandLine.getOptionValue(PROBLEM);
             if (commandLine.hasOption(OUTPUT_FILE_ARGUMENT)) {
                 outputFileName = commandLine.getOptionValue(OUTPUT_FILE_ARGUMENT);
@@ -139,14 +140,14 @@ public class MOAdjacentMNKDynProg implements Process {
             pbf = getProblemConfigurator().configureProblem(
                 commandLine.getOptionProperties(PROBLEM_CHAR), ps);
 
-            MultiObjectiveAdjacentNKExactSolver<?> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DEfficientFactory());
+            MultiObjectiveAdjacentNKExactSolver<?> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DEfficientFactory(), printWriter);
             IParetoNonDominatedSet<?> paretoFront = solver.computeParetoFront(pbf);
 
-            System.out.println("Pareto front size: " + paretoFront.size());
+            printWriter.println("Pareto front size: " + paretoFront.size());
             if (outputFileName != null) {
-                System.out.println("Writing in file " + outputFileName);
+                printWriter.println("Writing in file " + outputFileName);
                 writeParetoFrontInFile(paretoFront);
-                System.out.println("written");
+                printWriter.println("written");
             }
         } catch (Exception e) {
             showOptions();

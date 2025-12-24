@@ -5,15 +5,13 @@ import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKSubfunctionTranslator;
 import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSet;
 import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSetFactory;
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
 
+import java.io.PrintWriter;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedSet<NS>> {
@@ -30,12 +28,20 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
     private PBSolution solution;
     private int mask;
     private ExecutorService pool;
+    private Optional<PrintWriter> pw = Optional.empty();
+    private long startTime;
 
     public MultiObjectiveAdjacentNKExactSolver(IParetoNonDominatedSetFactory<NS> factory) {
         paretoNonDominatedSetFactory = factory;
         int nbThreads = Runtime.getRuntime().availableProcessors();
         pool =  Executors. newFixedThreadPool (1);
     }
+
+    public MultiObjectiveAdjacentNKExactSolver(IParetoNonDominatedSetFactory<NS> factory, PrintWriter pw) {
+        this(factory);
+        this.pw = Optional.ofNullable(pw);
+    }
+
 
     private void checkVectorMKLandscape() {
         if (d != 2) {
@@ -86,7 +92,12 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
         return result;
     }
 
+    private void reportMessage(Supplier<String> message) {
+        pw.ifPresent(pw -> pw.println(message.get()));
+    }
+
     public NS computeParetoFront(VectorMKLandscape vectorMKLandscape) {
+        startTime = System.nanoTime();
         this.vectorMKLandscape = vectorMKLandscape;
         translator = vectorMKLandscape.getSubfunctionsTranslator();
         n = vectorMKLandscape.getN();
@@ -113,6 +124,10 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
         int subfunction;
         for (subfunction=K; subfunction < n-K; subfunction++) { // stop when there K subfunctions missing
             // Absorb subfunction K and eliminate variable K (subfunction K goes from var K to 2K)
+            if ((subfunction % 1000) == 0) {
+                final int sf = subfunction;
+                reportMessage(()-> String.format("Eliminating subfunction %1d at time %2d (ms)",sf, (System.nanoTime()-startTime)/1_000_000L));
+            }
             eliminateVariable(subfunction, computed, target);
             NS [][] tmp = computed;
             computed = target;
