@@ -102,13 +102,13 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
             // same seed value starts for solving problem
 			pbf.setSeed(problemSeed);
 
-			ps.println("N: " + pbf.getN());
-			ps.println("k: " + pbf.getK());
-			ps.println("Q: " + pbf.getQ());
-			ps.println("Adjacent model?: "
-				+ (NKLandscapes.NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));
-			ps.println("NK-model: " + circular);
-			ps.println("ProblemSeed: " + problemSeed);
+//			ps.println("N: " + pbf.getN());
+//			ps.println("k: " + pbf.getK());
+//			ps.println("Q: " + pbf.getQ());
+//			ps.println("Adjacent model?: "
+//				+ (NKLandscapes.NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));
+//			ps.println("NK-model: " + circular);
+//			ps.println("ProblemSeed: " + problemSeed);
 		}
         return pbf;
 	}

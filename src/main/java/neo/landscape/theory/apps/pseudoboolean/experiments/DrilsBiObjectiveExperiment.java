@@ -15,7 +15,6 @@ import org.apache.commons.cli.*;
 import java.io.*;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.zip.GZIPOutputStream;
 
 public class DrilsBiObjectiveExperiment implements Process {
 
@@ -34,6 +33,7 @@ public class DrilsBiObjectiveExperiment implements Process {
     private static final String CROSSOVER_CHAR = "X";
     private static final String PROBLEM_CHAR = "P";
     private static final String TIMER_ARGUMENT = "timer";
+    private static final String OBJECTIVE = "obj";
 
     private static final String MAXSAT_PROBLEM = "maxsat";
     private static final String NK_PROBLEM = "nk";
@@ -54,6 +54,7 @@ public class DrilsBiObjectiveExperiment implements Process {
     private static final String TYPE_PERTURBATION = "perturbation";
     private static final String TYPE_CROSSOVER = "crossover";
     private String filename = "output.gz";
+    private BufferedWriter tsvWriter;
 
     private final Map<String, EmbeddedLandscapeConfigurator> configurators = new HashMap<>();
     private PBSolution bestSolution = null;
@@ -100,6 +101,7 @@ public class DrilsBiObjectiveExperiment implements Process {
     private String problem;
     private CrossoverConfigurator crossoverConfigurator;
     private String crossover;
+    private String obj;
     private Predicate<?> shouldIStop;
 
 
@@ -145,6 +147,7 @@ public class DrilsBiObjectiveExperiment implements Process {
         options.addOption(DEBUG_ARGUMENT, false, "enable debug information");
         options.addOption(IMPROVING_LO, false, "accept only non disimproving local optima in ILS");
         options.addOption(PROBLEM, true, "problem to be solved: " + configurators.keySet());
+        options.addOption(OBJECTIVE, true, "objective: obj1, obj2, obj1+obj2 " + configurators.keySet());
         options.addOption(CROSSOVER, true, "crossover operator to use: " + crossoverConf.keySet());
         options.addOption(Option.builder(PROBLEM_CHAR)
                 .numberOfArgs(2)
@@ -176,6 +179,7 @@ public class DrilsBiObjectiveExperiment implements Process {
 
             problem = commandLine.getOptionValue(PROBLEM);
             crossover = commandLine.getOptionValue(CROSSOVER);
+            obj = commandLine.getOptionValue(OBJECTIVE);
             boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
 
             EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(commandLine.getOptionProperties(PROBLEM_CHAR), ps);
@@ -193,7 +197,8 @@ public class DrilsBiObjectiveExperiment implements Process {
                 if (pbf instanceof NKLandscapes) {
                     ((NKLandscapes) pbf).writeTo(sr);
                     ps.print(sr);
-                }if (pbf instanceof BiObjectiveLandscape) {
+                }
+                if (pbf instanceof BiObjectiveLandscape) {
                     ((BiObjectiveLandscape) pbf).writeTo(sr);
                     ps.print(sr);
                 }
@@ -211,6 +216,15 @@ public class DrilsBiObjectiveExperiment implements Process {
             if (commandLine.hasOption(OUT_FILE)) {
                 filename = commandLine.getOptionValue(OUT_FILE);
             }
+            // user gives something like "output.gz"
+            if (filename.endsWith(".gz")) {
+                String tsvFile = filename.substring(0, filename.length() - 3) + ".tsv";
+                tsvWriter = new BufferedWriter(new FileWriter(tsvFile, true));
+                tsvWriter.write("alpha\tBiObjSol\tObj1\tObj2\tNorm_Obj1\tNorm_Obj2\tElapsedTime(ms)\tMoves\tBestSoFar\tOverallExecTime(ms)\tCrossovers\tdiffChild");
+                tsvWriter.newLine();
+                tsvWriter.flush();
+            }
+
 
             int r = Integer.parseInt(commandLine.getOptionValue(RADIUS_ARGUMENT));
             double perturbFactor;
@@ -236,17 +250,68 @@ public class DrilsBiObjectiveExperiment implements Process {
             rballConfig.setProperty(RBallEfficientHillClimber.RANDOM_MOVES, "yes");
             rballConfig.setProperty(RBallEfficientHillClimber.R_STRING, r + "");
             rballConfig.setProperty(RBallEfficientHillClimber.SEED, "" + seed);
-//            for (double factor = 1.0; Double.compare(factor, 0.0) >= 0; factor -= 0.1) {
-//            for (double factor = 0.0; Double.compare(factor, 1.0) <= 0; factor += 0.1) {
-//            algorithm(pbf, factor, rballConfig, perturbFactor, px);
-            algorithm(pbf, 0.5, rballConfig, perturbFactor, px);
-            PBSolution bestSol = bestSolution;
-            for (double factor = 0.4; Double.compare(factor, 0.0) >= 0; factor -= 0.1) {
-                algorithm(pbf, factor, rballConfig, perturbFactor, px);
-            }
-            bestSolution = bestSol;
-            for (double factor = 0.6; Double.compare(factor, 1.0) <= 0; factor += 0.1) {
-                algorithm(pbf, factor, rballConfig, perturbFactor, px);
+            if (obj.equals("obj1+obj2")) {
+                // center: alpha = 0.5
+                algorithm(pbf, 0.5, rballConfig, perturbFactor, px);
+                PBSolution bestSol = bestSolution;
+                // go downward: 0.4, 0.3, 0.2, 0.1, 0.0
+                for (int i = 4; i >= 0; i--) {
+                    double alpha = i * 0.1;
+                    algorithm(pbf, alpha, rballConfig, perturbFactor, px);
+                }
+                bestSolution = bestSol;
+
+                // go upward: 0.6, 0.7, 0.8, 0.9, 1.0
+                for (int i = 6; i <= 10; i++) {
+                    double alpha = i * 0.1;
+                    algorithm(pbf, alpha, rballConfig, perturbFactor, px);
+                }
+            } else if (obj.equals("small_increment")) {
+                // center: alpha = 0.5
+                algorithm(pbf, 0.5, rballConfig, perturbFactor, px);
+                PBSolution bestSol = bestSolution;
+
+                // go downward: 0.45, 0.40, 0.35, ..., 0.05, 0.00
+                for (double i = 0.45; i >= 0.0; i -= 0.05) {
+                    algorithm(pbf, i, rballConfig, perturbFactor, px);
+                }
+
+                bestSolution = bestSol;
+
+                // go upward: 0.55, 0.60, 0.65, ..., 1.00
+                for (double i = 0.55; i <= 1.0; i += 0.05) {
+                    algorithm(pbf, i, rballConfig, perturbFactor, px);
+                }
+            } else if (obj.equals("smaller_increment")) {
+                // center: alpha = 0.5
+                algorithm(pbf, 0.5, rballConfig, perturbFactor, px);
+                PBSolution bestSol = bestSolution;
+
+                /// go downward: 0.49, 0.48, 0.47, ..., 0.01, 0.00
+                for (double i = 0.49; i >= 0.0; i -= 0.01) { // Starting from 0.49 and step size 0.01
+                    algorithm(pbf, i, rballConfig, perturbFactor, px);
+                }
+
+                bestSolution = bestSol;
+
+                // go upward: 0.51, 0.52, 0.53, ..., 1.00
+                for (double i = 0.51; i <= 1.0; i += 0.01) { // Starting from 0.51 and step size 0.01
+                    algorithm(pbf, i, rballConfig, perturbFactor, px);
+                }
+            } else if (obj.equals("obj2")) {
+                // start at 0.03, 10 iterations increasing 0.1
+                // α = 0.03 + k*0.1  for k = 0..9
+                for (int k = 0; k < 10; k++) {
+                    double alpha = 0.03 + k * 0.1;
+                    algorithm(pbf, alpha, rballConfig, perturbFactor, px);
+                }
+            } else if (obj.equals("obj1")) {
+                // start at 0.97, 10 iterations decreasing 0.1
+                // α = 0.97 - k*0.1  for k = 0..9
+                for (int k = 0; k < 10; k++) {
+                    double alpha = 0.97 - k * 0.1;
+                    algorithm(pbf, alpha, rballConfig, perturbFactor, px);
+                }
             }
             ps.println("Overall Execution Time(milli seconds): " + timer.elapsedTimeInMilliseconds());
             printOutput();
@@ -254,11 +319,13 @@ public class DrilsBiObjectiveExperiment implements Process {
             System.err.println("Exception: " + e.getMessage());
             e.printStackTrace(System.err);
             showOptions();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
     }
 
-    private void algorithm(EmbeddedLandscape pbf, double factor, Properties rballConfig, double perturbFactor, RBallCrossover px) {
+    private void algorithm(EmbeddedLandscape pbf, double factor, Properties rballConfig, double perturbFactor, RBallCrossover px) throws IOException {
         int countChild = 0;
         int countCrossover = 0;
         numberOfExploredSolutions = 0;
@@ -275,7 +342,8 @@ public class DrilsBiObjectiveExperiment implements Process {
         if (commandLine.hasOption(EXPLORED_SOLUTIONS)) {
             int expSols = Integer.parseInt(commandLine.getOptionValue(EXPLORED_SOLUTIONS));
 //            final int maxExploredSolutions = Double.compare(factor, 0.5) == 0 ? expSols : (int) (expSols*(1- (Math.abs(0.5 - factor))));
-            final int maxExploredSolutions = (int) (500*(1.0 + factor));
+//            final int maxExploredSolutions = (int) (500*(1.0 + factor));
+            final int maxExploredSolutions = expSols;
             shouldIStop = shouldIStop.or(x -> numberOfExploredSolutions >= maxExploredSolutions);
 //                    shouldIStop = shouldIStop.or(x -> climbs >= maxExploredSolutions);
             shouldIStop = shouldIStop.or(x -> climbs >= pbf.getN());
@@ -330,6 +398,11 @@ public class DrilsBiObjectiveExperiment implements Process {
         ps.println("Execution Time: " + executedTime);
         ps.println("No. of crossovers Operated: " + countCrossover);
         ps.println("No. of children different from parents: " + countChild);
+        tsvWriter.write(
+                "0\t0\t0\t0\t0\t0\t0\t0\tEND\t" + executedTime + "\t" + countCrossover + "\t" + countChild
+        );
+        tsvWriter.newLine();
+        tsvWriter.flush();
     }
 
 
@@ -385,20 +458,29 @@ public class DrilsBiObjectiveExperiment implements Process {
 
     private void initializeOutput() {
         ba = new ByteArrayOutputStream();
-        try {
-            ps = new PrintStream(new GZIPOutputStream(ba));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        // Create a dummy PrintStream that discards all output
+        ps = new PrintStream(new java.io.OutputStream() {
+            @Override
+            public void write(int b) {
+                // Discard output to save memory
+            }
+        });
+//        try {
+//            ps = new PrintStream(new GZIPOutputStream(ba));
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     private void printOutput() {
-        try {
+        // Do nothing.
+        // The TSV file has already been written to disk incrementally.
+        /*try {
             System.out.write(ba.toByteArray());
             writeCompressedToFile(filename);
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
+        }*/
     }
 
     private void writeCompressedToFile(String filename) {
@@ -412,27 +494,74 @@ public class DrilsBiObjectiveExperiment implements Process {
     }
 
     private void notifyExploredSolution(RBallEfficientHillClimberSnapshot exploredSolution) {
+        double obj1 = Double.NaN;
+        double obj2 = Double.NaN;
+        boolean isBest = Boolean.FALSE;
+        double alpha = exploredSolution.getProblem().getAlpha();
         double quality = exploredSolution.getSolutionQuality();
         numberOfExploredSolutions++;
+
         ps.println("Solution: " + exploredSolution.getSolution().toString());
         ps.println("Solution quality: " + quality);
+
         if (problem.equals(ANK_RNK_PROBLEM)) {
             // In this problem type, first problem is NK and second one is RNK
             BiObjectiveLandscape problem = (BiObjectiveLandscape) exploredSolution.getProblem();
-            List<Integer> nValues = problem.getNValues();
+//            List<Integer> nValues = problem.getNValues();
             List<Integer> mValues = problem.getMValues();
+
             Double[] subfnsEvals = exploredSolution.getSubfnsEvals();
-            double nkSolQuality = Arrays.stream(subfnsEvals)
-                    .limit(mValues.get(0)).mapToDouble(Double::doubleValue).sum();
-            ps.println("** ANK Solution quality: " + nkSolQuality);
-            ps.println("** RNK Solution quality: " + (quality - nkSolQuality));
+
+            obj1 = Arrays.stream(subfnsEvals)
+                    .limit(mValues.get(0))
+                    .mapToDouble(Double::doubleValue)
+                    .sum();
+            ps.println("** ANK Solution quality: " + obj1);
+
+            obj2 = quality - obj1;
+            ps.println("** RNK Solution quality: " + obj2);
         }
-        ps.println("Elapsed Time: " + timer.elapsedTimeInMilliseconds());
+        long timeElapsed = timer.elapsedTimeInMilliseconds();
+        ps.println("Elapsed Time: " + timeElapsed);
         ps.println("* Moves: " + moves);
         if (quality > bestSoFar) {
+            isBest = Boolean.TRUE;
             bestSoFar = quality;
             bestSolution = exploredSolution.getSolution();
             ps.println("* Best so far solution");
+        }
+
+//        tsvWriter.write("alpha\tBiObjSol\tObj1\tObj2\tNorm_Obj1\tNorm_Obj2\tElapsedTime(ms)\tMoves\tBestSoFar\tOverallExecTime(ms)");
+        try {
+            // ----- NORMALIZATION -----
+            double normObj1 = obj1;
+            double normObj2 = obj2;
+
+            if (alpha > 0.0) {
+                normObj1 = obj1 / alpha;
+            }
+
+            if (alpha < 1.0) {
+                normObj2 = obj2 / (1.0 - alpha);
+            }
+            tsvWriter.write(
+                    alpha + "\t" +
+                            quality + "\t" +
+                            obj1 + "\t" +
+                            obj2 + "\t" +
+                            normObj1 + "\t" +
+                            normObj2 + "\t" +
+                            timeElapsed + "\t" +
+                            moves + "\t" +
+                            (isBest ? "YES" : "NO") + "\t" +
+                            0 + "\t" +
+                            0 + "\t" +
+                            0
+            );
+            tsvWriter.newLine();
+            tsvWriter.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         reportLONNode(exploredSolution);

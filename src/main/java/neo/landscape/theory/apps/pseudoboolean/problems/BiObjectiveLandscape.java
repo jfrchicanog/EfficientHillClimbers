@@ -22,6 +22,11 @@ public class BiObjectiveLandscape extends EmbeddedLandscape {
         landscapes[1].setAlpha(1 - factor);
     }
 
+    @Override
+    public double getAlpha() {
+        return landscapes[0].getAlpha();
+    }
+
     private boolean isSameN() {
         int firstN = landscapes[0].getN();
         return Stream.of(landscapes).skip(1).noneMatch(landscape -> landscape.getN() != firstN);
