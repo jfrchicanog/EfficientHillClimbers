@@ -10,4 +10,10 @@ public class ParetoNonDominatedSet2DEfficientFactory implements IParetoNonDomina
     public void combine(ParetoNonDominatedSet2DEfficient source1, double[] offset1, ParetoNonDominatedSet2DEfficient source2, double[] offset2, ParetoNonDominatedSet2DEfficient target) {
         ParetoNonDominatedSet2DEfficient.combine(source1, offset1, source2, offset2, target);
     }
+
+    @Override
+    public void convolute(ParetoNonDominatedSet2DEfficient source1, ParetoNonDominatedSet2DEfficient source2, ParetoNonDominatedSet2DEfficient target) {
+        ParetoNonDominatedSet2DEfficient.convolute(source1, source2, target);
+    }
+
 }

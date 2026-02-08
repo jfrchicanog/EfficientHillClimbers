@@ -22,6 +22,7 @@ public class MOAdjacentMNKDynProg implements Process {
     private static final String PROBLEM="problem";
     private static final String MNK_PROBLEM = "mnk";
     private static final String OUTPUT_FILE_ARGUMENT = "output";
+    private static final String MAX_CORES = "maxcores";
 
     private VectorMKLandscape pbf;
 
@@ -31,6 +32,7 @@ public class MOAdjacentMNKDynProg implements Process {
     private Options options;
     private PrintStream ps;
     private ByteArrayOutputStream ba;
+    private OptionalInt maxCores;
 
     private final Map<String, VectorMKLandscapeConfigurator> configurators = new HashMap<>();
     {
@@ -66,6 +68,7 @@ public class MOAdjacentMNKDynProg implements Process {
             .desc("properties for the problem")
             .build());
         options.addOption(OUTPUT_FILE_ARGUMENT, true, "output file");
+        options.addOption(MAX_CORES, true, "maximum number of cores");
 
         return options;
     }
@@ -136,11 +139,19 @@ public class MOAdjacentMNKDynProg implements Process {
             if (commandLine.hasOption(OUTPUT_FILE_ARGUMENT)) {
                 outputFileName = commandLine.getOptionValue(OUTPUT_FILE_ARGUMENT);
             }
+            if (commandLine.hasOption(MAX_CORES)) {
+                maxCores = OptionalInt.of(Integer.parseInt(commandLine.getOptionValue(MAX_CORES)));
+            } else {
+                maxCores = OptionalInt.empty();
+            }
 
             pbf = getProblemConfigurator().configureProblem(
                 commandLine.getOptionProperties(PROBLEM_CHAR), ps);
 
             MultiObjectiveAdjacentNKExactSolver<?> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DEfficientFactory(), printWriter);
+            if (maxCores.isPresent()) {
+                solver.setMaxCores(maxCores.getAsInt());
+            }
             IParetoNonDominatedSet<?> paretoFront = solver.computeParetoFront(pbf);
 
             printWriter.println("Pareto front size: " + paretoFront.size());

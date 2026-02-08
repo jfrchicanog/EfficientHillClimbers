@@ -132,6 +132,18 @@ public class ParetoNonDominatedSet2DEfficient implements Iterable<double []>, IP
         add(point[0], point[1]);
     }
 
+    // FIXME: probably efficiency can be improved
+    public static void convolute(ParetoNonDominatedSet2DEfficient source1, ParetoNonDominatedSet2DEfficient source2, ParetoNonDominatedSet2DEfficient target) {
+        target.clear();
+        for (int index1 = 0; index1 < source1.size(); index1++) {
+            for (int index2 = 0; index2 < source2.size(); index2++) {
+                double newX = source1.xs[index1] + source2.xs[index2];
+                double newY = source1.ys[index1] + source2.ys[index2];
+                target.add(newX, newY);
+            }
+        }
+    }
+
     public static void combine(ParetoNonDominatedSet2DEfficient source1, double [] offset1, ParetoNonDominatedSet2DEfficient source2, double [] offset2, ParetoNonDominatedSet2DEfficient target) {
         target.clear();
         if (source1.size > 0 && source2.size==0) {
