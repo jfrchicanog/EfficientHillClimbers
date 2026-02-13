@@ -46,7 +46,7 @@ public class CPBasedHPEliminationTest {
         // Compare contents
         assertEquals(localOptima, goldmanLocalOptima, "The sets of local optima differ");
         if (goldmanTime < cpTime) {
-            System.out.println("Golaman faster in "+n+","+k+","+pseed+" by "+(cpTime-goldmanTime)/1e3+" µs");
+            System.out.println("Goldman faster in "+n+","+k+","+pseed+" by "+(cpTime-goldmanTime)/1e3+" µs");
         }
 
     }

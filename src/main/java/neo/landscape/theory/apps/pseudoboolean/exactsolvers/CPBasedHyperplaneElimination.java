@@ -243,7 +243,7 @@ public class CPBasedHyperplaneElimination {
         if (allMovesAreMarked()) {
             reportParetoLocalOptimum();
         } else {
-            Move move = getBestMoveFromRemainingMoves();
+            Move move = getBestMoveFromRemainingMovesMin();
             for (Hyperplane hyperplane: move.validHyperplanes) {
                 if (!forbiddenHyperplanes[hyperplane.id]) {
                     hyperplanesStack.push(hyperplane);
@@ -370,9 +370,44 @@ public class CPBasedHyperplaneElimination {
         return numberOfMarkedMoves == markedMoves.length;
     }
 
+    private Move getBestMoveFromRemainingMovesMin() {
+        int min = Integer.MAX_VALUE;
+        Move selected = null;
+        for (Move move: remainingMoves) {
+            int live = liveHyperPlanesForMove(move);
+            if (live < min) {
+                min = live;
+                selected = move;
+            }
+        }
+        return selected;
+    }
+
+    private Move getBestMoveFromRemainingMovesMax() {
+        int max = Integer.MIN_VALUE;
+        Move selected = null;
+        for (Move move: remainingMoves) {
+            int live = liveHyperPlanesForMove(move);
+            if (live > max) {
+                max = live;
+                selected = move;
+            }
+        }
+        return selected;
+    }
+
     private Move getBestMoveFromRemainingMoves() {
-        // FIXME: this is not the best move, but it is a move that is still available. We should use the information in the map to select the best move.
         return remainingMoves.stream().findFirst().orElse(null);
+    }
+
+    private int liveHyperPlanesForMove(Move move) {
+        int count = 0;
+        for (Hyperplane hyperplane: move.validHyperplanes) {
+            if (!forbiddenHyperplanes[hyperplane.id]) {
+                count++;
+            }
+        }
+        return count;
     }
 
 
