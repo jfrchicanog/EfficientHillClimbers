@@ -13,7 +13,8 @@ public class CPBasedHyperplaneEliminationEfficient {
 
     private static class Hyperplane {
         private int id;
-        private final Set<Move> movesWhereValid;
+        private int [] movesWhereValidSet;
+        private int movesWhereValidSetSize;
         private int [] conflictingHyperplanesArray;
         private int conflictingHyperplanesSize;
         private long varsMask;
@@ -24,7 +25,6 @@ public class CPBasedHyperplaneEliminationEfficient {
 
             this.varsMask = 0;
             this.valueMask = 0;
-            this.movesWhereValid = new HashSet<>();
         }
 
         @Override
@@ -63,6 +63,7 @@ public class CPBasedHyperplaneEliminationEfficient {
         private final int [] variablesFlipped;
         private final Set<Hyperplane> validHyperplanes;
         private int [] validHyperplanesArray;
+        private TwoStatesIntegerSet validHyperplanesSet;
 
         private Move(int i) {
             this.id = i;
@@ -202,7 +203,12 @@ public class CPBasedHyperplaneEliminationEfficient {
                     h = validHyperplanes.get(h);
                 }
                 move.validHyperplanes.add(h);
-                h.movesWhereValid.add(move);
+                if (h.movesWhereValidSet == null) {
+                    h.movesWhereValidSet = new int [moves.length];
+                    h.movesWhereValidSetSize = 0;
+                }
+                h.movesWhereValidSet[h.movesWhereValidSetSize++] = move.id;
+
             }
         }
 
@@ -216,7 +222,12 @@ public class CPBasedHyperplaneEliminationEfficient {
         }
 
         for (Move move: moves) {
-            move.prepareArray();
+            move.validHyperplanesSet = new TwoStatesISArrayImpl(hyperplanes.length);
+            move.validHyperplanesSet.setAllToExplored();
+            for (Hyperplane h: move.validHyperplanes) {
+                move.validHyperplanesSet.unexplored(h.id);
+            }
+            //move.prepareArray();
         }
     }
 
@@ -299,7 +310,8 @@ public class CPBasedHyperplaneEliminationEfficient {
             reportParetoLocalOptimum();
         } else {
             Move move = getBestMoveFromRemainingMoves();
-            for (int hyperplaneId: move.validHyperplanesArray) {
+            List<Integer> hps = move.validHyperplanesSet.getUnexplored().boxed().toList();
+            for (int hyperplaneId: hps) {
                 if (!forbiddenHyperplanes[hyperplaneId]) {
                     hyperplanesStack[hyperplanesStackSize++] = hyperplaneId;
                     markAllMovesCovered(hyperplanes[hyperplaneId]);
@@ -309,6 +321,8 @@ public class CPBasedHyperplaneEliminationEfficient {
                     unforbidAllConflictingHyperplanesOfHyperplane(hyperplanes[hyperplaneId]);
                     unmarkAllMovesCovered();
                     hyperplanesStackSize--;
+                } else {
+                    throw new IllegalStateException("Never here!");
                 }
             }
         }
@@ -319,6 +333,13 @@ public class CPBasedHyperplaneEliminationEfficient {
         for (int i=0; i < length; i++) {
             int hyperplaneId = forbiddenHyperplanesStack.getValueFromTopLayer(i);
             forbiddenHyperplanes[hyperplaneId] = false;
+
+            for (int index=0; index < hyperplanes[hyperplaneId].movesWhereValidSetSize; index++) {
+                int otherMoveId = hyperplanes[hyperplaneId].movesWhereValidSet[index];
+                if (!markedMoves[otherMoveId]) {
+                    moves[otherMoveId].validHyperplanesSet.unexplored(hyperplaneId);
+                }
+            }
         }
         forbiddenHyperplanesStack.pop();
     }
@@ -330,15 +351,16 @@ public class CPBasedHyperplaneEliminationEfficient {
             if (!forbiddenHyperplanes[conflictingHyperplaneId]) {
                 forbiddenHyperplanesStack.addValue(conflictingHyperplaneId);
                 forbiddenHyperplanes[conflictingHyperplaneId] = true;
-                /*
-                if (result) {
-                    for (Move otherMove : conflictingHyperplane.movesWhereValid) {
-                        if (!markedMoves[otherMove.id]) {
+
+                    for (int index=0; index < hyperplanes[conflictingHyperplaneId].movesWhereValidSetSize; index++) {
+                        int ohterMoveId = hyperplanes[conflictingHyperplaneId].movesWhereValidSet[index];
+                        if (!markedMoves[ohterMoveId]) {
                             // FIXME: this can be optimized
-                            result &= otherMove.validHyperplanes.stream().anyMatch(h -> !forbiddenHyperplanes[h.id]);
+                            moves[ohterMoveId].validHyperplanesSet.explored(conflictingHyperplaneId);
+                            result &= moves[ohterMoveId].validHyperplanesSet.hasMoreUnexplored();
+                            // result &= otherMove.validHyperplanes.stream().anyMatch(h -> !forbiddenHyperplanes[h.id]);
                         }
                     }
-                }*/
             }
         }
         forbiddenHyperplanesStack.commitLayer();
@@ -346,11 +368,12 @@ public class CPBasedHyperplaneEliminationEfficient {
     }
 
     private void markAllMovesCovered(Hyperplane hyperplane) {
-        for (Move move: hyperplane.movesWhereValid) {
-            if (!markedMoves[move.id]) {
-                markedMovesStack.addValue(move.id);
-                markedMoves[move.id] = true;
-                remainingMoves.explored(move.id);
+        for (int index=0; index < hyperplane.movesWhereValidSetSize; index++) {
+            int moveId = hyperplane.movesWhereValidSet[index];
+            if (!markedMoves[moveId]) {
+                markedMovesStack.addValue(moveId);
+                markedMoves[moveId] = true;
+                remainingMoves.explored(moveId);
                 // remainingMoves.remove(move);
                 numberOfMarkedMoves++;
             }
