@@ -16,6 +16,7 @@ public class CPBasedHyperplaneEliminationEfficient {
         private final Set<Move> movesWhereValid;
         private final List<Hyperplane> conflictingHyperplanes;
         private int [] conflictingHyperplanesArray;
+        private int conflictingHyperplanesSize;
         private long varsMask;
         private long valueMask;
 
@@ -216,6 +217,7 @@ public class CPBasedHyperplaneEliminationEfficient {
         for (Hyperplane h: validHyperplanes.keySet()) {
             h.id = i;
             hyperplanes[i] = h;
+            h.conflictingHyperplanesArray = new int [validHyperplanes.size()];
             i++;
         }
 
@@ -287,13 +289,14 @@ public class CPBasedHyperplaneEliminationEfficient {
 
     private void computeConflictingHyperplanes() {
         for (int i=0; i < hyperplanes.length; i++) {
+            Hyperplane hi = hyperplanes[i];
             for (int j=i+1; j < hyperplanes.length; j++) {
+                Hyperplane hj = hyperplanes[j];
                 if (hyperplanes[i].hyperplanesAreConflicting(hyperplanes[j])) {
-                    hyperplanes[i].conflictingHyperplanes.add(hyperplanes[j]);
-                    hyperplanes[j].conflictingHyperplanes.add(hyperplanes[i]);
+                    hi.conflictingHyperplanesArray[hi.conflictingHyperplanesSize++] = hj.id;
+                    hj.conflictingHyperplanesArray[hj.conflictingHyperplanesSize++] = hi.id;
                 }
             }
-            hyperplanes[i].prepareArray();
         }
     }
 
@@ -328,7 +331,8 @@ public class CPBasedHyperplaneEliminationEfficient {
 
     private boolean forbidAllConflictingHyperplanesOfHyperplane(Hyperplane hyperplane) {
         boolean result = true;
-        for (int conflictingHyperplaneId: hyperplane.conflictingHyperplanesArray) {
+        for (int conflictingHyperplaneIdIndex=0; conflictingHyperplaneIdIndex < hyperplane.conflictingHyperplanesSize; conflictingHyperplaneIdIndex++) {
+            int conflictingHyperplaneId = hyperplane.conflictingHyperplanesArray[conflictingHyperplaneIdIndex];
             if (!forbiddenHyperplanes[conflictingHyperplaneId]) {
                 forbiddenHyperplanesStack.addValue(conflictingHyperplaneId);
                 forbiddenHyperplanes[conflictingHyperplaneId] = true;
