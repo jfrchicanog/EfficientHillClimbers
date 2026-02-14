@@ -14,7 +14,6 @@ public class CPBasedHyperplaneEliminationEfficient {
     private static class Hyperplane {
         private int id;
         private final Set<Move> movesWhereValid;
-        private final List<Hyperplane> conflictingHyperplanes;
         private int [] conflictingHyperplanesArray;
         private int conflictingHyperplanesSize;
         private long varsMask;
@@ -26,7 +25,6 @@ public class CPBasedHyperplaneEliminationEfficient {
             this.varsMask = 0;
             this.valueMask = 0;
             this.movesWhereValid = new HashSet<>();
-            this.conflictingHyperplanes = new ArrayList<>();
         }
 
         @Override
@@ -57,10 +55,6 @@ public class CPBasedHyperplaneEliminationEfficient {
             } else {
                 valueMask &= ~(1L << variable);
             }
-        }
-
-        private void prepareArray() {
-            conflictingHyperplanesArray = conflictingHyperplanes.stream().mapToInt(h -> h.id).toArray();
         }
     }
 
