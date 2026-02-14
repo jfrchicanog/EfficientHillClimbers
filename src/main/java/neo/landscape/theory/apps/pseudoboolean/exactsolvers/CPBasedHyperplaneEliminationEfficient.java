@@ -457,13 +457,14 @@ public class CPBasedHyperplaneEliminationEfficient {
         return numberOfMarkedMoves == markedMoves.length;
     }
 
-    /*
+
     private Move getBestMoveFromRemainingMovesMin() {
         int min = Integer.MAX_VALUE;
         Move selected = null;
-
-        for (Move move: remainingMoves) {
-            int live = liveHyperPlanesForMove(move);
+        List<Move> remaining = remainingMoves.getUnexplored().mapToObj(i->moves[i]).toList();
+        for (Move move: remaining) {
+            int live = move.validHyperplanesSet.getNumberOfUnexploredElements();
+            // int live = liveHyperPlanesForMove(move);
             if (live < min) {
                 min = live;
                 selected = move;
@@ -471,7 +472,7 @@ public class CPBasedHyperplaneEliminationEfficient {
         }
         return selected;
     }
-
+/*
     private Move getBestMoveFromRemainingMovesMax() {
         int max = Integer.MIN_VALUE;
         Move selected = null;
