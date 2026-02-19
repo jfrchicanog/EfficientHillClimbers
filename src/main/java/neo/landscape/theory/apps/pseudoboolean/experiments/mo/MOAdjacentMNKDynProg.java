@@ -4,7 +4,9 @@ import neo.landscape.theory.apps.pseudoboolean.exactsolvers.MultiObjectiveAdjace
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscapeConfigurator;
+import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSet;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
+import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2DEfficientFactory;
 import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2DFactory;
 import neo.landscape.theory.apps.util.Process;
 import org.apache.commons.cli.*;
@@ -20,6 +22,7 @@ public class MOAdjacentMNKDynProg implements Process {
     private static final String PROBLEM="problem";
     private static final String MNK_PROBLEM = "mnk";
     private static final String OUTPUT_FILE_ARGUMENT = "output";
+    private static final String MAX_CORES = "maxcores";
 
     private VectorMKLandscape pbf;
 
@@ -29,6 +32,7 @@ public class MOAdjacentMNKDynProg implements Process {
     private Options options;
     private PrintStream ps;
     private ByteArrayOutputStream ba;
+    private OptionalInt maxCores;
 
     private final Map<String, VectorMKLandscapeConfigurator> configurators = new HashMap<>();
     {
@@ -64,6 +68,7 @@ public class MOAdjacentMNKDynProg implements Process {
             .desc("properties for the problem")
             .build());
         options.addOption(OUTPUT_FILE_ARGUMENT, true, "output file");
+        options.addOption(MAX_CORES, true, "maximum number of cores");
 
         return options;
     }
@@ -129,22 +134,31 @@ public class MOAdjacentMNKDynProg implements Process {
 
         try {
             CommandLine commandLine = parseCommandLine(args);
+            PrintWriter printWriter = new PrintWriter(System.out, true);
             problem = commandLine.getOptionValue(PROBLEM);
             if (commandLine.hasOption(OUTPUT_FILE_ARGUMENT)) {
                 outputFileName = commandLine.getOptionValue(OUTPUT_FILE_ARGUMENT);
+            }
+            if (commandLine.hasOption(MAX_CORES)) {
+                maxCores = OptionalInt.of(Integer.parseInt(commandLine.getOptionValue(MAX_CORES)));
+            } else {
+                maxCores = OptionalInt.empty();
             }
 
             pbf = getProblemConfigurator().configureProblem(
                 commandLine.getOptionProperties(PROBLEM_CHAR), ps);
 
-            MultiObjectiveAdjacentNKExactSolver<ParetoNonDominatedSet2D> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DFactory());
-            ParetoNonDominatedSet2D paretoFront = solver.computeParetoFront(pbf);
+            MultiObjectiveAdjacentNKExactSolver<?> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DEfficientFactory(), printWriter);
+            if (maxCores.isPresent()) {
+                solver.setMaxCores(maxCores.getAsInt());
+            }
+            IParetoNonDominatedSet<?> paretoFront = solver.computeParetoFront(pbf);
 
-            System.out.println("Pareto front size: " + paretoFront.size());
+            printWriter.println("Pareto front size: " + paretoFront.size());
             if (outputFileName != null) {
-                System.out.println("Writing in file " + outputFileName);
+                printWriter.println("Writing in file " + outputFileName);
                 writeParetoFrontInFile(paretoFront);
-                System.out.println("written");
+                printWriter.println("written");
             }
         } catch (Exception e) {
             showOptions();
@@ -152,7 +166,7 @@ public class MOAdjacentMNKDynProg implements Process {
         }
     }
 
-    private void writeParetoFrontInFile(ParetoNonDominatedSet2D paretoFront) {
+    private void writeParetoFrontInFile(IParetoNonDominatedSet<?> paretoFront) {
     	try (FileOutputStream fos = new FileOutputStream(outputFileName);
     		 GZIPOutputStream gzos = new GZIPOutputStream(fos);
     		 PrintWriter writer = new PrintWriter(gzos)) 

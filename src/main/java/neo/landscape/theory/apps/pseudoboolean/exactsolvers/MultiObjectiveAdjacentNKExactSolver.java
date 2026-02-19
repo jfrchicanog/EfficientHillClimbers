@@ -5,19 +5,28 @@ import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKSubfunctionTranslator;
 import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSet;
 import neo.landscape.theory.apps.pseudoboolean.util.IParetoNonDominatedSetFactory;
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
 
+import java.io.PrintWriter;
+import java.io.Serializable;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedSet<NS>> {
 
+    public static class MOAdjacentNKDeltaComputation<NS extends IParetoNonDominatedSet<NS>> implements Serializable {
+        private long hashProblem;
+        private int numVariables;
+        private int numSubfunctions;
+        private int startSubfunction;
+        private int endSubfunction;
+        private NS [][] table;
+    }
 
     private VectorMKLandscape vectorMKLandscape;
     private IParetoNonDominatedSetFactory<NS> paretoNonDominatedSetFactory;
@@ -30,11 +39,27 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
     private PBSolution solution;
     private int mask;
     private ExecutorService pool;
+    private Optional<PrintWriter> pw = Optional.empty();
+    private long startTime;
+    private OptionalInt maxCores = OptionalInt.empty();
+
 
     public MultiObjectiveAdjacentNKExactSolver(IParetoNonDominatedSetFactory<NS> factory) {
         paretoNonDominatedSetFactory = factory;
-        int nbThreads = Runtime.getRuntime().availableProcessors();
         pool =  Executors. newFixedThreadPool (1);
+    }
+
+    public MultiObjectiveAdjacentNKExactSolver(IParetoNonDominatedSetFactory<NS> factory, PrintWriter pw) {
+        this(factory);
+        this.pw = Optional.ofNullable(pw);
+    }
+
+    public void setMaxCores(int maxCores) {
+        this.maxCores = OptionalInt.of(Math.max(maxCores, Runtime.getRuntime().availableProcessors()));
+    }
+
+    public void makeSequential() {
+        maxCores = OptionalInt.empty();
     }
 
     private void checkVectorMKLandscape() {
@@ -86,17 +111,14 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
         return result;
     }
 
-    public NS computeParetoFront(VectorMKLandscape vectorMKLandscape) {
-        this.vectorMKLandscape = vectorMKLandscape;
-        translator = vectorMKLandscape.getSubfunctionsTranslator();
-        n = vectorMKLandscape.getN();
-        d = vectorMKLandscape.getDimension();
-        k = vectorMKLandscape.getMaskLength(0);
-        mask = (1 << k) -1;
-        solution = new PBSolution (k);
-        int K=k-1;
+    private void reportMessage(Supplier<String> message) {
+        pw.ifPresent(pw -> pw.println(message.get()));
+    }
 
+    public NS computeParetoFront(VectorMKLandscape vectorMKLandscape) {
+        initializeDataFields(vectorMKLandscape);
         checkVectorMKLandscape();
+        int K=k-1;
         if (n <= 2 * K) {
             return applyExhaustiveEnumeration();
         }
@@ -113,13 +135,73 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
         int subfunction;
         for (subfunction=K; subfunction < n-K; subfunction++) { // stop when there K subfunctions missing
             // Absorb subfunction K and eliminate variable K (subfunction K goes from var K to 2K)
-            eliminateVariable(subfunction, computed, target);
+            if ((subfunction % 1000) == 0) {
+                final int sf = subfunction;
+                reportMessage(()-> String.format("Eliminating subfunction %1d at time %2d (ms)",sf, (System.nanoTime()-startTime)/1_000_000L));
+            }
+            if (maxCores.isEmpty()) {
+                eliminateVariable(subfunction, computed, target);
+            } else {
+                eliminateVariableParallel(subfunction, computed, target);
+            }
             NS [][] tmp = computed;
             computed = target;
             target = tmp;
         }
         // Then do exhaustive search using also the remaining subfunctions.
         return exhaustiveSearchWithRemainingFunctions(computed);
+    }
+
+    private void initializeDataFields(VectorMKLandscape vectorMKLandscape) {
+        startTime = System.nanoTime();
+        this.vectorMKLandscape = vectorMKLandscape;
+        translator = vectorMKLandscape.getSubfunctionsTranslator();
+        n = vectorMKLandscape.getN();
+        d = vectorMKLandscape.getDimension();
+        k = vectorMKLandscape.getMaskLength(0);
+        mask = (1 << k) -1;
+        solution = new PBSolution (k);
+    }
+
+    private void checkDelta(MOAdjacentNKDeltaComputation<NS> delta) {
+        if (delta.numVariables != n ||
+            delta.numSubfunctions != vectorMKLandscape.getM() ||
+            delta.startSubfunction < 0 ||
+            delta.endSubfunction >= n ||
+            delta.table.length != (1<<(k-1))) {
+            throw new IllegalArgumentException("The delta computation does not match the problem");
+        }
+    }
+
+    private MOAdjacentNKDeltaComputation<NS> combineFunctions(VectorMKLandscape vectorMKLandscape, MOAdjacentNKDeltaComputation<NS> delta1, MOAdjacentNKDeltaComputation<NS> delta2) {
+        initializeDataFields(vectorMKLandscape);
+        checkDelta(delta1);
+        checkDelta(delta2);
+        paretoNSSets1 = delta1.table;
+        paretoNSSets2 = delta2.table;
+        int limit = paretoNSSets1.length;
+        NS [][] target = initializeParetoNSSets();
+        NS targetSet1 = paretoNonDominatedSetFactory.create();
+        NS acum = paretoNonDominatedSetFactory.create();
+        double [] zero = new double[d];
+        for (int i=0; i < limit; i++) {
+            for (int j=0; j < limit; j++) {
+                for (int k=0; k < limit; k++) {
+                    paretoNonDominatedSetFactory.convolute(paretoNSSets1[i][k], paretoNSSets2[k][j], targetSet1);
+                    paretoNonDominatedSetFactory.combine(target[i][j], zero, targetSet1, zero, acum);
+                    NS tmp = target[i][j];
+                    target[i][j] = acum;
+                    acum = tmp;
+                }
+            }
+        }
+        MOAdjacentNKDeltaComputation<NS> result = new MOAdjacentNKDeltaComputation<>();
+        result.numVariables = n;
+        result.numSubfunctions = vectorMKLandscape.getM();
+        result.startSubfunction = delta1.startSubfunction;
+        result.endSubfunction = delta2.endSubfunction;
+        result.table = target;
+        return result;
     }
 
     private NS solveAdditiveDecomposable() {
@@ -207,6 +289,42 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
         return result;
     }
 
+    private void eliminateVariableParallel(int subfunction, NS[][] computed, NS[][] target) {
+        int limit = 1 << (k - 1);
+        pool = Executors.newFixedThreadPool(maxCores.getAsInt());
+        //double[][] point = new double[2][d];
+        for (int j = 0; j < limit; j++) {
+            for (int i = 0; i < limit; i++) {
+                final int fi = i;
+                final int fj = j;
+                pool.submit(() -> {
+                    double[][] point = new double[2][d];
+                    initializePoints(point);
+                    PBSolution solution = new PBSolution(k);
+                    int msb_index = (fi << 1);
+                    for (int lsb_bit = 0; lsb_bit < 2; lsb_bit++) {
+                        solution.getData()[0] = msb_index | lsb_bit;
+                        for (int dim = 0; dim < d; dim++) {
+                            int inner_sf = translator.subfunctionID(dim, subfunction);
+                            point[lsb_bit][dim] += vectorMKLandscape.evaluateSubfunction(inner_sf, solution);
+                        }
+                    }
+                    int masked_msb = msb_index & (limit - 1);
+                    paretoNonDominatedSetFactory.combine(
+                        computed[masked_msb][fj], point[0],
+                        computed[masked_msb | 0x1][fj],
+                        point[1], target[fi][fj]);
+                });
+            }
+        }
+        pool.shutdown();
+        try {
+            pool.awaitTermination(1000, TimeUnit.DAYS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void eliminateVariable(int subfunction, NS[][] computed, NS[][] target) {
         int limit = 1<< (k-1);
         // pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -274,6 +392,7 @@ public class MultiObjectiveAdjacentNKExactSolver<NS extends IParetoNonDominatedS
             }
         }
     }
+
 
 
 }

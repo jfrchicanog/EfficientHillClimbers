@@ -2,10 +2,7 @@ package neo.landscape.theory.apps.pseudoboolean.exactsolvers;
 
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.MNKLandscapeConfigurator;
 import neo.landscape.theory.apps.pseudoboolean.problems.mo.VectorMKLandscape;
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet;
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2D;
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSet2DFactory;
-import neo.landscape.theory.apps.pseudoboolean.util.ParetoNonDominatedSetFactory;
+import neo.landscape.theory.apps.pseudoboolean.util.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -85,10 +82,10 @@ public class MultiObjectiveAdjacentNKExactSolverTest {
     public void performanceTest(int n, int k, int pseed) {
         VectorMKLandscape problem = getVectorMKLandscape(n, k, pseed);
 
-        MultiObjectiveAdjacentNKExactSolver<ParetoNonDominatedSet2D> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DFactory());
+        MultiObjectiveAdjacentNKExactSolver<?> solver = new MultiObjectiveAdjacentNKExactSolver<>(new ParetoNonDominatedSet2DEfficientFactory());
 
         long start = System.nanoTime();
-        ParetoNonDominatedSet2D actual = solver.computeParetoFront(problem);
+        IParetoNonDominatedSet<?> actual = solver.computeParetoFront(problem);
         long efficientTime = System.nanoTime() - start;
         System.out.println("Effective time: " + efficientTime + " nanoseconds");
     }
