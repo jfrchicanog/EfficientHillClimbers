@@ -28,7 +28,7 @@ public class PartitionCrossover implements CrossoverInternal {
     
     protected long lastRuntime;
 
-    private int numberOfComponents;
+    protected int numberOfComponents;
     
     private PrintStream ps;
 

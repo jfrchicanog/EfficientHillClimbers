@@ -1,14 +1,13 @@
 package neo.landscape.theory.apps.pseudoboolean.px;
 
-import java.io.PrintStream;
-
 import neo.landscape.theory.apps.pseudoboolean.PBSolution;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.MovesAndSubFunctionInspectorFactory;
 import neo.landscape.theory.apps.pseudoboolean.hillclimbers.RBallEfficientHillClimberSnapshot;
-import neo.landscape.theory.apps.pseudoboolean.problems.EmbeddedLandscape;
+
+import java.io.PrintStream;
 
 public class RBallCrossoverAdaptor implements RBallCrossover  {
-	
+
 	private MovesAndSubFunctionInspectorFactory inspectorFactory;
 	private CrossoverInternal crossover;
 	private PrintStream ps;
@@ -20,28 +19,28 @@ public class RBallCrossoverAdaptor implements RBallCrossover  {
 	public RBallEfficientHillClimberSnapshot recombine(
 			RBallEfficientHillClimberSnapshot blue,
 			RBallEfficientHillClimberSnapshot red) {
-	    
+
 	    long initTime = System.nanoTime();
-	    
+
 		PBSolution blueSolution = blue.getSolution();
 		PBSolution redSolution = red.getSolution();
 		PBSolution res = crossover.recombineInternal(blueSolution, redSolution);
-		
+
 		long lastRuntime = System.nanoTime()-initTime;
 
 		if (res.equals(blueSolution) || res.equals(redSolution)) {
 			reportRuntime(lastRuntime);
-			ps.println("In recombination child is same as one of the parent and hence no solution is returned");
+//			ps.println("In recombination child is same as one of the parent and hence no solution is returned");
 			return null;
 		}
 		// else
-		
+
 		inspectorFactory = new InitializedMovesAndSubFunctionInspectorFactory(blue, red, crossover);
 		RBallEfficientHillClimberSnapshot solution = blue.getHillClimberForInstanceOf().initialize(res, inspectorFactory);
-		
+
 		lastRuntime = System.nanoTime()-initTime;
 		reportRuntime(lastRuntime);
-		
+
 		return solution;
 	}
 
@@ -50,7 +49,7 @@ public class RBallCrossoverAdaptor implements RBallCrossover  {
 			ps.println("Recombination time:"+lastRuntime);
 		}
 	}
-	
+
 
 	@Override
 	public void setSeed(long seed) {
@@ -62,7 +61,7 @@ public class RBallCrossoverAdaptor implements RBallCrossover  {
 		this.ps=ps;
 		crossover.setPrintStream(ps);
 	}
-	
-	
+
+
 
 }
