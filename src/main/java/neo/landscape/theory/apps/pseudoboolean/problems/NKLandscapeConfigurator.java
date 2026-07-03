@@ -18,100 +18,87 @@ public class NKLandscapeConfigurator implements EmbeddedLandscapeConfigurator {
     public static final String Q_ARGUMENT = "q";
     public static final String K_ARGUMENT = "k";
     public static final String N_ARGUMENT = "n";
-	public static final String INSTANCE_ARGUMENT = "instance";
-	public static final String FACTOR = "alpha";
-	public static final String IS_SAT = "is_sat";
-	public static final String SAT_STEP = "sat_step";
+    public static final String INSTANCE_ARGUMENT = "instance";
+    public static final String FACTOR = "alpha";
+    public static final String IS_SAT = "is_sat";
+    public static final String SAT_STEP = "sat_step";
 
-	@Override
-    public  void prepareOptionsForProblem(Options options) {
+    @Override
+    public void prepareOptionsForProblem(Options options) {
         options.addOption(N_ARGUMENT, true, "number of variables");
         options.addOption(K_ARGUMENT, true, "number of subfunction arguments");
         options.addOption(Q_ARGUMENT, true, "cardinality of subfunction domain");
         options.addOption(MODEL_ARGUMENT, true, "NK-model: adjacent, random, <number>->Localized");
         options.addOption(PROBLEM_SEED_ARGUMENT, true, "random seed for generating the problem");
-		options.addOption(INSTANCE_ARGUMENT, true, "file with the instance to load (optional)");
-		options.addOption(FACTOR, true, "multiplying factor to generate nk problem (optional)");
+        options.addOption(INSTANCE_ARGUMENT, true, "file with the instance to load (optional)");
+        options.addOption(FACTOR, true, "multiplying factor to generate nk problem (optional)");
     }
 
     @Override
     public EmbeddedLandscape configureProblem(CommandLine commandLine, PrintStream ps) {
-    	Properties properties = new Properties();
+        Properties properties = new Properties();
 
-    	Stream.of(INSTANCE_ARGUMENT, FACTOR, N_ARGUMENT, K_ARGUMENT, Q_ARGUMENT, MODEL_ARGUMENT, PROBLEM_SEED_ARGUMENT)
-    		.forEach(clave -> MAXSATConfigurator.moveProperty(commandLine, properties, clave));
+        Stream.of(INSTANCE_ARGUMENT, FACTOR, N_ARGUMENT, K_ARGUMENT, Q_ARGUMENT, MODEL_ARGUMENT, PROBLEM_SEED_ARGUMENT)
+                .forEach(clave -> MAXSATConfigurator.moveProperty(commandLine, properties, clave));
 
         return configureProblem(properties, ps);
     }
 
-	@Override
-	public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
-		NKLandscapes pbf;
+    @Override
+    public EmbeddedLandscape configureProblem(Properties properties, PrintStream ps) {
+        NKLandscapes pbf;
         if (properties.containsKey(INSTANCE_ARGUMENT)) {
             String instance = properties.getProperty(INSTANCE_ARGUMENT);
             NKLandscapesDimacsLikeReader instanceReader = new NKLandscapesDimacsLikeReader();
             try (FileReader reader = new FileReader(instance)) {
-                if (properties.containsKey(FACTOR)) {
-                    double factor = Double.parseDouble((properties.getProperty(NKLandscapeConfigurator.FACTOR)));
-                    pbf = instanceReader.readInstance(reader, factor);
-                } else {
-                    pbf = instanceReader.readInstance(reader);
-                }
+                pbf = instanceReader.readInstance(reader);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
             ps.println("Intance: " + instance);
         } else {
-			pbf = new NKLandscapes();
-			Properties prop = new Properties();
-			String n = properties.getProperty(NKLandscapeConfigurator.N_ARGUMENT);
-			String k = properties.getProperty(NKLandscapeConfigurator.K_ARGUMENT);
-			String q = properties.getProperty(NKLandscapeConfigurator.Q_ARGUMENT);
-			String circular = properties.getProperty(NKLandscapeConfigurator.MODEL_ARGUMENT);
-			long problemSeed = Long.parseLong(properties.getProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT));
+            pbf = new NKLandscapes();
+            Properties prop = new Properties();
+            String n = properties.getProperty(NKLandscapeConfigurator.N_ARGUMENT);
+            String k = properties.getProperty(NKLandscapeConfigurator.K_ARGUMENT);
+            String q = properties.getProperty(NKLandscapeConfigurator.Q_ARGUMENT);
+            String circular = properties.getProperty(NKLandscapeConfigurator.MODEL_ARGUMENT);
+            long problemSeed = Long.parseLong(properties.getProperty(NKLandscapeConfigurator.PROBLEM_SEED_ARGUMENT));
 
-			if (properties.containsKey(FACTOR)) {
-				String factor = properties.getProperty(NKLandscapeConfigurator.FACTOR);
-				prop.setProperty(NKLandscapes.FACTOR, factor);
-			}
-			if (properties.containsKey(IS_SAT)) {
-				String isSat = properties.getProperty(NKLandscapeConfigurator.IS_SAT);
-				prop.setProperty(NKLandscapes.IS_SAT, isSat);
-			}
-			if (properties.containsKey(SAT_STEP)) {
-				String step = properties.getProperty(NKLandscapeConfigurator.SAT_STEP);
-				prop.setProperty(NKLandscapes.SAT_STEP, step);
-			}
+            if (properties.containsKey(FACTOR)) {
+                String factor = properties.getProperty(NKLandscapeConfigurator.FACTOR);
+                prop.setProperty(NKLandscapes.FACTOR, factor);
+            }
+            if (properties.containsKey(IS_SAT)) {
+                String isSat = properties.getProperty(NKLandscapeConfigurator.IS_SAT);
+                prop.setProperty(NKLandscapes.IS_SAT, isSat);
+            }
+            if (properties.containsKey(SAT_STEP)) {
+                String step = properties.getProperty(NKLandscapeConfigurator.SAT_STEP);
+                prop.setProperty(NKLandscapes.SAT_STEP, step);
+            }
 
-			prop.setProperty(NKLandscapes.N_STRING, n);
-			prop.setProperty(NKLandscapes.K_STRING, k);
+            prop.setProperty(NKLandscapes.N_STRING, n);
+            prop.setProperty(NKLandscapes.K_STRING, k);
 
-			if (!q.equals("-")) {
-				prop.setProperty(NKLandscapes.Q_STRING, q);
-			}
+            if (!q.equals("-")) {
+                prop.setProperty(NKLandscapes.Q_STRING, q);
+            }
 
-			if (circular.equals("y")) {
-				prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
-			} else {
-				prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular);
-			}
+            if (circular.equals("y")) {
+                prop.setProperty(NKLandscapes.CIRCULAR_STRING, "yes");
+            } else {
+                prop.setProperty(NKLandscapes.CIRCULAR_STRING, circular);
+            }
 
-			pbf.setSeed(problemSeed);
+            pbf.setSeed(problemSeed);
             pbf.setConfiguration(prop);
 
             // same seed value starts for solving problem
-			pbf.setSeed(problemSeed);
-
-//			ps.println("N: " + pbf.getN());
-//			ps.println("k: " + pbf.getK());
-//			ps.println("Q: " + pbf.getQ());
-//			ps.println("Adjacent model?: "
-//				+ (NKLandscapes.NKModel.ADJACENT.equals(pbf.getNKModel()) ? "true" : "false"));
-//			ps.println("NK-model: " + circular);
-//			ps.println("ProblemSeed: " + problemSeed);
-		}
+            pbf.setSeed(problemSeed);
+        }
         return pbf;
-	}
+    }
 
 
 }

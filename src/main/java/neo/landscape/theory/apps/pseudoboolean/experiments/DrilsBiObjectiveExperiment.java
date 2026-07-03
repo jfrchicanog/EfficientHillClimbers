@@ -179,7 +179,7 @@ public class DrilsBiObjectiveExperiment implements Process {
 
             problem = commandLine.getOptionValue(PROBLEM);
             crossover = commandLine.getOptionValue(CROSSOVER);
-            obj = commandLine.getOptionValue(OBJECTIVE);
+            obj = commandLine.getOptionValue(OBJECTIVE, "obj1+obj2");
             boolean debug = commandLine.hasOption(DEBUG_ARGUMENT);
 
             EmbeddedLandscape pbf = getProblemConfigurator().configureProblem(commandLine.getOptionProperties(PROBLEM_CHAR), ps);

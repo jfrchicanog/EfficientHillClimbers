@@ -1,145 +1,139 @@
 package neo.landscape.theory.apps.pseudoboolean.parsers;
 
-import java.text.MessageFormat;
-import java.text.ParseException;
-import java.util.Locale;
-import java.util.Scanner;
-
 import neo.landscape.theory.apps.pseudoboolean.problems.NKLandscapes;
 
-public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader{
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.Reader;
 
-	private Scanner scanner;
-	private double alpha = 1.0;
+public class NKLandscapesDimacsLikeReader extends NKLandscapesAbstractReader {
 
-	public NKLandscapesDimacsLikeReader() {
-		super();
-	}
+    private BufferedReader reader;
+    private String parameterDescription = null;
 
-	@Override
-	public NKLandscapes readInstance(Readable input) {
-		prepareMemberVariables(input);
-		parseInstance();
-		scanner.close();
-		return instance;
-	}
+    public NKLandscapesDimacsLikeReader() {
+        super();
+    }
 
-	public NKLandscapes readInstance(Readable input, double alpha) {
-		this.alpha = alpha;
-		return readInstance(input);
-	}
+    @Override
+    public NKLandscapes readInstance(Readable input) {
+        prepareMemberVariables(input);
+        parseInstance();
+        return instance;
+    }
 
-	private void prepareMemberVariables(Readable input) {
-		scanner = new Scanner(input);
-		scanner.useDelimiter("\\s+");
-		scanner.useLocale(Locale.US);
-		prepareInstance();
-	}
+    private void prepareMemberVariables(Readable input) {
+        reader = new BufferedReader((Reader) input, 1 << 16); // 64KB buffer
+        prepareInstance();
+    }
 
-	private void parseInstance() {
-		parseParameters();
-		parseSubfunctions();
-	}
+    private void parseInstance() {
+        try {
+            parseParameters();
+            parseSubfunctions();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-	private void parseParameters() {
-		String line = scanner.nextLine();
-		while (line.startsWith("c")) {
-			line = scanner.nextLine();
-		}
+    private String nextRelevantLine() throws IOException {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            line = line.trim();
 
-		if (line.startsWith("p")) {
-			Object[] objs = null;
-			Number n = null;
-			Number K = null;
-			Number Q = null;
-			Number m = null;
-			try {
-				MessageFormat msg = new MessageFormat("p NK {0,number,integer} {1,number,integer} {2,number,integer} {3,number,integer}");
-				objs = msg.parse(line);
-				n = (Number) objs[0];
-				K = (Number) objs[1];
-				Q = (Number) objs[2];
-				m = (Number) objs[3];
-			} catch (ParseException e1) {
-				try {
-					MessageFormat msg = new MessageFormat("p NK {0,number,integer} {1,number,integer} {2,number,integer}");
-					objs = msg.parse(line);
-					n = (Number) objs[0];
-					K = (Number) objs[1];
-					Q = (Number) objs[2];
-					m = n;
-				} catch (ParseException e2) {
-					try {
-						MessageFormat msg = new MessageFormat("p NK {0,number,integer} {1,number,integer}");
-						objs = msg.parse(line);
-						n = (Number) objs[0];
-						K = (Number) objs[1];
-						Q = -1;
-						m = n;
-					} catch (ParseException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			}
-			instance.setN(n.intValue());
-			instance.setK(K.intValue() + 1);
-			instance.setM(m.intValue());
-			instance.setQ(Q.intValue());
-		} else {
-			throw new IllegalArgumentException("Wrong format for NK Landscape input: expecting line starting with 'p' and found: " + line);
-		}
+            if (line.isEmpty()) {
+                continue;
+            }
 
-	}
+            if (line.startsWith("c")) {
+                if (line.toLowerCase().contains("next line contains")) {
+                    parameterDescription = line.toLowerCase();
+                }
+                continue;
+            }
 
-	private void parseSubfunctions() {
-		instance.setSubfunctions(new double [instance.getM()][1 << instance.getK()]);
-		instance.setMasks(new int [instance.getM()][instance.getK()]);
-		for (int subfunction=0; subfunction < instance.getM(); subfunction++) {
-			parseSubfunction(subfunction);
-		}
-	}
+            return line;
+        }
 
-	private void parseSubfunction(int subfunction) {
-		String line = scanner.nextLine();
-		while (line.startsWith("c")) {
-			line = scanner.nextLine();
-		}
-		
-		parseSubfunctionSignature(subfunction, line);
-		
-		line = scanner.nextLine();
-		while (line.startsWith("c")) {
-			line = scanner.nextLine();
-		}
+        throw new IllegalArgumentException("Unexpected end of file");
+    }
 
-		parseSubfunctionValue(subfunction, line);
-		
-	}
+    private void parseParameters() throws IOException {
+        String line = nextRelevantLine();
 
-	private void parseSubfunctionValue(int subfunction, String line) {
-		try (Scanner scan = new Scanner(line)) {
-			scan.useDelimiter("\\s+");
-			scan.useLocale(Locale.US);
-			int twoToK = 1 << instance.getK();
-			for (int row = 0; row < twoToK; row++) {
-//				alpha is considered while evaluating the subfunction, so need not to multiply it
-				instance.getSubFunctions()[subfunction][row] = scan.nextDouble();
-//				instance.getSubFunctions()[subfunction][row] = alpha * scan.nextDouble();
-			}
-		}
-	}
+        if (!line.startsWith("p")) {
+            throw new IllegalArgumentException(
+                    "Wrong format for NK Landscape input: expecting line starting with 'p' and found: " + line);
+        }
 
-	private void parseSubfunctionSignature(int subfunction, String line) {
-		if (!line.startsWith("m")) {
-			throw new IllegalArgumentException("Expecting mask of subfunction (line starting with 'm') and found: "+line);
-		}
-		try (Scanner scanner= new Scanner(line.substring(1))) {
-			scanner.useDelimiter("\\s+");
-			scanner.useLocale(Locale.US);
-			for (int variable = instance.getK()-1; variable >=0; variable--) {
-				instance.getMasks()[subfunction][variable] = scanner.nextInt();
-			}
-		}
-	}
-	
+        String[] tokens = line.split("\\s+");
+
+        int index = 2; // skip "p NK"
+
+        int n = Integer.parseInt(tokens[index++]);
+        int k = Integer.parseInt(tokens[index++]);
+
+        int q = -1;
+        int m = n;
+
+        if (parameterDescription != null) {
+            if (parameterDescription.contains("q")) {
+                q = Integer.parseInt(tokens[index++]);
+            }
+            if (parameterDescription.contains("m") && index < tokens.length) {
+                m = Integer.parseInt(tokens[index]);
+            }
+        }
+
+        instance.setN(n);
+        instance.setK(k + 1);
+        instance.setM(m);
+        instance.setQ(q);
+    }
+
+    private void parseSubfunctions() throws IOException {
+        int m = instance.getM();
+        int k = instance.getK();
+        int twoToK = 1 << k;
+
+        instance.setSubfunctions(new double[m][twoToK]);
+        instance.setMasks(new int[m][k]);
+
+        for (int subfunction = 0; subfunction < m; subfunction++) {
+            parseSubfunction(subfunction);
+        }
+    }
+
+    private void parseSubfunction(int subfunction) throws IOException {
+        String line = nextRelevantLine();
+        parseSubfunctionSignature(subfunction, line);
+
+        line = nextRelevantLine();
+        parseSubfunctionValue(subfunction, line);
+    }
+
+    private void parseSubfunctionValue(int subfunction, String line) {
+        String[] tokens = line.split("\\s+");
+
+        int twoToK = 1 << instance.getK();
+        double[] table = instance.getSubFunctions()[subfunction];
+
+        for (int i = 0; i < twoToK; i++) {
+            table[i] = Double.parseDouble(tokens[i]);
+        }
+    }
+
+    private void parseSubfunctionSignature(int subfunction, String line) {
+        if (!line.startsWith("m")) {
+            throw new IllegalArgumentException(
+                    "Expecting mask of subfunction (line starting with 'm') and found: " + line);
+        }
+
+        String[] tokens = line.substring(1).trim().split("\\s+");
+        int[] mask = instance.getMasks()[subfunction];
+
+        for (int i = instance.getK() - 1, j = 0; i >= 0; i--, j++) {
+            mask[i] = Integer.parseInt(tokens[j]);
+        }
+    }
 }

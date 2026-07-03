@@ -25,7 +25,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.function.Predicate;
 
-public class DrilsParetoExperiment implements Process {
+public class McDrilsMoBiObjExperiment implements Process {
 
     // --- Arguments ---
     private static final String ALGORITHM_SEED_ARGUMENT = "aseed";
